@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>JGDash — Sign in</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/supabase-client.js"></script>
+  <style>
+    :root {
+      --text-primary: #FAFAFA;
+      --text-secondary: #B8B6B0;
+      --text-tertiary: #76746E;
+      --success: #6BE3A4;
+      --warning: #F2C063;
+      --danger: #FF6B6B;
+      --bg: #050506;
+      --card-bg: rgba(255, 255, 255, 0.04);
+      --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      --sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: var(--sans);
+      color: var(--text-primary);
+      background: var(--bg);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: -20%;
+      z-index: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse 50% 40% at 82% 14%, rgba(224, 118, 88, 0.16), transparent 60%),
+        radial-gradient(ellipse 45% 35% at 18% 90%, rgba(180, 180, 200, 0.06), transparent 55%);
+      filter: blur(40px);
+      animation: wash-drift 36s ease-in-out infinite alternate;
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.014) 0.6px, transparent 0.6px);
+      background-size: 3px 3px;
+    }
+    @keyframes wash-drift {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(-3%, 2%) scale(1.04); }
+    }
+    .card {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 420px;
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 28px 24px;
+      backdrop-filter: blur(24px) saturate(1.2);
+      -webkit-backdrop-filter: blur(24px) saturate(1.2);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+    }
+    .dash-title {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      margin-bottom: 8px;
+      background: linear-gradient(180deg, #FFFFFF 0%, #C7C4BC 120%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .sub {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 22px;
+      line-height: 1.45;
+    }
+    .btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 13px 18px;
+      border-radius: 999px;
+      border: none;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      font-family: var(--sans);
+      transition: transform 0.15s, filter 0.15s, background 0.15s;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary {
+      background: linear-gradient(180deg, #FFFFFF 0%, #E8E5DD 100%);
+      color: #0A0A0B;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.85);
+    }
+    .btn-glass {
+      margin-top: 10px;
+      background: rgba(255,255,255,0.04);
+      color: var(--text-primary);
+      border: 1px solid rgba(255,255,255,0.10);
+    }
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 22px 0 14px;
+      color: var(--text-tertiary);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(255,255,255,0.08);
+    }
+    label {
+      display: block;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin-bottom: 8px;
+    }
+    input[type="email"] {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      color: var(--text-primary);
+      font-size: 14px;
+      font-family: var(--sans);
+      outline: none;
+      margin-bottom: 10px;
+    }
+    input[type="email"]:focus { border-color: rgba(255,255,255,0.28); }
+    .status {
+      margin-top: 14px;
+      font-size: 12px;
+      color: var(--text-tertiary);
+      min-height: 18px;
+      line-height: 1.4;
+    }
+    .status.is-error { color: var(--danger); }
+    .status.is-ok { color: var(--success); }
+    .hint {
+      margin-top: 18px;
+      font-size: 11px;
+      color: var(--text-tertiary);
+      line-height: 1.5;
+    }
+    code { font-family: var(--mono); font-size: 10.5px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1 class="dash-title">Sign in</h1>
+    <p class="sub">Use a passkey from Apple Passwords (or any WebAuthn provider). First time? Enroll with email, then register a passkey.</p>
+
+    <button type="button" class="btn btn-primary" id="passkeyBtn">🔑 Sign in with Passkey</button>
+
+    <div class="divider">First time</div>
+    <label for="email">Email</label>
+    <input type="email" id="email" placeholder="you@example.com" autocomplete="username webauthn" />
+    <button type="button" class="btn btn-glass" id="magicBtn">Send magic link</button>
+    <button type="button" class="btn btn-glass" id="registerPasskeyBtn" hidden>Register passkey</button>
+
+    <div class="status" id="status"></div>
+    <p class="hint">
+      Requires Supabase Passkeys enabled and <code>js/config.js</code> filled in.
+      Serve over <code>http://localhost</code> (not <code>file://</code>) for WebAuthn.
+    </p>
+  </div>
+
+  <script>
+    (function () {
+      var statusEl = document.getElementById('status');
+      var registerBtn = document.getElementById('registerPasskeyBtn');
+      var params = new URLSearchParams(location.search);
+      var next = params.get('next') || 'index.html';
+
+      function setStatus(msg, kind) {
+        statusEl.textContent = msg || '';
+        statusEl.className = 'status' + (kind ? ' is-' + kind : '');
+      }
+
+      function redirectNext() {
+        location.href = next;
+      }
+
+      var api = window.JGDash && window.JGDash.supabase;
+      if (!api || !api.isConfigured()) {
+        setStatus('Supabase is not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY in js/config.js — or open main.html for a local demo.', 'error');
+        document.getElementById('passkeyBtn').disabled = true;
+        document.getElementById('magicBtn').disabled = true;
+        return;
+      }
+
+      var sb = api.getClient();
+
+      sb.auth.getSession().then(function (res) {
+        if (res.data && res.data.session) {
+          registerBtn.hidden = false;
+          setStatus('Signed in. You can register a passkey, or continue to the dashboard.', 'ok');
+        }
+      });
+
+      sb.auth.onAuthStateChange(function (event, session) {
+        if (session && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
+          registerBtn.hidden = false;
+        }
+      });
+
+      document.getElementById('passkeyBtn').addEventListener('click', async function () {
+        setStatus('Waiting for passkey…');
+        try {
+          var res = await sb.auth.signInWithPasskey();
+          if (res.error) throw res.error;
+          setStatus('Signed in.', 'ok');
+          redirectNext();
+        } catch (err) {
+          setStatus((err && err.message) || 'Passkey sign-in failed.', 'error');
+        }
+      });
+
+      document.getElementById('magicBtn').addEventListener('click', async function () {
+        var email = document.getElementById('email').value.trim();
+        if (!email) {
+          setStatus('Enter an email address.', 'error');
+          return;
+        }
+        setStatus('Sending magic link…');
+        try {
+          var res = await sb.auth.signInWithOtp({
+            email: email,
+            options: { emailRedirectTo: location.origin + '/signin.html?next=' + encodeURIComponent(next) }
+          });
+          if (res.error) throw res.error;
+          setStatus('Check your email for the magic link. After you open it, register a passkey here.', 'ok');
+        } catch (err) {
+          setStatus((err && err.message) || 'Could not send magic link.', 'error');
+        }
+      });
+
+      registerBtn.addEventListener('click', async function () {
+        setStatus('Registering passkey…');
+        try {
+          var res = await sb.auth.registerPasskey({ friendlyName: 'JGDash' });
+          if (res.error) throw res.error;
+          setStatus('Passkey registered. Next time use Sign in with Passkey.', 'ok');
+        } catch (err) {
+          setStatus((err && err.message) || 'Could not register passkey.', 'error');
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
