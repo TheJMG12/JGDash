@@ -13,7 +13,6 @@
       --text-secondary: #B8B6B0;
       --text-tertiary: #76746E;
       --success: #6BE3A4;
-      --warning: #F2C063;
       --danger: #FF6B6B;
       --bg: #050506;
       --card-bg: rgba(255, 255, 255, 0.04);
@@ -98,7 +97,7 @@
       font-size: 14px;
       cursor: pointer;
       font-family: var(--sans);
-      transition: transform 0.15s, filter 0.15s, background 0.15s, opacity 0.15s;
+      transition: transform 0.15s, opacity 0.15s;
     }
     .btn:hover:not(:disabled) { transform: translateY(-1px); }
     .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
@@ -112,6 +111,19 @@
       background: rgba(255,255,255,0.04);
       color: var(--text-primary);
       border: 1px solid rgba(255,255,255,0.10);
+    }
+    .btn-linkish {
+      margin-top: 12px;
+      background: none;
+      border: none;
+      color: var(--text-tertiary);
+      font-size: 12px;
+      text-decoration: underline;
+      cursor: pointer;
+      font-family: var(--sans);
+      width: 100%;
+      text-align: center;
+      padding: 4px;
     }
     .divider {
       display: flex;
@@ -159,6 +171,17 @@
     input:focus { border-color: rgba(255,255,255,0.28); }
     .panel { display: none; }
     .panel.is-active { display: block; }
+    .waiting-box {
+      padding: 14px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: var(--text-secondary);
+      font-size: 13px;
+      line-height: 1.5;
+      margin-bottom: 10px;
+    }
+    .waiting-box strong { color: var(--text-primary); }
     .status {
       margin-top: 14px;
       font-size: 12px;
@@ -193,8 +216,8 @@
   <div class="card">
     <h1 class="dash-title">Sign in</h1>
     <p class="sub">
-      Returning users: sign in with a passkey.<br />
-      First time: verify your email <strong>first</strong> (that creates a session), then register a passkey into Apple Passwords.
+      Returning users: passkey.<br />
+      First time: open the <strong>sign-in link</strong> from email (creates a session), then register a passkey.
     </p>
 
     <div class="session-pill" id="sessionPill">Signed in</div>
@@ -206,14 +229,25 @@
     <div class="panel is-active" id="panelEmail">
       <label for="email">Email</label>
       <input type="email" id="email" placeholder="you@example.com" autocomplete="username webauthn" />
-      <button type="button" class="btn btn-glass" id="sendOtpBtn">Email me a 6-digit code</button>
+      <button type="button" class="btn btn-glass" id="sendLinkBtn">Email me a sign-in link</button>
+    </div>
+
+    <div class="panel" id="panelWaiting">
+      <div class="waiting-box">
+        <strong>Check your inbox</strong> for a Supabase sign-in link.<br /><br />
+        Open it <strong>on this same phone/computer</strong>. You’ll return here signed in, then you can register a passkey.<br /><br />
+        Waiting for you to open the link…
+      </div>
+      <button type="button" class="btn btn-glass" id="checkSessionBtn">I’ve opened the link — check again</button>
+      <button type="button" class="btn btn-glass" id="resendLinkBtn">Resend sign-in link</button>
+      <button type="button" class="btn-linkish" id="showCodeBtn">I have a 6-digit code instead</button>
     </div>
 
     <div class="panel" id="panelOtp">
-      <label for="otp">Code from email</label>
+      <label for="otp">6-digit code (optional)</label>
       <input type="text" id="otp" inputmode="numeric" maxlength="8" placeholder="123456" autocomplete="one-time-code" />
       <button type="button" class="btn btn-glass" id="verifyOtpBtn">Verify code &amp; sign in</button>
-      <button type="button" class="btn btn-glass" id="resendOtpBtn">Resend code</button>
+      <button type="button" class="btn-linkish" id="backWaitingBtn">← Back to sign-in link</button>
     </div>
 
     <div class="panel" id="panelEnrolled">
@@ -223,11 +257,11 @@
 
     <div class="status" id="status"></div>
     <p class="hint">
-      <strong>Auth session missing</strong> means you are not signed in yet — finish the email code step before Register passkey.<br /><br />
-      If the email only has a link (no code): open it on this device — you’ll return signed in, then Register passkey.<br />
-      To get a 6-digit code, add <code>{{ .Token }}</code> to the Magic Link email template in Supabase.<br /><br />
-      Also: Authentication → URL Configuration → add your Vercel origin to Redirect URLs;
-      Passkeys → enable + RP ID = your Vercel hostname (e.g. <code>your-app.vercel.app</code>).
+      Supabase’s default email is a <strong>magic link</strong>, not a one-time code. That’s expected.<br /><br />
+      Required in Supabase → Authentication → URL Configuration:<br />
+      • Site URL = your Vercel URL<br />
+      • Redirect URLs include <code>https://YOUR-APP.vercel.app/**</code><br /><br />
+      Passkeys → enable, RP ID = <code>YOUR-APP.vercel.app</code> (no https).
     </p>
   </div>
 
@@ -235,13 +269,19 @@
     (function () {
       var statusEl = document.getElementById('status');
       var sessionPill = document.getElementById('sessionPill');
-      var panelEmail = document.getElementById('panelEmail');
-      var panelOtp = document.getElementById('panelOtp');
-      var panelEnrolled = document.getElementById('panelEnrolled');
+      var panels = {
+        email: document.getElementById('panelEmail'),
+        waiting: document.getElementById('panelWaiting'),
+        otp: document.getElementById('panelOtp'),
+        enrolled: document.getElementById('panelEnrolled')
+      };
       var enrollDivider = document.getElementById('enrollDivider');
       var params = new URLSearchParams(location.search);
       var next = params.get('next') || 'index.html';
-      var pendingEmail = '';
+      var pendingEmail = localStorage.getItem('jgdash_pending_email') || '';
+      var pollTimer = null;
+
+      if (pendingEmail) document.getElementById('email').value = pendingEmail;
 
       function setStatus(msg, kind) {
         statusEl.textContent = msg || '';
@@ -249,22 +289,23 @@
       }
 
       function showPanel(name) {
-        panelEmail.classList.toggle('is-active', name === 'email');
-        panelOtp.classList.toggle('is-active', name === 'otp');
-        panelEnrolled.classList.toggle('is-active', name === 'enrolled');
+        Object.keys(panels).forEach(function (k) {
+          panels[k].classList.toggle('is-active', k === name);
+        });
         enrollDivider.style.display = name === 'enrolled' ? 'none' : '';
       }
 
       function setSignedInUI(session) {
         if (session) {
+          stopPolling();
           sessionPill.classList.add('is-on');
           sessionPill.textContent = 'Signed in as ' + ((session.user && session.user.email) || 'user');
           document.getElementById('passkeyBtn').style.display = 'none';
           showPanel('enrolled');
+          localStorage.removeItem('jgdash_pending_email');
         } else {
           sessionPill.classList.remove('is-on');
           document.getElementById('passkeyBtn').style.display = '';
-          showPanel('email');
         }
       }
 
@@ -272,35 +313,65 @@
         location.href = next;
       }
 
+      function stopPolling() {
+        if (pollTimer) {
+          clearInterval(pollTimer);
+          pollTimer = null;
+        }
+      }
+
+      function startPolling() {
+        stopPolling();
+        pollTimer = setInterval(function () {
+          refreshSessionUI(true);
+        }, 2500);
+      }
+
       var api = window.JGDash && window.JGDash.supabase;
       if (!api || !api.isConfigured()) {
         setStatus('Supabase is not configured in js/config.js.', 'error');
         document.getElementById('passkeyBtn').disabled = true;
-        document.getElementById('sendOtpBtn').disabled = true;
+        document.getElementById('sendLinkBtn').disabled = true;
         return;
       }
 
       var sb = api.getClient();
 
-      async function refreshSessionUI() {
+      async function refreshSessionUI(quiet) {
         var res = await sb.auth.getSession();
         var session = res.data && res.data.session;
-        setSignedInUI(session);
+        if (session) {
+          setSignedInUI(session);
+          if (!quiet) setStatus('Signed in. Register a passkey, then continue.', 'ok');
+          else setStatus('Signed in via email link. Register a passkey next.', 'ok');
+        }
         return session;
       }
 
-      // Catch magic-link / PKCE return on this page
+      // Magic-link / PKCE return lands here with ?code=…
       refreshSessionUI().then(function (session) {
-        if (session) {
-          setStatus('Signed in. Register a passkey (saved to Apple Passwords), then continue.', 'ok');
+        if (!session && pendingEmail) {
+          showPanel('waiting');
+          setStatus('Waiting for the sign-in link you requested for ' + pendingEmail + '…', 'ok');
+          startPolling();
         }
       });
 
       sb.auth.onAuthStateChange(function (event, session) {
         if (session && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED')) {
           setSignedInUI(session);
+          if (event === 'SIGNED_IN') {
+            setStatus('Signed in via email link. Register a passkey next.', 'ok');
+          }
         }
-        if (event === 'SIGNED_OUT') setSignedInUI(null);
+        if (event === 'SIGNED_OUT') {
+          setSignedInUI(null);
+          showPanel('email');
+        }
+      });
+
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') refreshSessionUI(true);
       });
 
       document.getElementById('passkeyBtn').addEventListener('click', async function () {
@@ -311,63 +382,75 @@
           setStatus('Signed in with passkey.', 'ok');
           redirectNext();
         } catch (err) {
-          setStatus((err && err.message) || 'Passkey sign-in failed. If you have not registered one yet, use email enroll below.', 'error');
+          setStatus((err && err.message) || 'Passkey sign-in failed. Enroll with the email link below first.', 'error');
         }
       });
 
-      async function sendOtp() {
+      async function sendMagicLink() {
         var email = document.getElementById('email').value.trim();
         if (!email) {
           setStatus('Enter an email address.', 'error');
           return;
         }
         pendingEmail = email;
-        setStatus('Sending code…');
+        localStorage.setItem('jgdash_pending_email', email);
+        setStatus('Sending sign-in link…');
         try {
+          var redirectTo = location.origin + '/signin.html?next=' + encodeURIComponent(next);
           var res = await sb.auth.signInWithOtp({
             email: email,
             options: {
               shouldCreateUser: true,
-              emailRedirectTo: location.origin + '/signin.html?next=' + encodeURIComponent(next)
+              emailRedirectTo: redirectTo
             }
           });
           if (res.error) throw res.error;
-          showPanel('otp');
-          setStatus('Check your email for a 6-digit code (or magic link). Enter the code here to create a session, then register a passkey.', 'ok');
-          document.getElementById('otp').focus();
+          showPanel('waiting');
+          setStatus('Link sent to ' + email + '. Open it on this device.', 'ok');
+          startPolling();
         } catch (err) {
-          setStatus((err && err.message) || 'Could not send code.', 'error');
+          setStatus((err && err.message) || 'Could not send sign-in link.', 'error');
         }
       }
 
-      document.getElementById('sendOtpBtn').addEventListener('click', sendOtp);
-      document.getElementById('resendOtpBtn').addEventListener('click', sendOtp);
+      document.getElementById('sendLinkBtn').addEventListener('click', sendMagicLink);
+      document.getElementById('resendLinkBtn').addEventListener('click', sendMagicLink);
+      document.getElementById('checkSessionBtn').addEventListener('click', async function () {
+        setStatus('Checking session…');
+        var session = await refreshSessionUI();
+        if (!session) {
+          setStatus('Still no session. Open the email link on this same device, and make sure your Vercel URL is in Supabase Redirect URLs.', 'error');
+        }
+      });
+
+      document.getElementById('showCodeBtn').addEventListener('click', function () {
+        showPanel('otp');
+      });
+      document.getElementById('backWaitingBtn').addEventListener('click', function () {
+        showPanel('waiting');
+      });
 
       document.getElementById('verifyOtpBtn').addEventListener('click', async function () {
         var token = document.getElementById('otp').value.trim();
         var email = pendingEmail || document.getElementById('email').value.trim();
         if (!email || !token) {
-          setStatus('Enter the email and the code from your inbox.', 'error');
+          setStatus('Enter email and the 6-digit code.', 'error');
           return;
         }
         setStatus('Verifying…');
         try {
-          var res = await sb.auth.verifyOtp({
-            email: email,
-            token: token,
-            type: 'email'
-          });
-          if (res.error) throw res.error;
-          var session = res.data && res.data.session;
-          if (!session) {
-            session = await refreshSessionUI();
-          } else {
-            setSignedInUI(session);
+          var res = await sb.auth.verifyOtp({ email: email, token: token, type: 'email' });
+          if (res.error) {
+            // Some projects use magiclink token type
+            res = await sb.auth.verifyOtp({ email: email, token: token, type: 'magiclink' });
           }
-          if (!session) throw new Error('Code accepted but no session was created. Try the magic link in the same email, or resend.');
-          setStatus('Session created. Now tap Register passkey to save one into Apple Passwords.', 'ok');
+          if (res.error) throw res.error;
+          var session = (res.data && res.data.session) || (await refreshSessionUI());
+          if (!session) throw new Error('No session after verify. Prefer opening the sign-in link instead.');
+          setSignedInUI(session);
+          setStatus('Session created. Register a passkey next.', 'ok');
         } catch (err) {
-          setStatus((err && err.message) || 'Invalid or expired code.', 'error');
+          setStatus((err && err.message) || 'Invalid code. Use the sign-in link from the email instead.', 'error');
         }
       });
 
@@ -379,7 +462,7 @@
           if (!session) {
             setSignedInUI(null);
             showPanel('email');
-            setStatus('Auth session missing — verify your email code first, then register a passkey.', 'error');
+            setStatus('Auth session missing — open the email sign-in link first, then register a passkey.', 'error');
             return;
           }
           setStatus('Registering passkey… approve Face ID / Touch ID / Apple Passwords when prompted.');
@@ -389,7 +472,7 @@
         } catch (err) {
           var msg = (err && err.message) || 'Could not register passkey.';
           if (/session missing/i.test(msg)) {
-            msg = 'Auth session missing — finish email verification first so you are signed in, then register the passkey.';
+            msg = 'Auth session missing — open the email sign-in link first so you are signed in.';
             setSignedInUI(null);
             showPanel('email');
           }
@@ -398,12 +481,11 @@
       });
 
       document.getElementById('continueBtn').addEventListener('click', redirectNext);
-
+      document.getElementById('email').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') document.getElementById('sendLinkBtn').click();
+      });
       document.getElementById('otp').addEventListener('keydown', function (e) {
         if (e.key === 'Enter') document.getElementById('verifyOtpBtn').click();
-      });
-      document.getElementById('email').addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') document.getElementById('sendOtpBtn').click();
       });
     })();
   </script>
