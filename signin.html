@@ -257,13 +257,13 @@
 
     <div class="status" id="status"></div>
     <p class="hint">
-      Supabase’s default email is a <strong>magic / confirm link</strong>, not a one-time code.<br /><br />
-      If the email points at <code>localhost</code>, fix <strong>Authentication → URL Configuration</strong> (this is separate from Passkeys):<br />
-      • <strong>Site URL</strong> = <code>https://jg-dash-nine.vercel.app</code> (not localhost)<br />
-      • <strong>Redirect URLs</strong> include:<br />
-      &nbsp;&nbsp;<code>https://jg-dash-nine.vercel.app/**</code><br />
-      &nbsp;&nbsp;<code>https://jg-dash-nine.vercel.app/signin.html**</code><br /><br />
-      Passkeys RP ID / Origins only affect WebAuthn — they do <strong>not</strong> control email links.
+      Email links use <strong>Authentication → URL Configuration</strong>:<br />
+      • Site URL = <code>https://jg-dash-nine.vercel.app</code><br />
+      • Redirect URLs = <code>https://jg-dash-nine.vercel.app/**</code><br /><br />
+      Passkeys use a <strong>plain origin only</strong> (no path):<br />
+      • RP ID = <code>jg-dash-nine.vercel.app</code><br />
+      • RP Origins = <code>https://jg-dash-nine.vercel.app</code><br />
+      Do <strong>not</strong> put <code>/signin.html</code> in Relying Party Origins — that field rejects paths.
     </p>
   </div>
 
