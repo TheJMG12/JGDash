@@ -224,8 +224,10 @@
     <div class="status" id="status"></div>
     <p class="hint">
       <strong>Auth session missing</strong> means you are not signed in yet — finish the email code step before Register passkey.<br /><br />
-      In Supabase → Authentication → URL Configuration, add your Vercel URL (and <code>/signin.html</code>) to Redirect URLs.
-      Passkeys → enable + set RP ID to your Vercel hostname (e.g. <code>your-app.vercel.app</code>).
+      If the email only has a link (no code): open it on this device — you’ll return signed in, then Register passkey.<br />
+      To get a 6-digit code, add <code>{{ .Token }}</code> to the Magic Link email template in Supabase.<br /><br />
+      Also: Authentication → URL Configuration → add your Vercel origin to Redirect URLs;
+      Passkeys → enable + RP ID = your Vercel hostname (e.g. <code>your-app.vercel.app</code>).
     </p>
   </div>
 
