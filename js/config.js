@@ -1,6 +1,5 @@
-// JGDash config — fill in your Supabase project values.
-// Leave empty to skip auth (pages remain usable for local demo).
+// JGDash config — Supabase project values (publishable anon key).
 window.JGDASH_CONFIG = {
-  SUPABASE_URL: '',
-  SUPABASE_ANON_KEY: ''
+  SUPABASE_URL: 'https://tidcaqcoluhqlfrlsoyu.supabase.co',
+  SUPABASE_ANON_KEY: 'sb_publishable__uW4e60UrgiRdv1Tx24UNQ_9bVym0Pt'
 };
