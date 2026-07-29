@@ -257,11 +257,13 @@
 
     <div class="status" id="status"></div>
     <p class="hint">
-      Supabase’s default email is a <strong>magic link</strong>, not a one-time code. That’s expected.<br /><br />
-      Required in Supabase → Authentication → URL Configuration:<br />
-      • Site URL = your Vercel URL<br />
-      • Redirect URLs include <code>https://YOUR-APP.vercel.app/**</code><br /><br />
-      Passkeys → enable, RP ID = <code>YOUR-APP.vercel.app</code> (no https).
+      Email links use <strong>Authentication → URL Configuration</strong>:<br />
+      • Site URL = <code>https://jg-dash-nine.vercel.app</code><br />
+      • Redirect URLs = <code>https://jg-dash-nine.vercel.app/**</code><br /><br />
+      Passkeys use a <strong>plain origin only</strong> (no path):<br />
+      • RP ID = <code>jg-dash-nine.vercel.app</code><br />
+      • RP Origins = <code>https://jg-dash-nine.vercel.app</code><br />
+      Do <strong>not</strong> put <code>/signin.html</code> in Relying Party Origins — that field rejects paths.
     </p>
   </div>
 
@@ -396,7 +398,7 @@
         localStorage.setItem('jgdash_pending_email', email);
         setStatus('Sending sign-in link…');
         try {
-          var redirectTo = location.origin + '/signin.html?next=' + encodeURIComponent(next);
+          var redirectTo = api.getEmailRedirectTo(next);
           var res = await sb.auth.signInWithOtp({
             email: email,
             options: {
@@ -406,7 +408,7 @@
           });
           if (res.error) throw res.error;
           showPanel('waiting');
-          setStatus('Link sent to ' + email + '. Open it on this device.', 'ok');
+          setStatus('Link sent to ' + email + '. It should open ' + api.getSiteOrigin() + ' — not localhost. Open it on this device.', 'ok');
           startPolling();
         } catch (err) {
           setStatus((err && err.message) || 'Could not send sign-in link.', 'error');
