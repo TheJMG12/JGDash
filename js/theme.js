@@ -28,7 +28,7 @@
 
   function syncButtons(theme) {
     theme = theme || getTheme();
-    var label = theme === 'light' ? 'Dark' : 'Light';
+    var label = theme === 'light' ? 'Dark mode' : 'Light mode';
     var title = theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode';
     var ids = ['tbTheme', 'jgdashThemeFab'];
     for (var i = 0; i < ids.length; i++) {
