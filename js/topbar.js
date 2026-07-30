@@ -29,8 +29,8 @@
     }
 
     // Prefer topbar theme control over floating fab
-    var fab = document.getElementById('jgdashThemeFab');
-    if (fab) fab.remove();
+    var existingFab = document.getElementById('jgdashThemeFab');
+    if (existingFab && existingFab.parentNode) existingFab.parentNode.removeChild(existingFab);
 
     var menuItems = HUB_LINKS.map(function (link) {
       var current = link.label === title || (title === 'Hub' && link.label === 'Index');
@@ -117,23 +117,33 @@
     });
 
     var themeBtn = document.getElementById('tbTheme');
-    themeBtn.addEventListener('click', function () {
-      if (global.JGDash && global.JGDash.theme) global.JGDash.theme.toggle();
-    });
-    if (global.JGDash && global.JGDash.theme) global.JGDash.theme.syncButtons();
-
-    var btn = document.getElementById('tbSignOut');
-    var api = global.JGDash && global.JGDash.supabase;
-    if (api && api.isConfigured()) {
-      api.getClient().auth.getSession().then(function (res) {
-        if (res.data && res.data.session) {
-          btn.hidden = false;
+    if (themeBtn) {
+      themeBtn.addEventListener('click', function () {
+        if (global.JGDash && global.JGDash.theme && typeof global.JGDash.theme.toggle === 'function') {
+          global.JGDash.theme.toggle();
         }
       });
-      btn.addEventListener('click', async function () {
-        await api.getClient().auth.signOut();
-        location.href = 'signin.html';
-      });
+      if (global.JGDash && global.JGDash.theme && typeof global.JGDash.theme.syncButtons === 'function') {
+        global.JGDash.theme.syncButtons();
+      }
+    }
+
+    var btn = document.getElementById('tbSignOut');
+    if (btn) {
+      var api = global.JGDash && global.JGDash.supabase;
+      if (api && api.isConfigured()) {
+        api.getClient().auth.getSession().then(function (res) {
+          if (res.data && res.data.session) {
+            btn.hidden = false;
+          }
+        }).catch(function () { /* ignore */ });
+        btn.addEventListener('click', async function () {
+          try {
+            await api.getClient().auth.signOut();
+          } catch (e) { /* ignore */ }
+          location.href = 'signin.html';
+        });
+      }
     }
   }
 
