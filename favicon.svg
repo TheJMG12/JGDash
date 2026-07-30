@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="JGDash">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="45%" r="65%">
+      <stop offset="0%" stop-color="#1a1c1b"/>
+      <stop offset="100%" stop-color="#070807"/>
+    </radialGradient>
+    <linearGradient id="jg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3d6b4f"/>
+      <stop offset="45%" stop-color="#2f5a42"/>
+      <stop offset="100%" stop-color="#1e3d2c"/>
+    </linearGradient>
+    <filter id="grain">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix values="0 0 0 0 0.05  0 0 0 0 0.12  0 0 0 0 0.07  0 0 0 0.18 0"/>
+    </filter>
+  </defs>
+
+  <!-- App-icon rounded square -->
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <rect width="512" height="512" rx="96" filter="url(#grain)" opacity="0.55"/>
+
+  <!-- Tech rings -->
+  <g fill="none" stroke="#2f5a42" stroke-opacity="0.55" transform="translate(256 256)">
+    <circle r="198" stroke-width="1.5"/>
+    <circle r="168" stroke-width="1"/>
+    <circle r="138" stroke-width="1.25" stroke-dasharray="2 10"/>
+    <circle r="108" stroke-width="1" stroke-opacity="0.4"/>
+    <!-- crosshairs -->
+    <path d="M0 -210 V -180 M0 180 V 210 M-210 0 H -180 M180 0 H 210" stroke-width="1.5"/>
+    <!-- ticks -->
+    <g stroke-width="1.5">
+      <path d="M0 -198 V -188"/><path d="M0 188 V 198"/>
+      <path d="M-198 0 H -188"/><path d="M188 0 H 198"/>
+      <path transform="rotate(45)" d="M0 -198 V -190"/>
+      <path transform="rotate(135)" d="M0 -198 V -190"/>
+      <path transform="rotate(225)" d="M0 -198 V -190"/>
+      <path transform="rotate(315)" d="M0 -198 V -190"/>
+    </g>
+  </g>
+
+  <!-- Stylized JG monogram -->
+  <g fill="url(#jg)" transform="translate(256 256)">
+    <!-- J stem + hook -->
+    <path d="
+      M -18 -78
+      H 58
+      Q 78 -78 78 -58
+      V 42
+      Q 78 86 28 92
+      Q -8 96 -28 78
+      L -8 58
+      Q 4 68 22 66
+      Q 42 64 42 42
+      V -42
+      H -18
+      Z
+    "/>
+    <!-- G bowl overlapping -->
+    <path d="
+      M 8 -52
+      Q -72 -52 -72 8
+      Q -72 72 8 78
+      Q 48 82 68 58
+      L 46 42
+      Q 34 56 8 54
+      Q -36 50 -36 8
+      Q -36 -28 8 -30
+      H 52
+      V -8
+      H 18
+      V 18
+      H 78
+      V -52
+      Z
+    "/>
+  </g>
+
+  <!-- Bottom diamond accent -->
+  <g transform="translate(256 430)">
+    <path d="M0 -7 L7 0 L0 7 L-7 0 Z" fill="#6BE3A4" opacity="0.9"/>
+    <circle r="14" fill="#6BE3A4" opacity="0.12"/>
+  </g>
+</svg>
