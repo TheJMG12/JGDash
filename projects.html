@@ -1545,7 +1545,6 @@
 
   function matchesPreset(p, preset) {
     switch (preset) {
-      case 'mine': return p.owner === CURRENT_OWNER && p.status !== 'Archived';
       case 'dueWeek': return isDueThisWeek(p);
       case 'blocked': return p.status === 'Blocked';
       case 'highPriority': return (p.priority === 'High' || p.priority === 'Critical') && p.status !== 'Archived' && p.status !== 'Completed';
@@ -1567,7 +1566,7 @@
     return list.filter(function (p) {
       if (!matchesPreset(p, state.preset)) return false;
       if (f.activeOnly && p.status === 'Archived' && state.preset !== 'archived') return false;
-      if (state.preset === 'all' || state.preset === 'overview' || state.preset === 'mine') {
+      if (state.preset === 'all' || state.preset === 'overview') {
         /* keep */
       }
       if (f.status && p.status !== f.status) return false;
