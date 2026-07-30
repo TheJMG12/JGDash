@@ -28,6 +28,10 @@
       document.body.insertBefore(el, document.body.firstChild);
     }
 
+    // Prefer topbar theme control over floating fab
+    var fab = document.getElementById('jgdashThemeFab');
+    if (fab) fab.remove();
+
     var menuItems = HUB_LINKS.map(function (link) {
       var current = link.label === title || (title === 'Hub' && link.label === 'Index');
       return (
@@ -49,6 +53,7 @@
         '</div>' +
         '<div class="tb-spacer"></div>' +
         '<div class="tb-actions">' +
+          '<button type="button" class="tb-btn" id="tbTheme">Light</button>' +
           '<button type="button" class="tb-btn" id="tbSignOut" hidden>Sign out</button>' +
         '</div>' +
       '</div>';
@@ -63,6 +68,7 @@
         '#jgdash-topbar .tb-brand:hover{color:#FAFAFA;}' +
         '#jgdash-topbar .tb-title{font-size:13px;color:#FAFAFA;font-weight:600;}' +
         '#jgdash-topbar .tb-spacer{flex:1;}' +
+        '#jgdash-topbar .tb-actions{display:flex;align-items:center;gap:8px;}' +
         '#jgdash-topbar .tb-hubs{position:relative;}' +
         '#jgdash-topbar .tb-hubs-btn{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#FAFAFA;border-radius:999px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;}' +
         '#jgdash-topbar .tb-hubs-btn:hover,#jgdash-topbar .tb-hubs.is-open .tb-hubs-btn{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.18);}' +
@@ -72,8 +78,9 @@
         '#jgdash-topbar .tb-hub-item{display:block;padding:9px 12px;border-radius:8px;color:#B8B6B0;text-decoration:none;font-size:13px;}' +
         '#jgdash-topbar .tb-hub-item:hover{background:rgba(255,255,255,0.06);color:#FAFAFA;}' +
         '#jgdash-topbar .tb-hub-item.is-current{color:#6BE3A4;background:rgba(107,227,164,0.08);}' +
-        '#jgdash-topbar .tb-btn{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#FAFAFA;border-radius:999px;padding:6px 12px;font-size:12px;cursor:pointer;}' +
-        '#jgdash-topbar .tb-btn:hover{background:rgba(255,255,255,0.08);}';
+        '#jgdash-topbar .tb-btn{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#FAFAFA;border-radius:999px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:inherit;}' +
+        '#jgdash-topbar .tb-btn:hover{background:rgba(255,255,255,0.08);}' +
+        '#jgdash-topbar .tb-btn:focus-visible{outline:2px solid #6BE3A4;outline-offset:2px;}';
       document.head.appendChild(style);
     }
 
@@ -108,6 +115,12 @@
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') closeHubs();
     });
+
+    var themeBtn = document.getElementById('tbTheme');
+    themeBtn.addEventListener('click', function () {
+      if (global.JGDash && global.JGDash.theme) global.JGDash.theme.toggle();
+    });
+    if (global.JGDash && global.JGDash.theme) global.JGDash.theme.syncButtons();
 
     var btn = document.getElementById('tbSignOut');
     var api = global.JGDash && global.JGDash.supabase;

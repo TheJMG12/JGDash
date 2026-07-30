@@ -9,6 +9,8 @@
   <script src="js/supabase-client.js"></script>
   <script src="js/lock.js"></script>
   <script src="js/sync.js"></script>
+  <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
+  <script src="js/theme.js"></script>
   <script src="js/topbar.js"></script>
   <style>
     :root {
@@ -1054,7 +1056,6 @@
               <button type="button" data-mode="board">Board</button>
               <button type="button" data-mode="timeline">Timeline</button>
             </div>
-            <button type="button" class="btn" id="themeToggle" title="Toggle theme">Theme</button>
             <button type="button" class="btn primary" id="newProjectBtn">+ New Project</button>
           </div>
         </div>
@@ -2382,14 +2383,6 @@
       render();
     });
 
-    document.getElementById('themeToggle').addEventListener('click', function () {
-      var html = document.documentElement;
-      var next = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-      if (next === 'dark') html.removeAttribute('data-theme');
-      else html.setAttribute('data-theme', 'light');
-      try { localStorage.setItem('jg_theme', next); } catch (e) { /* ignore */ }
-    });
-
     document.getElementById('bulkComplete').addEventListener('click', function () {
       state.selected.forEach(function (id) {
         updateProject(id, { status: 'Completed', completion: 100 });
@@ -2441,11 +2434,6 @@
   }
 
   function boot() {
-    try {
-      var theme = localStorage.getItem('jg_theme');
-      if (theme === 'light') document.documentElement.setAttribute('data-theme', 'light');
-    } catch (e) { /* ignore */ }
-
     state.projects = loadProjects();
     initFormSelects();
     wireEvents();
