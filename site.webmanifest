@@ -1,11 +1,6 @@
 {
   "name": "JGDash",
   "short_name": "JGDash",
-  "description": "Personal dashboard",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#050506",
-  "theme_color": "#050506",
   "icons": [
     {
       "src": "/favicon-32.png",
@@ -20,8 +15,10 @@
     {
       "src": "/favicon-512.png",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/png"
     }
-  ]
+  ],
+  "theme_color": "#050506",
+  "background_color": "#050506",
+  "display": "standalone"
 }
