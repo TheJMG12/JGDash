@@ -4,6 +4,7 @@
   var HUB_LINKS = [
     { label: 'Index', href: 'index.html' },
     { label: 'Main', href: 'main.html' },
+    { label: 'Projects', href: 'projects.html' },
     { label: 'Fitness', href: 'gym.html' },
     { label: 'Health', href: 'health.html' },
     { label: 'Water', href: 'po-water.html' },
