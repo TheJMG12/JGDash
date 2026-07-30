@@ -7,7 +7,6 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
-
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>JGDash — Health</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -23,50 +22,1511 @@
       --text-primary: #FAFAFA;
       --text-secondary: #B8B6B0;
       --text-tertiary: #76746E;
+      --success: #6BE3A4;
+      --warning: #F2C063;
+      --danger: #FF6B6B;
       --bg: #050506;
       --card-bg: rgba(255, 255, 255, 0.04);
+      --accent: #6BE3A4;
+      --border: rgba(255, 255, 255, 0.08);
+      --input-bg: rgba(255, 255, 255, 0.05);
+      --sidebar-w: 220px;
+      --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
       --sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --zone-green: #6BE3A4;
+      --zone-yellow: #F2C063;
+      --zone-red: #FF6B6B;
+      --therapy: #A8B4C8;
+    }
+    [data-theme="light"] {
+      --text-primary: #1A1917;
+      --text-secondary: #5C5A54;
+      --text-tertiary: #8A8780;
+      --bg: #F4F3F0;
+      --card-bg: rgba(255, 255, 255, 0.72);
+      --border: rgba(0, 0, 0, 0.1);
+      --input-bg: rgba(255, 255, 255, 0.9);
+      --success: #1F9D62;
+      --warning: #C4841A;
+      --danger: #D64545;
+      --accent: #1F9D62;
+      --zone-green: #1F9D62;
+      --zone-yellow: #C4841A;
+      --zone-red: #D64545;
+      --therapy: #5A6A82;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { min-height: 100vh; font-family: var(--sans); color: var(--text-primary); background: var(--bg); position: relative; }
+    html { height: 100%; }
+    body {
+      min-height: 100%;
+      font-family: var(--sans);
+      color: var(--text-primary);
+      background: var(--bg);
+      position: relative;
+      overflow-x: hidden;
+    }
     body::before {
-      content: ''; position: fixed; inset: -20%; z-index: 0; pointer-events: none;
+      content: '';
+      position: fixed; inset: -20%; z-index: 0; pointer-events: none;
       background:
         radial-gradient(ellipse 50% 40% at 82% 14%, rgba(224, 118, 88, 0.16), transparent 60%),
         radial-gradient(ellipse 45% 35% at 18% 90%, rgba(180, 180, 200, 0.06), transparent 55%);
       filter: blur(40px);
       animation: wash-drift 36s ease-in-out infinite alternate;
     }
+    [data-theme="light"] body::before {
+      background:
+        radial-gradient(ellipse 50% 40% at 82% 14%, rgba(224, 118, 88, 0.1), transparent 60%),
+        radial-gradient(ellipse 45% 35% at 18% 90%, rgba(100, 120, 180, 0.06), transparent 55%);
+    }
     body::after {
-      content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      content: '';
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
       background-image: radial-gradient(rgba(255, 255, 255, 0.014) 0.6px, transparent 0.6px);
       background-size: 3px 3px;
+    }
+    [data-theme="light"] body::after {
+      background-image: radial-gradient(rgba(0, 0, 0, 0.03) 0.6px, transparent 0.6px);
     }
     @keyframes wash-drift {
       0% { transform: translate(0, 0) scale(1); }
       100% { transform: translate(-3%, 2%) scale(1.04); }
     }
-    .wrap { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 12px 20px 48px; }
-    .dash-title {
-      font-size: 28px; font-weight: 700; letter-spacing: -0.025em; margin: 8px 0 16px;
-      background: linear-gradient(180deg, #FFFFFF 0%, #C7C4BC 120%);
-      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    button, input, select, textarea { font: inherit; color: inherit; }
+    button { cursor: pointer; border: none; background: none; }
+    a { color: var(--accent); }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+    .app { position: relative; z-index: 1; display: flex; min-height: 100vh; }
+
+    .sidebar {
+      width: var(--sidebar-w); flex-shrink: 0; padding: 16px 12px;
+      border-right: 1px solid var(--border); background: rgba(0,0,0,0.25);
+      backdrop-filter: blur(20px); display: flex; flex-direction: column; gap: 4px;
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    }
+    [data-theme="light"] .sidebar { background: rgba(255,255,255,0.55); }
+    .sidebar-brand {
+      font-size: 13px; font-weight: 700; letter-spacing: 0.04em;
+      color: var(--text-secondary); padding: 8px 10px 14px; text-transform: uppercase;
+    }
+    .nav-link {
+      display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px;
+      font-size: 13px; color: var(--text-secondary); text-decoration: none;
+      transition: background 0.15s, color 0.15s; text-align: left; width: 100%;
+    }
+    .nav-link:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
+    .nav-link.active {
+      background: color-mix(in srgb, var(--accent) 18%, transparent);
+      color: var(--accent); font-weight: 600;
+    }
+    .nav-count { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--text-tertiary); }
+    .sidebar-section {
+      margin-top: 16px; padding: 0 10px 6px; font-size: 10px; font-weight: 700;
+      letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-tertiary);
+    }
+    .sidebar-back { margin-top: auto; padding: 12px 10px 4px; font-size: 12px; }
+    .mobile-bar {
+      display: none; align-items: center; gap: 10px; padding: 10px 14px;
+      border-bottom: 1px solid var(--border); background: rgba(0,0,0,0.35);
+      backdrop-filter: blur(16px); position: sticky; top: 0; z-index: 20;
+    }
+    .hamburger {
+      width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border);
+      background: var(--input-bg); display: flex; align-items: center; justify-content: center;
+      font-size: 16px; color: var(--text-primary);
+    }
+    .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 30; }
+
+    .main { flex: 1; min-width: 0; display: flex; flex-direction: column; max-height: 100vh; overflow: hidden; }
+    .main-scroll { flex: 1; overflow-y: auto; padding: 16px 20px 48px; }
+    .page-header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 16px; }
+    .page-title { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; margin-right: auto; }
+    .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .search-input {
+      min-width: 160px; padding: 7px 12px; border-radius: 10px; border: 1px solid var(--border);
+      background: var(--input-bg); font-size: 13px; color: var(--text-primary);
+    }
+    .search-input::placeholder { color: var(--text-tertiary); }
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 10px;
+      font-size: 13px; font-weight: 600; border: 1px solid var(--border);
+      background: var(--input-bg); color: var(--text-secondary);
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+    .btn:hover { color: var(--text-primary); border-color: rgba(255,255,255,0.16); }
+    .btn.primary {
+      background: color-mix(in srgb, var(--accent) 22%, transparent);
+      border-color: color-mix(in srgb, var(--accent) 45%, transparent); color: var(--accent);
+    }
+    .btn.primary:hover { background: color-mix(in srgb, var(--accent) 32%, transparent); }
+    .btn.ghost { background: transparent; }
+    .select {
+      padding: 7px 10px; border-radius: 10px; border: 1px solid var(--border);
+      background: var(--input-bg); font-size: 13px; color: var(--text-secondary);
     }
     .card {
-      background: var(--card-bg); border-radius: 16px; padding: 22px;
-      backdrop-filter: blur(24px) saturate(1.2); box-shadow: 0 12px 40px rgba(0,0,0,0.45);
-      color: var(--text-secondary); line-height: 1.5;
+      background: var(--card-bg); border-radius: 16px; padding: 16px;
+      backdrop-filter: blur(24px) saturate(1.2); -webkit-backdrop-filter: blur(24px) saturate(1.2);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.45); border: 1px solid var(--border);
     }
-    a { color: #6BE3A4; }
+    [data-theme="light"] .card { box-shadow: 0 8px 28px rgba(0,0,0,0.08); }
+    .card.sensitive {
+      border-color: color-mix(in srgb, var(--therapy) 35%, transparent);
+      background: color-mix(in srgb, var(--therapy) 6%, var(--card-bg));
+    }
+    .card h3 { font-size: 13px; font-weight: 700; margin-bottom: 10px; letter-spacing: -0.01em; }
+    .card-meta { font-size: 11px; color: var(--text-tertiary); margin-bottom: 8px; }
+    .section { margin-bottom: 28px; scroll-margin-top: 16px; }
+    .section-head {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px;
+    }
+    .section-title { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+    .section-sub { font-size: 12px; color: var(--text-tertiary); margin-left: 4px; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px;
+      font-size: 11px; font-weight: 600; border: 1px solid var(--border); color: var(--text-tertiary);
+    }
+    .badge.whoop { color: var(--warning); border-color: color-mix(in srgb, var(--warning) 40%, transparent); }
+    .badge.manual { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+    .badge.lock { color: var(--therapy); border-color: color-mix(in srgb, var(--therapy) 40%, transparent); }
+    .badge.ok { color: var(--success); border-color: color-mix(in srgb, var(--success) 40%, transparent); }
+    .badge.warn { color: var(--warning); border-color: color-mix(in srgb, var(--warning) 40%, transparent); }
+    .badge.err { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, transparent); }
+
+    .metric-grid {
+      display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px;
+    }
+    .metric {
+      padding: 14px; border-radius: 14px; border: 1px solid var(--border);
+      background: color-mix(in srgb, var(--card-bg) 80%, transparent);
+      min-height: 92px; display: flex; flex-direction: column; gap: 4px;
+      transition: border-color 0.15s, transform 0.15s;
+    }
+    .metric:hover { border-color: rgba(255,255,255,0.14); }
+    .metric-label { font-size: 11px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.06em; }
+    .metric-value { font-size: 22px; font-weight: 700; letter-spacing: -0.03em; font-family: var(--mono); }
+    .metric-value.placeholder { font-size: 13px; font-weight: 500; font-family: var(--sans); color: var(--text-tertiary); }
+    .metric-sub { font-size: 11px; color: var(--text-tertiary); margin-top: auto; }
+    .metric.zone-g { border-left: 3px solid var(--zone-green); }
+    .metric.zone-y { border-left: 3px solid var(--zone-yellow); }
+    .metric.zone-r { border-left: 3px solid var(--zone-red); }
+    .metric.disconnected { opacity: 0.85; }
+
+    .skel {
+      height: 18px; border-radius: 6px; width: 60%;
+      background: linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.1), rgba(255,255,255,0.04));
+      background-size: 200% 100%; animation: shimmer 1.2s ease-in-out infinite;
+    }
+    .skel.lg { height: 28px; width: 40%; }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .span-2 { grid-column: span 2; }
+    .span-full { grid-column: 1 / -1; }
+
+    .panel-tabs {
+      display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 12px;
+    }
+    .panel-tabs button {
+      padding: 7px 12px; font-size: 12px; font-weight: 600; color: var(--text-tertiary);
+      border-right: 1px solid var(--border);
+    }
+    .panel-tabs button:last-child { border-right: none; }
+    .panel-tabs button.active {
+      background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent);
+    }
+
+    .empty-state {
+      text-align: center; padding: 28px 16px; color: var(--text-tertiary); font-size: 13px; line-height: 1.5;
+    }
+    .empty-state strong { display: block; color: var(--text-secondary); margin-bottom: 6px; font-size: 14px; }
+
+    .list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .list-item {
+      display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 12px;
+      border: 1px solid var(--border); background: var(--input-bg);
+    }
+    .list-item .title { font-size: 13px; font-weight: 600; }
+    .list-item .meta { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+    .list-item .right { margin-left: auto; text-align: right; font-size: 11px; color: var(--text-tertiary); white-space: nowrap; }
+
+    .check-row {
+      display: flex; align-items: center; gap: 10px; padding: 8px 0;
+      border-bottom: 1px solid var(--border); font-size: 13px;
+    }
+    .check-row:last-child { border-bottom: none; }
+    .check-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); }
+    .check-row.done .label { text-decoration: line-through; color: var(--text-tertiary); }
+    .check-row .tag {
+      margin-left: auto; font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+      color: var(--warning); text-transform: uppercase;
+    }
+
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tag-pill {
+      padding: 3px 8px; border-radius: 999px; font-size: 11px; border: 1px solid var(--border);
+      color: var(--text-secondary); background: var(--input-bg);
+    }
+
+    .progress-bar {
+      height: 6px; border-radius: 999px; background: rgba(255,255,255,0.06); overflow: hidden; margin-top: 8px;
+    }
+    [data-theme="light"] .progress-bar { background: rgba(0,0,0,0.08); }
+    .progress-bar > span { display: block; height: 100%; border-radius: 999px; background: var(--accent); }
+
+    .chart-mock {
+      height: 120px; display: flex; align-items: flex-end; gap: 6px; padding-top: 8px;
+    }
+    .chart-bar {
+      flex: 1; border-radius: 6px 6px 2px 2px;
+      background: color-mix(in srgb, var(--accent) 35%, transparent);
+      min-height: 8px; position: relative;
+    }
+    .chart-bar.muted { background: rgba(255,255,255,0.08); }
+    .chart-bar .tip {
+      position: absolute; bottom: calc(100% + 4px); left: 50%; transform: translateX(-50%);
+      font-size: 9px; color: var(--text-tertiary); font-family: var(--mono); white-space: nowrap;
+    }
+
+    .meal-week {
+      display: grid; grid-template-columns: 80px repeat(7, 1fr); gap: 6px; overflow-x: auto;
+    }
+    .meal-corner, .meal-day-h, .meal-slot-label {
+      font-size: 11px; font-weight: 700; color: var(--text-tertiary);
+      text-transform: uppercase; letter-spacing: 0.04em; padding: 6px 4px;
+    }
+    .meal-day-h { text-align: center; }
+    .meal-day-h.today { color: var(--accent); }
+    .meal-cell {
+      min-height: 64px; border-radius: 10px; border: 1px dashed var(--border);
+      padding: 6px; font-size: 11px; background: var(--input-bg); cursor: grab;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .meal-cell.filled { border-style: solid; cursor: grab; }
+    .meal-cell .m-title { font-weight: 600; font-size: 12px; color: var(--text-primary); line-height: 1.25; }
+    .meal-cell .m-flags { display: flex; flex-wrap: wrap; gap: 3px; }
+    .meal-cell .flag {
+      font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 4px;
+      background: rgba(255,255,255,0.06); color: var(--text-tertiary);
+    }
+    .meal-cell .flag.prep { color: var(--accent); }
+    .meal-cell .flag.left { color: var(--warning); }
+    .meal-cell .flag.out { color: var(--therapy); }
+    .meal-cell.drag-over { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+
+    .recipe-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .recipe-card .img {
+      height: 88px; border-radius: 10px; margin-bottom: 10px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+      border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
+      color: var(--text-tertiary); font-size: 11px;
+    }
+    .recipe-card .rtitle { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+    .recipe-card .rmeta { font-size: 11px; color: var(--text-tertiary); margin-bottom: 8px; }
+    .recipe-card .macros { font-family: var(--mono); font-size: 11px; color: var(--text-secondary); }
+
+    .habit-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .habit-dot {
+      aspect-ratio: 1; border-radius: 6px; border: 1px solid var(--border);
+      background: transparent;
+    }
+    .habit-dot.on { background: color-mix(in srgb, var(--accent) 55%, transparent); border-color: transparent; }
+    .habit-dot.miss { background: color-mix(in srgb, var(--danger) 25%, transparent); }
+
+    .water-track { display: flex; gap: 6px; flex-wrap: wrap; }
+    .water-cup {
+      width: 36px; height: 44px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--input-bg); display: flex; align-items: flex-end; justify-content: center;
+      padding-bottom: 4px; font-size: 10px; color: var(--text-tertiary);
+    }
+    .water-cup.filled {
+      background: color-mix(in srgb, #5B9FD4 35%, transparent);
+      border-color: color-mix(in srgb, #5B9FD4 50%, transparent); color: #9CCAE8;
+    }
+
+    .insight-card .insight-kicker {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--text-tertiary); margin-bottom: 6px;
+    }
+    .insight-card p { font-size: 13px; color: var(--text-secondary); line-height: 1.45; }
+
+    .field {
+      display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px;
+    }
+    .field label { font-size: 11px; font-weight: 600; color: var(--text-tertiary); }
+    .field input, .field textarea, .field select {
+      padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border);
+      background: var(--input-bg); font-size: 13px; color: var(--text-primary); width: 100%;
+    }
+    .field textarea { min-height: 72px; resize: vertical; }
+
+    .privacy-blur .sensitive-content {
+      filter: blur(7px); user-select: none; pointer-events: none;
+    }
+    .privacy-blur .sensitive::after {
+      content: 'Hidden';
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; color: var(--therapy); letter-spacing: 0.08em;
+      text-transform: uppercase; background: color-mix(in srgb, var(--bg) 40%, transparent);
+      border-radius: 16px;
+    }
+    .card.sensitive { position: relative; }
+
+    .status-banner {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+      padding: 12px 14px; border-radius: 12px; margin-bottom: 12px;
+      border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent);
+      background: color-mix(in srgb, var(--warning) 8%, transparent);
+      font-size: 13px; color: var(--text-secondary);
+    }
+    .status-banner.error {
+      border-color: color-mix(in srgb, var(--danger) 35%, transparent);
+      background: color-mix(in srgb, var(--danger) 8%, transparent);
+    }
+    .status-banner.ok {
+      border-color: color-mix(in srgb, var(--success) 35%, transparent);
+      background: color-mix(in srgb, var(--success) 8%, transparent);
+    }
+
+    .mini-stat { font-family: var(--mono); font-size: 18px; font-weight: 700; }
+    .split { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .hidden { display: none !important; }
+
+    .modal-backdrop {
+      display: none; position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,0.6);
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; padding: 20px;
+      border-radius: 16px; background: #121214; border: 1px solid var(--border);
+      box-shadow: 0 24px 60px rgba(0,0,0,0.55);
+    }
+    [data-theme="light"] .modal { background: #fff; }
+    .modal h2 { font-size: 18px; font-weight: 700; margin-bottom: 14px; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+
+    .toast {
+      position: fixed; bottom: 20px; right: 20px; z-index: 60; padding: 10px 14px;
+      border-radius: 10px; background: #121214; border: 1px solid var(--border);
+      font-size: 13px; color: var(--text-primary); box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+      opacity: 0; transform: translateY(8px); transition: opacity 0.2s, transform 0.2s; pointer-events: none;
+    }
+    [data-theme="light"] .toast { background: #fff; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    @media (max-width: 1200px) {
+      .metric-grid { grid-template-columns: repeat(4, 1fr); }
+      .recipe-grid { grid-template-columns: repeat(2, 1fr); }
+      .grid-4 { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 960px) {
+      .metric-grid { grid-template-columns: repeat(3, 1fr); }
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .span-2 { grid-column: span 1; }
+      .meal-week { grid-template-columns: 70px repeat(7, minmax(90px, 1fr)); }
+    }
+    @media (max-width: 860px) {
+      .sidebar {
+        position: fixed; left: 0; top: 0; bottom: 0; z-index: 40;
+        transform: translateX(-105%); transition: transform 0.22s ease;
+        box-shadow: 8px 0 32px rgba(0,0,0,0.4);
+      }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-overlay.open { display: block; }
+      .mobile-bar { display: flex; }
+      .main { max-height: none; }
+    }
+    @media (max-width: 560px) {
+      .metric-grid { grid-template-columns: repeat(2, 1fr); }
+      .recipe-grid, .grid-4 { grid-template-columns: 1fr; }
+      .page-title { width: 100%; margin-bottom: 4px; }
+    }
   </style>
 </head>
 <body data-page-title="Health">
-  <div class="wrap">
-    <h1 class="dash-title">💊 Health</h1>
-    <div class="card">
-      <p>Supplements and vitals tracking — coming soon.</p>
-      <p style="margin-top:14px"><a href="index.html">← Back to Dashboard</a></p>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  <div class="app" id="appRoot">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">Health</div>
+      <button type="button" class="nav-link active" data-section="today">Today</button>
+      <button type="button" class="nav-link" data-section="whoop">WHOOP <span class="nav-count">API</span></button>
+      <button type="button" class="nav-link" data-section="therapy">Therapy</button>
+      <button type="button" class="nav-link" data-section="nutrition">Nutrition</button>
+      <button type="button" class="nav-link" data-section="habits">Habits</button>
+      <button type="button" class="nav-link" data-section="insights">Insights</button>
+
+      <div class="sidebar-section">Quick filters</div>
+      <button type="button" class="nav-link" data-section="nutrition" data-nutrition-tab="meals">Meal plan</button>
+      <button type="button" class="nav-link" data-section="nutrition" data-nutrition-tab="grocery">Grocery</button>
+      <button type="button" class="nav-link" data-section="nutrition" data-nutrition-tab="recipes">Recipes</button>
+      <button type="button" class="nav-link" data-section="therapy" data-therapy-tab="personal">Personal therapy</button>
+      <button type="button" class="nav-link" data-section="therapy" data-therapy-tab="couples">Couples therapy</button>
+
+      <div class="sidebar-back">
+        <a href="index.html">← Dashboard</a>
+      </div>
+    </aside>
+
+    <div class="main">
+      <div class="mobile-bar">
+        <button type="button" class="hamburger" id="hamburger" aria-label="Open menu">☰</button>
+        <strong style="font-size:15px">Health</strong>
+      </div>
+
+      <div class="main-scroll" id="mainScroll">
+        <div class="page-header">
+          <h1 class="page-title">Health</h1>
+          <div class="toolbar">
+            <label class="sr-only" for="weekSelect">Week</label>
+            <select class="select" id="weekSelect" aria-label="Week selector">
+              <option value="0">This week · Jul 27–Aug 2</option>
+              <option value="-1">Last week · Jul 20–26</option>
+              <option value="1">Next week · Aug 3–9</option>
+            </select>
+            <input type="search" class="search-input" id="searchInput" placeholder="Search meals, notes, habits…" aria-label="Search health" />
+            <button type="button" class="btn" id="privacyBtn" aria-pressed="false" title="Hide sensitive sections">Privacy</button>
+            <button type="button" class="btn primary" id="quickAddBtn">+ Quick add</button>
+          </div>
+        </div>
+
+        <!-- TODAY -->
+        <section class="section" id="sec-today" aria-labelledby="h-today">
+          <div class="section-head">
+            <h2 class="section-title" id="h-today">Today overview</h2>
+            <span class="section-sub">Mon Jul 27 · Manual + wearable placeholders</span>
+            <span class="badge whoop">WHOOP not connected</span>
+            <span class="badge manual">Manual logging on</span>
+          </div>
+
+          <div class="metric-grid" id="todayMetrics" aria-live="polite"></div>
+
+          <div class="grid-2" style="margin-top:12px">
+            <div class="card">
+              <h3>Mood / energy check-in</h3>
+              <p class="card-meta">Manual · private</p>
+              <div class="split" style="margin-bottom:10px">
+                <button type="button" class="btn mood-btn" data-mood="1">Low</button>
+                <button type="button" class="btn mood-btn" data-mood="2">OK</button>
+                <button type="button" class="btn mood-btn primary" data-mood="3">Good</button>
+                <button type="button" class="btn mood-btn" data-mood="4">High</button>
+              </div>
+              <div class="field" style="margin:0">
+                <label for="moodNote">Quick note</label>
+                <input id="moodNote" type="text" placeholder="Energy after lunch felt steady…" value="Solid morning focus; slight afternoon dip" />
+              </div>
+            </div>
+            <div class="card">
+              <h3>Water intake</h3>
+              <p class="card-meta">Manual · goal 3.0 L · <span id="waterLiters">1.5</span> L so far</p>
+              <div class="water-track" id="waterTrack" role="group" aria-label="Water cups"></div>
+              <div class="progress-bar" aria-hidden="true"><span id="waterBar" style="width:50%"></span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- WHOOP -->
+        <section class="section" id="sec-whoop" aria-labelledby="h-whoop">
+          <div class="section-head">
+            <h2 class="section-title" id="h-whoop">WHOOP</h2>
+            <span class="section-sub">Wearable metrics · backend integration pending</span>
+            <span class="badge whoop" id="whoopFreshness">No sync</span>
+          </div>
+
+          <div class="status-banner" id="whoopBanner">
+            <strong style="color:var(--warning)">Not connected yet</strong>
+            <span>Recovery, strain, sleep, HRV, and resting heart rate will appear after WHOOP API setup.</span>
+            <button type="button" class="btn primary" id="connectWhoopBtn" style="margin-left:auto">Connect WHOOP</button>
+          </div>
+
+          <div class="grid-3" id="whoopPanel">
+            <div class="card">
+              <h3>API connection</h3>
+              <p class="card-meta">Abstraction layer ready · no credentials stored here</p>
+              <div class="field"><label>Status</label><input id="whoopStatus" value="Disconnected" readonly /></div>
+              <div class="field"><label>Last sync</label><input id="lastSync" value="—" readonly /></div>
+              <div class="field"><label>Data freshness</label><input id="whoopFreshField" value="Awaiting WHOOP sync" readonly /></div>
+              <div class="split">
+                <button type="button" class="btn primary" id="connectWhoopBtn2">Connect WHOOP</button>
+                <button type="button" class="btn" id="simLoadBtn">Preview loading</button>
+                <button type="button" class="btn" id="simErrorBtn">Preview error</button>
+              </div>
+            </div>
+
+            <div class="card metric disconnected" data-whoop-metric="recovery">
+              <div class="metric-label">Recovery</div>
+              <div class="metric-value placeholder" data-state="empty">Not connected yet</div>
+              <div class="metric-sub">Green / yellow / red zones when live</div>
+            </div>
+            <div class="card metric disconnected" data-whoop-metric="sleep">
+              <div class="metric-label">Sleep performance</div>
+              <div class="metric-value placeholder" data-state="empty">Awaiting WHOOP sync</div>
+              <div class="metric-sub">Duration · need · debt</div>
+            </div>
+            <div class="card metric disconnected" data-whoop-metric="strain">
+              <div class="metric-label">Day strain</div>
+              <div class="metric-value placeholder" data-state="empty">No data available</div>
+              <div class="metric-sub">Activity load</div>
+            </div>
+            <div class="card metric disconnected" data-whoop-metric="hrv">
+              <div class="metric-label">HRV</div>
+              <div class="metric-value placeholder" data-state="empty">Not connected yet</div>
+              <div class="metric-sub">ms · overnight</div>
+            </div>
+            <div class="card metric disconnected" data-whoop-metric="rhr">
+              <div class="metric-label">Resting heart rate</div>
+              <div class="metric-value placeholder" data-state="empty">Awaiting WHOOP sync</div>
+              <div class="metric-sub">bpm</div>
+            </div>
+            <div class="card metric disconnected" data-whoop-metric="resp">
+              <div class="metric-label">Respiratory rate</div>
+              <div class="metric-value placeholder" data-state="empty">No data available</div>
+              <div class="metric-sub">breaths / min</div>
+            </div>
+            <div class="card">
+              <h3>Sleep duration / need</h3>
+              <p class="card-meta">Placeholder · connected data later</p>
+              <div class="empty-state" style="padding:16px 8px">
+                <strong>Sleep debt unavailable</strong>
+                Duration and sleep need will sync from WHOOP after backend setup.
+              </div>
+            </div>
+            <div class="card">
+              <h3>Recent workouts</h3>
+              <p class="card-meta">Activity feed · empty until sync</p>
+              <div class="empty-state" style="padding:16px 8px">
+                <strong>No workouts yet</strong>
+                Strain events and sports will appear here.
+              </div>
+            </div>
+            <div class="card span-full">
+              <h3>Weekly trend</h3>
+              <p class="card-meta">Mock chart · not live WHOOP data</p>
+              <div class="chart-mock" id="whoopTrend" aria-hidden="true"></div>
+              <p style="font-size:11px;color:var(--text-tertiary);margin-top:8px">Bars are illustrative placeholders for recovery trend once connected.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- THERAPY -->
+        <section class="section" id="sec-therapy" aria-labelledby="h-therapy">
+          <div class="section-head">
+            <h2 class="section-title" id="h-therapy">Therapy</h2>
+            <span class="section-sub">Private · structured continuity</span>
+            <span class="badge lock">Sensitive</span>
+            <div class="panel-tabs" role="tablist" style="margin-left:auto;margin-bottom:0">
+              <button type="button" class="active" data-therapy-tab="personal" role="tab" aria-selected="true">Personal</button>
+              <button type="button" data-therapy-tab="couples" role="tab" aria-selected="false">Couples</button>
+            </div>
+          </div>
+
+          <div id="therapyPersonal" class="therapy-panel">
+            <div class="grid-2 sensitive-content">
+              <div class="card sensitive">
+                <h3>Next appointment</h3>
+                <p class="card-meta">Personal · telehealth</p>
+                <div class="mini-stat" style="margin-bottom:6px">Thu Jul 31 · 4:30 PM</div>
+                <p style="font-size:13px;color:var(--text-secondary);line-height:1.45">
+                  Dr. Elena Vargas · Zoom<br />
+                  <a href="#" onclick="return false">Join link on file</a>
+                </p>
+                <div class="tags" style="margin-top:10px">
+                  <span class="tag-pill">anxiety</span>
+                  <span class="tag-pill">sleep</span>
+                  <span class="tag-pill">work stress</span>
+                </div>
+                <div class="split" style="margin-top:12px">
+                  <button type="button" class="btn">Add reminder</button>
+                  <button type="button" class="btn">Prep questions</button>
+                </div>
+              </div>
+              <div class="card sensitive">
+                <h3>Session mood check-in</h3>
+                <p class="card-meta">Before / after · last session Jul 24</p>
+                <div class="grid-2" style="gap:8px">
+                  <div class="field"><label>Before</label><input value="3 / 5 — tense shoulders" readonly /></div>
+                  <div class="field"><label>After</label><input value="4 / 5 — clearer next steps" readonly /></div>
+                </div>
+                <div class="field"><label>What improved</label><textarea readonly>Used the pause-before-reply technique twice at work.</textarea></div>
+                <div class="field" style="margin:0"><label>What felt difficult</label><textarea readonly>Still avoiding the Sunday planning conversation.</textarea></div>
+              </div>
+              <div class="card sensitive">
+                <h3>Goals / focus areas</h3>
+                <ul class="list">
+                  <li class="list-item"><div><div class="title">Reduce rumination after 9 PM</div><div class="meta">Active · reviewed weekly</div></div><div class="right">In progress</div></li>
+                  <li class="list-item"><div><div class="title">Protect one recovery evening / week</div><div class="meta">Linked to sleep hygiene</div></div><div class="right">On track</div></li>
+                  <li class="list-item"><div><div class="title">Name stressors before they escalate</div><div class="meta">Homework pattern</div></div><div class="right">Watch</div></li>
+                </ul>
+              </div>
+              <div class="card sensitive">
+                <h3>Homework / action items</h3>
+                <div class="check-row"><input type="checkbox" checked /><span class="label">Journal 10 min after stressful meetings</span></div>
+                <div class="check-row"><input type="checkbox" /><span class="label">Practice one boundary script this week</span><span class="tag">Due Fri</span></div>
+                <div class="check-row"><input type="checkbox" /><span class="label">Bring sleep log to next session</span></div>
+              </div>
+              <div class="card sensitive span-2">
+                <h3>Reflection journal</h3>
+                <p class="card-meta">Private notes · not shared</p>
+                <div class="field"><label>Session notes (Jul 24)</label>
+                  <textarea>Talked through the midweek overload pattern. Agreed to try a hard stop at 7:30 two nights this week. Questions for next time: how to handle family visits without abandoning routines.</textarea>
+                </div>
+                <div class="field" style="margin:0"><label>Questions for next session</label>
+                  <textarea>1) How to communicate capacity without sounding cold?
+2) Is Sunday planning anxiety more about control or fear of falling behind?</textarea>
+                </div>
+              </div>
+              <div class="card sensitive">
+                <h3>Session history</h3>
+                <ul class="list">
+                  <li class="list-item"><div><div class="title">Jul 24 · Zoom</div><div class="meta">Tags: work stress, sleep</div></div><div class="right">45 min</div></li>
+                  <li class="list-item"><div><div class="title">Jul 17 · Zoom</div><div class="meta">Tags: anxiety, boundaries</div></div><div class="right">50 min</div></li>
+                  <li class="list-item"><div><div class="title">Jul 10 · In person</div><div class="meta">Tags: family, energy</div></div><div class="right">55 min</div></li>
+                </ul>
+              </div>
+              <div class="card sensitive">
+                <h3>Follow-up reminders</h3>
+                <ul class="list">
+                  <li class="list-item"><div><div class="title">Complete boundary script practice</div><div class="meta">Before Jul 31 session</div></div><div class="right">Open</div></li>
+                  <li class="list-item"><div><div class="title">Export sleep notes for review</div><div class="meta">Manual habit log</div></div><div class="right">Open</div></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div id="therapyCouples" class="therapy-panel hidden">
+            <div class="grid-2 sensitive-content">
+              <div class="card sensitive">
+                <h3>Next appointment</h3>
+                <p class="card-meta">Couples · in person</p>
+                <div class="mini-stat" style="margin-bottom:6px">Sat Aug 2 · 11:00 AM</div>
+                <p style="font-size:13px;color:var(--text-secondary);line-height:1.45">
+                  Jordan Lee, LMFT · Clinic room B<br />
+                  Focus: weekly check-in structure
+                </p>
+                <div class="tags" style="margin-top:10px">
+                  <span class="tag-pill">communication</span>
+                  <span class="tag-pill">scheduling</span>
+                  <span class="tag-pill">repair</span>
+                </div>
+              </div>
+              <div class="card sensitive">
+                <h3>Relationship check-in</h3>
+                <p class="card-meta">This week · both partners</p>
+                <div class="field"><label>Connection (1–5)</label><input value="4 — good evening walks" /></div>
+                <div class="field"><label>Conflict tone</label><input value="Calm · one tense budget talk" /></div>
+                <div class="field" style="margin:0"><label>Gratitude / wins</label><textarea>Cooked together twice. Cleared calendar for Saturday morning.</textarea></div>
+              </div>
+              <div class="card sensitive">
+                <h3>Shared action items</h3>
+                <div class="check-row"><input type="checkbox" checked /><span class="label">Sunday 20-min planning huddle</span></div>
+                <div class="check-row"><input type="checkbox" /><span class="label">Use repair phrase after disagreements</span><span class="tag">Shared</span></div>
+                <div class="check-row"><input type="checkbox" /><span class="label">Phone-free dinner 3× this week</span></div>
+              </div>
+              <div class="card sensitive">
+                <h3>Conflict / communication themes</h3>
+                <ul class="list">
+                  <li class="list-item"><div><div class="title">Time allocation on weekends</div><div class="meta">Recurring · improving</div></div></li>
+                  <li class="list-item"><div><div class="title">Tone when discussing money</div><div class="meta">Watch · use pause</div></div></li>
+                  <li class="list-item"><div><div class="title">Assumptions about availability</div><div class="meta">New this month</div></div></li>
+                </ul>
+              </div>
+              <div class="card sensitive span-2">
+                <h3>Couples reflection</h3>
+                <div class="field"><label>What improved</label><textarea>Faster repairs after small frictions; clearer asks.</textarea></div>
+                <div class="field" style="margin:0"><label>What felt difficult</label><textarea>Friday evenings still feel rushed. Need a shared wind-down ritual.</textarea></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- NUTRITION -->
+        <section class="section" id="sec-nutrition" aria-labelledby="h-nutrition">
+          <div class="section-head">
+            <h2 class="section-title" id="h-nutrition">Nutrition</h2>
+            <span class="section-sub">Meal plan → grocery → recipes</span>
+            <div class="panel-tabs" role="tablist" style="margin-left:auto;margin-bottom:0">
+              <button type="button" class="active" data-nutrition-tab="meals" role="tab">Meal plan</button>
+              <button type="button" data-nutrition-tab="grocery" role="tab">Grocery</button>
+              <button type="button" data-nutrition-tab="recipes" role="tab">Recipes</button>
+            </div>
+          </div>
+
+          <div id="nutritionMeals" class="nutrition-panel">
+            <div class="grid-4" style="margin-bottom:12px">
+              <div class="card">
+                <h3>Daily calorie target</h3>
+                <div class="mini-stat">2,400</div>
+                <p class="card-meta">kcal · editable later</p>
+              </div>
+              <div class="card">
+                <h3>Macros</h3>
+                <p style="font-family:var(--mono);font-size:13px;line-height:1.5">P 180g · C 220g · F 70g</p>
+                <p class="card-meta">Targets for this week</p>
+              </div>
+              <div class="card">
+                <h3>Prep day</h3>
+                <div class="mini-stat" style="font-size:16px">Sun 3–5 PM</div>
+                <p class="card-meta">Chicken · oats · salads</p>
+              </div>
+              <div class="card">
+                <h3>Plan actions</h3>
+                <div class="split">
+                  <button type="button" class="btn primary" id="genGroceryBtn">Generate grocery</button>
+                  <button type="button" class="btn" id="copyWeekBtn">Copy last week</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card" style="overflow-x:auto">
+              <div class="section-head" style="margin-bottom:10px">
+                <h3 style="margin:0">Weekly meal planner</h3>
+                <span class="section-sub">Drag meals across days · B / L / D / S</span>
+                <button type="button" class="btn" id="addMealBtn" style="margin-left:auto">+ Add meal</button>
+              </div>
+              <div class="meal-week" id="mealWeek" aria-label="Weekly meal plan"></div>
+            </div>
+          </div>
+
+          <div id="nutritionGrocery" class="nutrition-panel hidden">
+            <div class="grid-2">
+              <div class="card span-2">
+                <div class="section-head" style="margin-bottom:8px">
+                  <h3 style="margin:0">Grocery list</h3>
+                  <span class="badge ok">From meal plan</span>
+                  <span class="badge">Budget est. $92</span>
+                  <button type="button" class="btn" id="addGroceryBtn" style="margin-left:auto">+ Item</button>
+                  <button type="button" class="btn" id="staplesBtn">Quick staples</button>
+                </div>
+                <div class="panel-tabs" style="margin-bottom:10px">
+                  <button type="button" class="active" data-grocery-scope="week">This week</button>
+                  <button type="button" data-grocery-scope="later">Later</button>
+                </div>
+                <div id="groceryList"></div>
+              </div>
+              <div class="card">
+                <h3>Pantry inventory</h3>
+                <p class="card-meta">Already have · reduces list noise</p>
+                <div class="check-row done"><input type="checkbox" checked /><span class="label">Olive oil</span></div>
+                <div class="check-row done"><input type="checkbox" checked /><span class="label">Rice · 2 lb</span></div>
+                <div class="check-row"><input type="checkbox" /><span class="label">Greek yogurt</span></div>
+                <div class="check-row"><input type="checkbox" /><span class="label">Eggs · dozen</span></div>
+              </div>
+              <div class="card">
+                <h3>Store / aisle notes</h3>
+                <ul class="list">
+                  <li class="list-item"><div><div class="title">Produce first</div><div class="meta">Spinach, berries, bananas</div></div></li>
+                  <li class="list-item"><div><div class="title">Protein aisle</div><div class="meta">Chicken thighs, salmon</div></div></li>
+                  <li class="list-item"><div><div class="title">Substitutions</div><div class="meta">Almond milk OK if oat out</div></div></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div id="nutritionRecipes" class="nutrition-panel hidden">
+            <div class="toolbar" style="margin-bottom:12px">
+              <input type="search" class="search-input" id="recipeSearch" placeholder="Search recipes…" aria-label="Search recipes" />
+              <select class="select" id="recipeFilter" aria-label="Filter recipes">
+                <option value="all">All</option>
+                <option value="high-protein">High-protein</option>
+                <option value="easy">Easy</option>
+                <option value="meal-prep">Meal-prep</option>
+                <option value="fav">Favorites</option>
+              </select>
+              <button type="button" class="btn" id="importRecipeBtn">Link import…</button>
+            </div>
+            <div class="recipe-grid" id="recipeGrid"></div>
+          </div>
+        </section>
+
+        <!-- HABITS -->
+        <section class="section" id="sec-habits" aria-labelledby="h-habits">
+          <div class="section-head">
+            <h2 class="section-title" id="h-habits">Planning &amp; habits</h2>
+            <span class="section-sub">Manual tracking · useful before WHOOP</span>
+          </div>
+          <div class="grid-3">
+            <div class="card">
+              <h3>Supplements / meds</h3>
+              <div class="check-row" data-habit-check><input type="checkbox" checked /><span class="label">Vitamin D · AM</span></div>
+              <div class="check-row" data-habit-check><input type="checkbox" checked /><span class="label">Omega-3 · AM</span></div>
+              <div class="check-row" data-habit-check><input type="checkbox" /><span class="label">Magnesium · PM</span></div>
+              <div class="check-row" data-habit-check><input type="checkbox" /><span class="label">Electrolytes · post-gym</span></div>
+            </div>
+            <div class="card">
+              <h3>Habit tracker</h3>
+              <p class="card-meta">Last 7 days · walk · stretch · no screens late</p>
+              <div style="margin-bottom:8px;font-size:12px;color:var(--text-secondary)">Walk 8k+</div>
+              <div class="habit-grid" id="habitWalk"></div>
+              <div style="margin:10px 0 8px;font-size:12px;color:var(--text-secondary)">Sleep hygiene</div>
+              <div class="habit-grid" id="habitSleep"></div>
+            </div>
+            <div class="card">
+              <h3>Manual tracking panel</h3>
+              <div class="field"><label>Appetite</label><select><option>Normal</option><option>Low</option><option selected>High</option></select></div>
+              <div class="field"><label>Cravings</label><input value="Salty · evening" /></div>
+              <div class="field"><label>Digestive notes</label><input value="Fine" /></div>
+              <div class="field" style="margin:0"><label>Stressors</label><input value="Deadline cluster Wed–Thu" /></div>
+            </div>
+            <div class="card">
+              <h3>Symptom tracker</h3>
+              <div class="check-row"><input type="checkbox" /><span class="label">Headache</span></div>
+              <div class="check-row"><input type="checkbox" /><span class="label">Low energy crash</span></div>
+              <div class="check-row"><input type="checkbox" checked /><span class="label">Tight neck / shoulders</span></div>
+              <div class="check-row"><input type="checkbox" /><span class="label">Poor appetite</span></div>
+            </div>
+            <div class="card">
+              <h3>Body metrics log</h3>
+              <div class="field"><label>Weight</label><input value="178.4 lb · this morning" /></div>
+              <div class="field"><label>Waist</label><input value="34.5 in · weekly" /></div>
+              <div class="field" style="margin:0"><label>Notes</label><input value="Measured fasted" /></div>
+            </div>
+            <div class="card">
+              <h3>Appointments / preventive care</h3>
+              <ul class="list">
+                <li class="list-item"><div><div class="title">Dental cleaning</div><div class="meta">Aug 14</div></div><div class="right">Soon</div></li>
+                <li class="list-item"><div><div class="title">Annual physical</div><div class="meta">Schedule by Sep</div></div><div class="right">Reminder</div></li>
+                <li class="list-item"><div><div class="title">Bloodwork follow-up</div><div class="meta">Results review</div></div><div class="right">Open</div></li>
+              </ul>
+            </div>
+            <div class="card span-full">
+              <h3>Daily notes</h3>
+              <textarea id="dailyNotes" style="width:100%;min-height:80px;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--input-bg)">Walked after lunch. Skipped afternoon coffee. Prep chicken for Wed/Thu dinners.</textarea>
+            </div>
+          </div>
+        </section>
+
+        <!-- INSIGHTS -->
+        <section class="section" id="sec-insights" aria-labelledby="h-insights">
+          <div class="section-head">
+            <h2 class="section-title" id="h-insights">Insights &amp; notes</h2>
+            <span class="section-sub">Patterns · streaks · things to review</span>
+            <button type="button" class="btn" id="exportSummaryBtn" style="margin-left:auto">Export-safe summary</button>
+          </div>
+          <div class="grid-3">
+            <div class="card insight-card">
+              <div class="insight-kicker">Weekly summary</div>
+              <p>Meal plan adherence ~80%. Therapy homework 2/3 complete. Hydration streak active. WHOOP metrics still disconnected — manual logs carrying the week.</p>
+            </div>
+            <div class="card insight-card">
+              <div class="insight-kicker">Sleep consistency</div>
+              <p>Bedtime varied by ~70 minutes. Strongest nights followed earlier wind-down. Watch Thu–Fri drift.</p>
+            </div>
+            <div class="card insight-card">
+              <div class="insight-kicker">Nutrition adherence</div>
+              <p>Prep meals held Mon–Wed. Dining-out Friday is the main flex slot. Protein target hit 5/7 days.</p>
+            </div>
+            <div class="card insight-card">
+              <div class="insight-kicker">Therapy follow-up</div>
+              <p>One open action item before Jul 31. Couples shared checklist mid-week incomplete.</p>
+            </div>
+            <div class="card insight-card">
+              <div class="insight-kicker">Hydration streak</div>
+              <p>4-day streak at ≥2.5 L. Today at 50% of goal — afternoon catch-up recommended.</p>
+            </div>
+            <div class="card insight-card">
+              <div class="insight-kicker">Missing data</div>
+              <p>No WHOOP recovery/strain. Mood check-in logged. Supplement PM dose still open.</p>
+            </div>
+            <div class="card">
+              <h3>Streaks</h3>
+              <ul class="list">
+                <li class="list-item"><div><div class="title">Hydration ≥2.5 L</div><div class="meta">Manual</div></div><div class="right">4 days</div></li>
+                <li class="list-item"><div><div class="title">AM supplements</div><div class="meta">Manual</div></div><div class="right">9 days</div></li>
+                <li class="list-item"><div><div class="title">Meal prep Sundays</div><div class="meta">Nutrition</div></div><div class="right">3 weeks</div></li>
+              </ul>
+            </div>
+            <div class="card">
+              <h3>Things to review this week</h3>
+              <ul class="list">
+                <li class="list-item"><div><div class="title">Personal therapy prep questions</div><div class="meta">Due Thu</div></div></li>
+                <li class="list-item"><div><div class="title">Generate grocery before Thu shop</div><div class="meta">Nutrition</div></div></li>
+                <li class="list-item"><div><div class="title">Connect WHOOP when backend ready</div><div class="meta">Wearable</div></div></li>
+              </ul>
+            </div>
+            <div class="card">
+              <h3>Health score</h3>
+              <p class="card-meta">Placeholder · not a medical score</p>
+              <div class="mini-stat" style="color:var(--text-tertiary)">—</div>
+              <p style="font-size:12px;color:var(--text-tertiary);margin-top:8px">Will combine manual adherence + wearable recovery once connected.</p>
+            </div>
+            <div class="card span-full">
+              <h3>Freeform journal</h3>
+              <textarea id="insightJournal" style="width:100%;min-height:100px;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--input-bg)">Pattern note: when meals are prepped, evening stress drops and therapy homework gets done. Keep Sunday prep protected even if weekends get social.</textarea>
+            </div>
+          </div>
+        </section>
+      </div>
     </div>
   </div>
+
+  <div class="modal-backdrop" id="quickAddModal" role="dialog" aria-modal="true" aria-labelledby="qaTitle">
+    <div class="modal">
+      <h2 id="qaTitle">Quick add</h2>
+      <div class="field"><label for="qaType">Type</label>
+        <select id="qaType">
+          <option>Water</option>
+          <option>Mood</option>
+          <option>Supplement</option>
+          <option>Meal</option>
+          <option>Grocery item</option>
+          <option>Therapy note</option>
+          <option>Symptom</option>
+        </select>
+      </div>
+      <div class="field"><label for="qaDetail">Detail</label><input id="qaDetail" placeholder="What do you want to log?" /></div>
+      <div class="modal-actions">
+        <button type="button" class="btn" id="qaCancel">Cancel</button>
+        <button type="button" class="btn primary" id="qaSave">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status"></div>
+
+  <script>
+  (function () {
+    'use strict';
+
+    var DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    var SLOTS = [
+      { key: 'b', label: 'Breakfast' },
+      { key: 'l', label: 'Lunch' },
+      { key: 'd', label: 'Dinner' },
+      { key: 's', label: 'Snack' }
+    ];
+
+    var MEALS = {
+      '0-b': { title: 'Greek yogurt bowl', flags: ['prep'] },
+      '0-l': { title: 'Chicken rice bowl', flags: ['prep', 'left'] },
+      '0-d': { title: 'Salmon + greens', flags: [] },
+      '0-s': { title: 'Protein shake', flags: [] },
+      '1-b': { title: 'Egg scramble', flags: [] },
+      '1-l': { title: 'Chicken rice bowl', flags: ['left'] },
+      '1-d': { title: 'Turkey chili', flags: ['prep'] },
+      '2-b': { title: 'Oats + whey', flags: ['prep'] },
+      '2-l': { title: 'Tuna wrap', flags: ['easy'] },
+      '2-d': { title: 'Flexible / dining out', flags: ['out'] },
+      '3-b': { title: 'Greek yogurt bowl', flags: ['prep'] },
+      '3-l': { title: 'Leftover chili', flags: ['left'] },
+      '3-d': { title: 'Sheet-pan chicken', flags: ['prep'] },
+      '4-b': { title: 'Smoothie', flags: ['easy'] },
+      '4-l': { title: 'Salad + chicken', flags: [] },
+      '4-d': { title: 'Dining out', flags: ['out'] },
+      '5-b': { title: 'Eggs + toast', flags: [] },
+      '5-d': { title: 'Steak + potatoes', flags: [] },
+      '6-b': { title: 'Oats + whey', flags: ['prep'] },
+      '6-l': { title: 'Meal-prep bowl', flags: ['prep'] }
+    };
+
+    var GROCERY = [
+      { cat: 'Produce', name: 'Baby spinach', qty: '2 bags', must: true, have: false, scope: 'week' },
+      { cat: 'Produce', name: 'Blueberries', qty: '1 pint', must: false, have: false, scope: 'week' },
+      { cat: 'Produce', name: 'Bananas', qty: '6', must: false, have: false, scope: 'week' },
+      { cat: 'Protein', name: 'Chicken thighs', qty: '3 lb', must: true, have: false, scope: 'week' },
+      { cat: 'Protein', name: 'Salmon fillets', qty: '2', must: true, have: false, scope: 'week' },
+      { cat: 'Protein', name: 'Ground turkey', qty: '2 lb', must: false, have: false, scope: 'week' },
+      { cat: 'Dairy', name: 'Greek yogurt', qty: '32 oz', must: true, have: false, scope: 'week' },
+      { cat: 'Dairy', name: 'Eggs', qty: '18 ct', must: true, have: false, scope: 'week' },
+      { cat: 'Pantry', name: 'Brown rice', qty: '2 lb', must: false, have: true, scope: 'week' },
+      { cat: 'Pantry', name: 'Black beans', qty: '2 cans', must: false, have: false, scope: 'week' },
+      { cat: 'Frozen', name: 'Mixed berries', qty: '1 bag', must: false, have: false, scope: 'later' },
+      { cat: 'Snacks', name: 'Almonds', qty: '1 bag', must: false, have: false, scope: 'later' },
+      { cat: 'Beverages', name: 'Electrolyte packets', qty: '1 box', must: false, have: false, scope: 'week' },
+      { cat: 'Household', name: 'Dish pods', qty: '1', must: false, have: false, scope: 'later' }
+    ];
+
+    var RECIPES = [
+      { id: 1, title: 'High-protein chicken bowl', time: '25 min', servings: 4, macros: 'P52 C48 F14', tags: ['high-protein', 'meal-prep', 'fav'], cuisine: 'American', recent: true },
+      { id: 2, title: 'Turkey chili', time: '40 min', servings: 6, macros: 'P38 C32 F12', tags: ['high-protein', 'meal-prep'], cuisine: 'American', recent: true },
+      { id: 3, title: 'Salmon greens plate', time: '22 min', servings: 2, macros: 'P42 C18 F22', tags: ['high-protein', 'easy'], cuisine: 'Mediterranean', recent: false },
+      { id: 4, title: 'Overnight oats + whey', time: '5 min', servings: 1, macros: 'P36 C44 F10', tags: ['easy', 'meal-prep', 'fav'], cuisine: 'American', recent: true },
+      { id: 5, title: 'Tuna wrap', time: '10 min', servings: 1, macros: 'P34 C28 F11', tags: ['easy', 'high-protein'], cuisine: 'American', recent: false },
+      { id: 6, title: 'Sheet-pan chicken', time: '35 min', servings: 4, macros: 'P46 C24 F16', tags: ['meal-prep'], cuisine: 'American', recent: false }
+    ];
+
+    var WHOOP_STATE = 'disconnected'; // disconnected | loading | connected | error
+    var groceryScope = 'week';
+    var waterFilled = 3; // of 6 cups = 1.5L of 3L
+    var dragKey = null;
+
+    function $(id) { return document.getElementById(id); }
+    function toast(msg) {
+      var el = $('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(toast._t);
+      toast._t = setTimeout(function () { el.classList.remove('show'); }, 2200);
+    }
+
+    function renderTodayMetrics() {
+      var items = [
+        { label: 'Recovery', value: 'Not connected yet', sub: 'WHOOP', kind: 'whoop', ph: true },
+        { label: 'Sleep', value: 'Awaiting sync', sub: 'WHOOP', kind: 'whoop', ph: true },
+        { label: 'Day strain', value: 'No data', sub: 'WHOOP', kind: 'whoop', ph: true },
+        { label: 'Steps', value: '—', sub: 'WHOOP · placeholder', kind: 'whoop', ph: true },
+        { label: 'Calories burned', value: '—', sub: 'WHOOP · placeholder', kind: 'whoop', ph: true },
+        { label: 'Resting HR', value: 'Awaiting sync', sub: 'WHOOP', kind: 'whoop', ph: true },
+        { label: 'HRV', value: 'Not connected yet', sub: 'WHOOP', kind: 'whoop', ph: true },
+        { label: 'Stress / readiness', value: 'Manual OK', sub: 'Check-in · 3/5', kind: 'manual', ph: false, zone: 'y' },
+        { label: 'Water', value: (waterFilled * 0.5).toFixed(1) + ' L', sub: 'of 3.0 L goal', kind: 'manual', ph: false, zone: 'y' },
+        { label: 'Mood / energy', value: 'Good', sub: 'Logged this morning', kind: 'manual', ph: false, zone: 'g' }
+      ];
+
+      if (WHOOP_STATE === 'loading') {
+        $('todayMetrics').innerHTML = items.map(function () {
+          return '<div class="metric"><div class="metric-label">Loading</div><div class="skel lg"></div><div class="skel" style="margin-top:8px;width:40%"></div></div>';
+        }).join('');
+        return;
+      }
+
+      if (WHOOP_STATE === 'connected') {
+        items = [
+          { label: 'Recovery', value: '67%', sub: 'Yellow zone · sample', kind: 'whoop', ph: false, zone: 'y' },
+          { label: 'Sleep', value: '84%', sub: '7h 12m · sample', kind: 'whoop', ph: false, zone: 'g' },
+          { label: 'Day strain', value: '10.4', sub: 'Moderate · sample', kind: 'whoop', ph: false, zone: 'y' },
+          { label: 'Steps', value: '8,420', sub: 'Sample placeholder', kind: 'whoop', ph: false },
+          { label: 'Calories burned', value: '2,610', sub: 'Sample placeholder', kind: 'whoop', ph: false },
+          { label: 'Resting HR', value: '54', sub: 'bpm · sample', kind: 'whoop', ph: false, zone: 'g' },
+          { label: 'HRV', value: '68', sub: 'ms · sample', kind: 'whoop', ph: false, zone: 'g' },
+          { label: 'Stress / readiness', value: 'Manual OK', sub: 'Check-in · 3/5', kind: 'manual', ph: false, zone: 'y' },
+          { label: 'Water', value: (waterFilled * 0.5).toFixed(1) + ' L', sub: 'of 3.0 L goal', kind: 'manual', ph: false, zone: 'y' },
+          { label: 'Mood / energy', value: 'Good', sub: 'Logged this morning', kind: 'manual', ph: false, zone: 'g' }
+        ];
+      }
+
+      $('todayMetrics').innerHTML = items.map(function (m) {
+        var cls = 'metric' + (m.kind === 'whoop' && WHOOP_STATE !== 'connected' ? ' disconnected' : '') +
+          (m.zone === 'g' ? ' zone-g' : m.zone === 'y' ? ' zone-y' : m.zone === 'r' ? ' zone-r' : '');
+        return '<div class="' + cls + '">' +
+          '<div class="metric-label">' + m.label + ' · ' + m.kind + '</div>' +
+          '<div class="metric-value' + (m.ph ? ' placeholder' : '') + '">' + m.value + '</div>' +
+          '<div class="metric-sub">' + m.sub + '</div></div>';
+      }).join('');
+    }
+
+    function renderWater() {
+      var html = '';
+      for (var i = 0; i < 6; i++) {
+        html += '<button type="button" class="water-cup' + (i < waterFilled ? ' filled' : '') + '" data-cup="' + (i + 1) + '" aria-pressed="' + (i < waterFilled) + '">' + ((i + 1) * 0.5) + 'L</button>';
+      }
+      $('waterTrack').innerHTML = html;
+      $('waterLiters').textContent = (waterFilled * 0.5).toFixed(1);
+      $('waterBar').style.width = Math.round((waterFilled / 6) * 100) + '%';
+      renderTodayMetrics();
+    }
+
+    function renderWhoopTrend() {
+      var heights = WHOOP_STATE === 'connected' ? [55, 62, 48, 70, 66, 58, 67] : [20, 18, 22, 16, 19, 21, 17];
+      $('whoopTrend').innerHTML = heights.map(function (h, i) {
+        return '<div class="chart-bar' + (WHOOP_STATE !== 'connected' ? ' muted' : '') + '" style="height:' + h + '%"><span class="tip">' + DAYS[i] + '</span></div>';
+      }).join('');
+    }
+
+    function setWhoopUI() {
+      var banner = $('whoopBanner');
+      var freshness = $('whoopFreshness');
+      var metrics = document.querySelectorAll('[data-whoop-metric]');
+
+      if (WHOOP_STATE === 'loading') {
+        banner.className = 'status-banner';
+        banner.innerHTML = '<strong style="color:var(--warning)">Syncing…</strong><span>Loading wearable placeholders.</span>';
+        freshness.textContent = 'Syncing';
+        freshness.className = 'badge whoop';
+        if ($('whoopStatus')) $('whoopStatus').value = 'Syncing…';
+        if ($('whoopFreshField')) $('whoopFreshField').value = 'Loading';
+        metrics.forEach(function (card) {
+          var val = card.querySelector('.metric-value');
+          if (val) val.innerHTML = '<div class="skel lg"></div>';
+        });
+        renderTodayMetrics();
+        renderWhoopTrend();
+        return;
+      }
+
+      if (WHOOP_STATE === 'error') {
+        banner.className = 'status-banner error';
+        banner.innerHTML = '<strong style="color:var(--danger)">Sync error</strong><span>Could not reach WHOOP API placeholder. Retry when backend is configured.</span><button type="button" class="btn" id="retryWhoop" style="margin-left:auto">Retry</button>';
+        freshness.textContent = 'Error';
+        freshness.className = 'badge err';
+        if ($('whoopStatus')) $('whoopStatus').value = 'Error';
+        if ($('whoopFreshField')) $('whoopFreshField').value = 'Sync failed';
+        $('retryWhoop').onclick = function () { simulateConnect(); };
+        renderTodayMetrics();
+        renderWhoopTrend();
+        return;
+      }
+
+      if (WHOOP_STATE === 'connected') {
+        banner.className = 'status-banner ok';
+        banner.innerHTML = '<strong style="color:var(--success)">Connected (sample)</strong><span>Showing placeholder live values — replace with real API later.</span><button type="button" class="btn" id="disconnectWhoop" style="margin-left:auto">Disconnect</button>';
+        freshness.textContent = 'Fresh · sample';
+        freshness.className = 'badge ok';
+        if ($('whoopStatus')) $('whoopStatus').value = 'Connected (sample)';
+        $('lastSync').value = 'Just now (sample)';
+        if ($('whoopFreshField')) $('whoopFreshField').value = 'Fresh · sample data';
+        var sample = {
+          recovery: { v: '67%', zone: 'zone-y', sub: 'Yellow · sample data' },
+          sleep: { v: '84%', zone: 'zone-g', sub: '7h 12m · sample' },
+          strain: { v: '10.4', zone: 'zone-y', sub: 'Moderate load' },
+          hrv: { v: '68 ms', zone: 'zone-g', sub: 'Overnight' },
+          rhr: { v: '54 bpm', zone: 'zone-g', sub: 'Resting' },
+          resp: { v: '14.2', zone: '', sub: 'breaths / min' }
+        };
+        metrics.forEach(function (card) {
+          var key = card.getAttribute('data-whoop-metric');
+          var s = sample[key];
+          card.className = 'card metric ' + (s.zone || '');
+          card.querySelector('.metric-value').className = 'metric-value';
+          card.querySelector('.metric-value').textContent = s.v;
+          card.querySelector('.metric-sub').textContent = s.sub;
+        });
+        $('disconnectWhoop').onclick = function () {
+          WHOOP_STATE = 'disconnected';
+          setWhoopUI();
+          toast('WHOOP disconnected (placeholder)');
+        };
+        renderTodayMetrics();
+        renderWhoopTrend();
+        return;
+      }
+
+      // disconnected
+      banner.className = 'status-banner';
+      banner.innerHTML = '<strong style="color:var(--warning)">Not connected yet</strong><span>Recovery, strain, sleep, HRV, and resting heart rate will appear after WHOOP API setup.</span><button type="button" class="btn primary" id="connectWhoopBtn" style="margin-left:auto">Connect WHOOP</button>';
+      freshness.textContent = 'No sync';
+      freshness.className = 'badge whoop';
+      if ($('whoopStatus')) $('whoopStatus').value = 'Disconnected';
+      $('lastSync').value = '—';
+      if ($('whoopFreshField')) $('whoopFreshField').value = 'Awaiting WHOOP sync';
+      var emptyMap = {
+        recovery: 'Not connected yet',
+        sleep: 'Awaiting WHOOP sync',
+        strain: 'No data available',
+        hrv: 'Not connected yet',
+        rhr: 'Awaiting WHOOP sync',
+        resp: 'No data available'
+      };
+      metrics.forEach(function (card) {
+        var key = card.getAttribute('data-whoop-metric');
+        card.className = 'card metric disconnected';
+        card.querySelector('.metric-value').className = 'metric-value placeholder';
+        card.querySelector('.metric-value').textContent = emptyMap[key];
+      });
+      var btn = $('connectWhoopBtn');
+      if (btn) btn.onclick = simulateConnect;
+      renderTodayMetrics();
+      renderWhoopTrend();
+    }
+
+    function simulateConnect() {
+      WHOOP_STATE = 'loading';
+      setWhoopUI();
+      setTimeout(function () {
+        WHOOP_STATE = 'connected';
+        setWhoopUI();
+        toast('WHOOP sample connection ready');
+      }, 900);
+    }
+
+    function renderMeals() {
+      var html = '<div class="meal-corner"></div>';
+      DAYS.forEach(function (d, i) {
+        html += '<div class="meal-day-h' + (i === 0 ? ' today' : '') + '">' + d + '</div>';
+      });
+      SLOTS.forEach(function (slot) {
+        html += '<div class="meal-slot-label">' + slot.label + '</div>';
+        DAYS.forEach(function (_, di) {
+          var key = di + '-' + slot.key;
+          var meal = MEALS[key];
+          html += '<div class="meal-cell' + (meal ? ' filled' : '') + '" draggable="' + (meal ? 'true' : 'false') + '" data-key="' + key + '">';
+          if (meal) {
+            html += '<div class="m-title">' + meal.title + '</div><div class="m-flags">';
+            (meal.flags || []).forEach(function (f) {
+              var cls = f === 'prep' ? 'prep' : f === 'left' ? 'left' : f === 'out' ? 'out' : '';
+              var label = f === 'prep' ? 'Prep' : f === 'left' ? 'Leftover' : f === 'out' ? 'Out' : f;
+              html += '<span class="flag ' + cls + '">' + label + '</span>';
+            });
+            html += '</div>';
+          }
+          html += '</div>';
+        });
+      });
+      $('mealWeek').innerHTML = html;
+
+      $('mealWeek').querySelectorAll('.meal-cell').forEach(function (cell) {
+        cell.addEventListener('dragstart', function (e) {
+          if (!MEALS[cell.dataset.key]) { e.preventDefault(); return; }
+          dragKey = cell.dataset.key;
+          e.dataTransfer.effectAllowed = 'move';
+        });
+        cell.addEventListener('dragover', function (e) {
+          e.preventDefault();
+          cell.classList.add('drag-over');
+        });
+        cell.addEventListener('dragleave', function () { cell.classList.remove('drag-over'); });
+        cell.addEventListener('drop', function (e) {
+          e.preventDefault();
+          cell.classList.remove('drag-over');
+          if (!dragKey || dragKey === cell.dataset.key) return;
+          var moving = MEALS[dragKey];
+          var target = MEALS[cell.dataset.key];
+          if (target) MEALS[dragKey] = target; else delete MEALS[dragKey];
+          MEALS[cell.dataset.key] = moving;
+          dragKey = null;
+          renderMeals();
+          toast('Meal moved');
+        });
+      });
+    }
+
+    function renderGrocery() {
+      var cats = {};
+      GROCERY.filter(function (g) { return g.scope === groceryScope; }).forEach(function (g) {
+        if (!cats[g.cat]) cats[g.cat] = [];
+        cats[g.cat].push(g);
+      });
+      var order = ['Produce', 'Protein', 'Dairy', 'Frozen', 'Pantry', 'Snacks', 'Beverages', 'Household'];
+      var html = '';
+      order.forEach(function (cat) {
+        if (!cats[cat]) return;
+        html += '<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-tertiary);margin-bottom:6px">' + cat + '</div>';
+        cats[cat].forEach(function (g, idx) {
+          var id = cat + '-' + idx;
+          html += '<div class="check-row' + (g.have ? ' done' : '') + '">' +
+            '<input type="checkbox" ' + (g.have ? 'checked' : '') + ' data-gname="' + g.name + '" />' +
+            '<span class="label">' + g.name + ' · ' + g.qty + (g.have ? ' · have at home' : '') + '</span>' +
+            (g.must ? '<span class="tag">Must-buy</span>' : '') +
+            '</div>';
+        });
+        html += '</div>';
+      });
+      if (!html) html = '<div class="empty-state"><strong>No items</strong>Nothing in this scope yet.</div>';
+      $('groceryList').innerHTML = html;
+      $('groceryList').querySelectorAll('input[type=checkbox]').forEach(function (cb) {
+        cb.addEventListener('change', function () {
+          var item = GROCERY.find(function (x) { return x.name === cb.getAttribute('data-gname'); });
+          if (item) item.have = cb.checked;
+          renderGrocery();
+        });
+      });
+    }
+
+    function renderRecipes() {
+      var q = ($('recipeSearch').value || '').toLowerCase();
+      var f = $('recipeFilter').value;
+      var list = RECIPES.filter(function (r) {
+        if (q && r.title.toLowerCase().indexOf(q) === -1 && r.tags.join(' ').indexOf(q) === -1) return false;
+        if (f === 'fav') return r.tags.indexOf('fav') !== -1;
+        if (f !== 'all') return r.tags.indexOf(f) !== -1;
+        return true;
+      });
+      $('recipeGrid').innerHTML = list.map(function (r) {
+        return '<div class="card recipe-card">' +
+          '<div class="img">Image placeholder</div>' +
+          '<div class="rtitle">' + r.title + '</div>' +
+          '<div class="rmeta">' + r.time + ' · ' + r.servings + ' servings · ' + r.cuisine + '</div>' +
+          '<div class="macros">' + r.macros + '</div>' +
+          '<div class="tags" style="margin:8px 0">' + r.tags.map(function (t) { return '<span class="tag-pill">' + t + '</span>'; }).join('') + '</div>' +
+          '<div class="split">' +
+            '<button type="button" class="btn primary" data-attach="' + r.id + '">Add to plan</button>' +
+            '<button type="button" class="btn" data-cook="' + r.id + '">Cook again</button>' +
+          '</div></div>';
+      }).join('') || '<div class="card empty-state span-full"><strong>No recipes</strong>Try clearing filters.</div>';
+
+      $('recipeGrid').querySelectorAll('[data-attach]').forEach(function (btn) {
+        btn.onclick = function () { toast('Attached recipe to planner (sample)'); };
+      });
+      $('recipeGrid').querySelectorAll('[data-cook]').forEach(function (btn) {
+        btn.onclick = function () { toast('Marked as cooked · grocery sync ready later'); };
+      });
+    }
+
+    function renderHabits() {
+      function dots(el, pattern) {
+        el.innerHTML = pattern.map(function (v) {
+          return '<div class="habit-dot' + (v === 1 ? ' on' : v === 0 ? ' miss' : '') + '"></div>';
+        }).join('');
+      }
+      dots($('habitWalk'), [1, 1, 0, 1, 1, 1, 1]);
+      dots($('habitSleep'), [1, 1, 1, 0, 1, 0, 1]);
+    }
+
+    function scrollToSection(id) {
+      var el = $('sec-' + id);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.querySelectorAll('.sidebar .nav-link').forEach(function (n) {
+        n.classList.toggle('active', n.getAttribute('data-section') === id && !n.getAttribute('data-nutrition-tab') && !n.getAttribute('data-therapy-tab'));
+      });
+      closeSidebar();
+    }
+
+    function setTherapyTab(tab) {
+      $('therapyPersonal').classList.toggle('hidden', tab !== 'personal');
+      $('therapyCouples').classList.toggle('hidden', tab !== 'couples');
+      document.querySelectorAll('[data-therapy-tab]').forEach(function (b) {
+        if (b.closest('.panel-tabs') || b.classList.contains('nav-link')) {
+          var on = b.getAttribute('data-therapy-tab') === tab;
+          if (b.closest('.panel-tabs')) {
+            b.classList.toggle('active', on);
+            b.setAttribute('aria-selected', on ? 'true' : 'false');
+          }
+        }
+      });
+    }
+
+    function setNutritionTab(tab) {
+      $('nutritionMeals').classList.toggle('hidden', tab !== 'meals');
+      $('nutritionGrocery').classList.toggle('hidden', tab !== 'grocery');
+      $('nutritionRecipes').classList.toggle('hidden', tab !== 'recipes');
+      document.querySelectorAll('#sec-nutrition .panel-tabs [data-nutrition-tab]').forEach(function (b) {
+        b.classList.toggle('active', b.getAttribute('data-nutrition-tab') === tab);
+      });
+    }
+
+    function openSidebar() {
+      $('sidebar').classList.add('open');
+      $('sidebarOverlay').classList.add('open');
+    }
+    function closeSidebar() {
+      $('sidebar').classList.remove('open');
+      $('sidebarOverlay').classList.remove('open');
+    }
+
+    // Events
+    $('hamburger').onclick = openSidebar;
+    $('sidebarOverlay').onclick = closeSidebar;
+
+    document.querySelectorAll('.sidebar .nav-link').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var sec = btn.getAttribute('data-section');
+        scrollToSection(sec);
+        if (btn.getAttribute('data-nutrition-tab')) setNutritionTab(btn.getAttribute('data-nutrition-tab'));
+        if (btn.getAttribute('data-therapy-tab')) setTherapyTab(btn.getAttribute('data-therapy-tab'));
+      });
+    });
+
+    document.querySelectorAll('#sec-therapy .panel-tabs [data-therapy-tab]').forEach(function (b) {
+      b.addEventListener('click', function () { setTherapyTab(b.getAttribute('data-therapy-tab')); });
+    });
+    document.querySelectorAll('#sec-nutrition .panel-tabs [data-nutrition-tab]').forEach(function (b) {
+      b.addEventListener('click', function () { setNutritionTab(b.getAttribute('data-nutrition-tab')); });
+    });
+    document.querySelectorAll('[data-grocery-scope]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        groceryScope = b.getAttribute('data-grocery-scope');
+        document.querySelectorAll('[data-grocery-scope]').forEach(function (x) {
+          x.classList.toggle('active', x === b);
+        });
+        renderGrocery();
+      });
+    });
+
+    $('waterTrack').addEventListener('click', function (e) {
+      var cup = e.target.closest('[data-cup]');
+      if (!cup) return;
+      waterFilled = parseInt(cup.getAttribute('data-cup'), 10);
+      renderWater();
+    });
+
+    document.querySelectorAll('.mood-btn').forEach(function (b) {
+      b.addEventListener('click', function () {
+        document.querySelectorAll('.mood-btn').forEach(function (x) { x.classList.remove('primary'); });
+        b.classList.add('primary');
+        toast('Mood logged: ' + b.textContent);
+        renderTodayMetrics();
+      });
+    });
+
+    $('privacyBtn').addEventListener('click', function () {
+      var on = $('appRoot').classList.toggle('privacy-blur');
+      $('privacyBtn').setAttribute('aria-pressed', on ? 'true' : 'false');
+      $('privacyBtn').textContent = on ? 'Unlock' : 'Privacy';
+      toast(on ? 'Sensitive sections hidden' : 'Sensitive sections visible');
+    });
+
+    function bindConnect(id) {
+      var el = $(id);
+      if (el) el.onclick = simulateConnect;
+    }
+    bindConnect('connectWhoopBtn');
+    bindConnect('connectWhoopBtn2');
+    $('simLoadBtn').onclick = function () {
+      WHOOP_STATE = 'loading';
+      setWhoopUI();
+      setTimeout(function () { WHOOP_STATE = 'disconnected'; setWhoopUI(); }, 1200);
+    };
+    $('simErrorBtn').onclick = function () {
+      WHOOP_STATE = 'error';
+      setWhoopUI();
+    };
+
+    $('genGroceryBtn').onclick = function () {
+      setNutritionTab('grocery');
+      scrollToSection('nutrition');
+      toast('Grocery list refreshed from meal plan');
+    };
+    $('copyWeekBtn').onclick = function () { toast('Previous week plan copied (sample)'); };
+    $('addMealBtn').onclick = function () { toast('Add meal — wire to form later'); };
+    $('addGroceryBtn').onclick = function () {
+      GROCERY.push({ cat: 'Pantry', name: 'Custom item', qty: '1', must: false, have: false, scope: groceryScope });
+      renderGrocery();
+      toast('Item added');
+    };
+    $('staplesBtn').onclick = function () {
+      ['Salt', 'Pepper', 'Garlic'].forEach(function (n) {
+        GROCERY.push({ cat: 'Pantry', name: n, qty: 'staple', must: false, have: false, scope: 'week' });
+      });
+      groceryScope = 'week';
+      renderGrocery();
+      toast('Staples added');
+    };
+    $('recipeSearch').oninput = renderRecipes;
+    $('recipeFilter').onchange = renderRecipes;
+    $('importRecipeBtn').onclick = function () { toast('Recipe link import — placeholder'); };
+    $('exportSummaryBtn').onclick = function () {
+      toast('Export-safe summary prepared (excludes private therapy notes)');
+    };
+
+    $('quickAddBtn').onclick = function () { $('quickAddModal').classList.add('open'); $('qaDetail').focus(); };
+    $('qaCancel').onclick = function () { $('quickAddModal').classList.remove('open'); };
+    $('qaSave').onclick = function () {
+      $('quickAddModal').classList.remove('open');
+      toast('Logged: ' + $('qaType').value + ($('qaDetail').value ? ' — ' + $('qaDetail').value : ''));
+      $('qaDetail').value = '';
+    };
+    $('quickAddModal').addEventListener('click', function (e) {
+      if (e.target === $('quickAddModal')) $('quickAddModal').classList.remove('open');
+    });
+
+    $('searchInput').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        var q = $('searchInput').value.toLowerCase();
+        if (q.indexOf('whoop') !== -1) scrollToSection('whoop');
+        else if (q.indexOf('therap') !== -1) scrollToSection('therapy');
+        else if (q.indexOf('meal') !== -1 || q.indexOf('grocery') !== -1 || q.indexOf('recipe') !== -1) {
+          scrollToSection('nutrition');
+          if (q.indexOf('grocery') !== -1) setNutritionTab('grocery');
+          if (q.indexOf('recipe') !== -1) setNutritionTab('recipes');
+        } else if (q.indexOf('habit') !== -1 || q.indexOf('water') !== -1) scrollToSection('habits');
+        else if (q.indexOf('insight') !== -1) scrollToSection('insights');
+        else toast('Search: ' + $('searchInput').value);
+      }
+    });
+
+    // init
+    renderWater();
+    setWhoopUI();
+    renderMeals();
+    renderGrocery();
+    renderRecipes();
+    renderHabits();
+  })();
+  </script>
 </body>
 </html>
