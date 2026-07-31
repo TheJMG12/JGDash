@@ -160,6 +160,7 @@
       border-color: color-mix(in srgb, var(--accent) 45%, transparent); color: var(--accent);
     }
     .btn.primary:hover { background: color-mix(in srgb, var(--accent) 32%, transparent); }
+    .btn.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 35%, transparent); }
     .btn.ghost { background: transparent; }
     .select {
       padding: 7px 10px; border-radius: 10px; border: 1px solid var(--border);
@@ -434,6 +435,39 @@
       font-size: 11px; color: var(--text-tertiary); text-align: center; margin-top: 6px;
     }
 
+
+    .card-head {
+      display: flex; align-items: flex-start; gap: 8px; margin-bottom: 10px;
+    }
+    .card-head h3 { margin: 0; flex: 1; font-size: 13px; font-weight: 700; letter-spacing: -0.01em; }
+    .card-actions { display: flex; gap: 4px; flex-shrink: 0; }
+    .icon-btn {
+      width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--input-bg); color: var(--text-tertiary); font-size: 12px; font-weight: 700;
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    .icon-btn:hover { color: var(--text-primary); border-color: rgba(255,255,255,0.16); }
+    .icon-btn.danger:hover { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, transparent); }
+    .list-item .item-actions { display: flex; gap: 4px; margin-left: 8px; flex-shrink: 0; }
+    .list-item .item-actions .icon-btn { width: 26px; height: 26px; }
+    .check-row .item-actions { margin-left: auto; display: flex; gap: 4px; }
+    .check-row .tag { margin-left: 8px; }
+    .empty-inline { font-size: 12px; color: var(--text-tertiary); padding: 8px 0; }
+    .meal-cell .m-actions {
+      display: flex; gap: 2px; margin-top: auto;
+    }
+    .meal-cell .m-actions button {
+      font-size: 9px; font-weight: 700; padding: 2px 5px; border-radius: 4px;
+      border: 1px solid var(--border); color: var(--text-tertiary); background: transparent;
+    }
+    .meal-cell .m-actions button:hover { color: var(--text-primary); }
+    .modal.wide { max-width: 560px; }
+    .modal-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    }
+    .modal-grid .full { grid-column: 1 / -1; }
+    @media (max-width: 560px) { .modal-grid { grid-template-columns: 1fr; } }
+
     .toast {
       position: fixed; bottom: 20px; right: 20px; z-index: 60; padding: 10px 14px;
       border-radius: 10px; background: #121214; border: 1px solid var(--border);
@@ -640,130 +674,18 @@
         <section class="section" id="sec-therapy" aria-labelledby="h-therapy">
           <div class="section-head">
             <h2 class="section-title" id="h-therapy">Therapy</h2>
-            <span class="section-sub">Private · structured continuity</span>
+            <span class="section-sub">Private · structured continuity · editable</span>
             <span class="badge lock">Sensitive</span>
             <div class="panel-tabs" role="tablist" style="margin-left:auto;margin-bottom:0">
               <button type="button" class="active" data-therapy-tab="personal" role="tab" aria-selected="true">Personal</button>
               <button type="button" data-therapy-tab="couples" role="tab" aria-selected="false">Couples</button>
             </div>
           </div>
-
           <div id="therapyPersonal" class="therapy-panel">
-            <div class="grid-2 sensitive-content">
-              <div class="card sensitive">
-                <h3>Next appointment</h3>
-                <p class="card-meta">Personal · telehealth</p>
-                <div class="mini-stat" style="margin-bottom:6px">Thu Jul 31 · 4:30 PM</div>
-                <p style="font-size:13px;color:var(--text-secondary);line-height:1.45">
-                  Dr. Elena Vargas · Zoom<br />
-                  <a href="#" onclick="return false">Join link on file</a>
-                </p>
-                <div class="tags" style="margin-top:10px">
-                  <span class="tag-pill">anxiety</span>
-                  <span class="tag-pill">sleep</span>
-                  <span class="tag-pill">work stress</span>
-                </div>
-                <div class="split" style="margin-top:12px">
-                  <button type="button" class="btn">Add reminder</button>
-                  <button type="button" class="btn">Prep questions</button>
-                </div>
-              </div>
-              <div class="card sensitive">
-                <h3>Session mood check-in</h3>
-                <p class="card-meta">Before / after · last session Jul 24</p>
-                <div class="grid-2" style="gap:8px">
-                  <div class="field"><label>Before</label><input value="3 / 5 — tense shoulders" readonly /></div>
-                  <div class="field"><label>After</label><input value="4 / 5 — clearer next steps" readonly /></div>
-                </div>
-                <div class="field"><label>What improved</label><textarea readonly>Used the pause-before-reply technique twice at work.</textarea></div>
-                <div class="field" style="margin:0"><label>What felt difficult</label><textarea readonly>Still avoiding the Sunday planning conversation.</textarea></div>
-              </div>
-              <div class="card sensitive">
-                <h3>Goals / focus areas</h3>
-                <ul class="list">
-                  <li class="list-item"><div><div class="title">Reduce rumination after 9 PM</div><div class="meta">Active · reviewed weekly</div></div><div class="right">In progress</div></li>
-                  <li class="list-item"><div><div class="title">Protect one recovery evening / week</div><div class="meta">Linked to sleep hygiene</div></div><div class="right">On track</div></li>
-                  <li class="list-item"><div><div class="title">Name stressors before they escalate</div><div class="meta">Homework pattern</div></div><div class="right">Watch</div></li>
-                </ul>
-              </div>
-              <div class="card sensitive">
-                <h3>Homework / action items</h3>
-                <div class="check-row"><input type="checkbox" checked /><span class="label">Journal 10 min after stressful meetings</span></div>
-                <div class="check-row"><input type="checkbox" /><span class="label">Practice one boundary script this week</span><span class="tag">Due Fri</span></div>
-                <div class="check-row"><input type="checkbox" /><span class="label">Bring sleep log to next session</span></div>
-              </div>
-              <div class="card sensitive span-2">
-                <h3>Reflection journal</h3>
-                <p class="card-meta">Private notes · not shared</p>
-                <div class="field"><label>Session notes (Jul 24)</label>
-                  <textarea>Talked through the midweek overload pattern. Agreed to try a hard stop at 7:30 two nights this week. Questions for next time: how to handle family visits without abandoning routines.</textarea>
-                </div>
-                <div class="field" style="margin:0"><label>Questions for next session</label>
-                  <textarea>1) How to communicate capacity without sounding cold?
-2) Is Sunday planning anxiety more about control or fear of falling behind?</textarea>
-                </div>
-              </div>
-              <div class="card sensitive">
-                <h3>Session history</h3>
-                <ul class="list">
-                  <li class="list-item"><div><div class="title">Jul 24 · Zoom</div><div class="meta">Tags: work stress, sleep</div></div><div class="right">45 min</div></li>
-                  <li class="list-item"><div><div class="title">Jul 17 · Zoom</div><div class="meta">Tags: anxiety, boundaries</div></div><div class="right">50 min</div></li>
-                  <li class="list-item"><div><div class="title">Jul 10 · In person</div><div class="meta">Tags: family, energy</div></div><div class="right">55 min</div></li>
-                </ul>
-              </div>
-              <div class="card sensitive">
-                <h3>Follow-up reminders</h3>
-                <ul class="list">
-                  <li class="list-item"><div><div class="title">Complete boundary script practice</div><div class="meta">Before Jul 31 session</div></div><div class="right">Open</div></li>
-                  <li class="list-item"><div><div class="title">Export sleep notes for review</div><div class="meta">Manual habit log</div></div><div class="right">Open</div></li>
-                </ul>
-              </div>
-            </div>
+            <div class="grid-2 sensitive-content" id="therapyPersonalMount"></div>
           </div>
-
           <div id="therapyCouples" class="therapy-panel hidden">
-            <div class="grid-2 sensitive-content">
-              <div class="card sensitive">
-                <h3>Next appointment</h3>
-                <p class="card-meta">Couples · in person</p>
-                <div class="mini-stat" style="margin-bottom:6px">Sat Aug 2 · 11:00 AM</div>
-                <p style="font-size:13px;color:var(--text-secondary);line-height:1.45">
-                  Jordan Lee, LMFT · Clinic room B<br />
-                  Focus: weekly check-in structure
-                </p>
-                <div class="tags" style="margin-top:10px">
-                  <span class="tag-pill">communication</span>
-                  <span class="tag-pill">scheduling</span>
-                  <span class="tag-pill">repair</span>
-                </div>
-              </div>
-              <div class="card sensitive">
-                <h3>Relationship check-in</h3>
-                <p class="card-meta">This week · both partners</p>
-                <div class="field"><label>Connection (1–5)</label><input value="4 — good evening walks" /></div>
-                <div class="field"><label>Conflict tone</label><input value="Calm · one tense budget talk" /></div>
-                <div class="field" style="margin:0"><label>Gratitude / wins</label><textarea>Cooked together twice. Cleared calendar for Saturday morning.</textarea></div>
-              </div>
-              <div class="card sensitive">
-                <h3>Shared action items</h3>
-                <div class="check-row"><input type="checkbox" checked /><span class="label">Sunday 20-min planning huddle</span></div>
-                <div class="check-row"><input type="checkbox" /><span class="label">Use repair phrase after disagreements</span><span class="tag">Shared</span></div>
-                <div class="check-row"><input type="checkbox" /><span class="label">Phone-free dinner 3× this week</span></div>
-              </div>
-              <div class="card sensitive">
-                <h3>Conflict / communication themes</h3>
-                <ul class="list">
-                  <li class="list-item"><div><div class="title">Time allocation on weekends</div><div class="meta">Recurring · improving</div></div></li>
-                  <li class="list-item"><div><div class="title">Tone when discussing money</div><div class="meta">Watch · use pause</div></div></li>
-                  <li class="list-item"><div><div class="title">Assumptions about availability</div><div class="meta">New this month</div></div></li>
-                </ul>
-              </div>
-              <div class="card sensitive span-2">
-                <h3>Couples reflection</h3>
-                <div class="field"><label>What improved</label><textarea>Faster repairs after small frictions; clearer asks.</textarea></div>
-                <div class="field" style="margin:0"><label>What felt difficult</label><textarea>Friday evenings still feel rushed. Need a shared wind-down ritual.</textarea></div>
-              </div>
-            </div>
+            <div class="grid-2 sensitive-content" id="therapyCouplesMount"></div>
           </div>
         </section>
 
@@ -771,7 +693,7 @@
         <section class="section" id="sec-nutrition" aria-labelledby="h-nutrition">
           <div class="section-head">
             <h2 class="section-title" id="h-nutrition">Nutrition</h2>
-            <span class="section-sub">Meal plan → grocery → recipes</span>
+            <span class="section-sub">Meal plan → grocery → recipes · editable</span>
             <div class="panel-tabs" role="tablist" style="margin-left:auto;margin-bottom:0">
               <button type="button" class="active" data-nutrition-tab="meals" role="tab">Meal plan</button>
               <button type="button" data-nutrition-tab="grocery" role="tab">Grocery</button>
@@ -780,35 +702,11 @@
           </div>
 
           <div id="nutritionMeals" class="nutrition-panel">
-            <div class="grid-4" style="margin-bottom:12px">
-              <div class="card">
-                <h3>Daily calorie target</h3>
-                <div class="mini-stat">2,400</div>
-                <p class="card-meta">kcal · editable later</p>
-              </div>
-              <div class="card">
-                <h3>Macros</h3>
-                <p style="font-family:var(--mono);font-size:13px;line-height:1.5">P 180g · C 220g · F 70g</p>
-                <p class="card-meta">Targets for this week</p>
-              </div>
-              <div class="card">
-                <h3>Prep day</h3>
-                <div class="mini-stat" style="font-size:16px">Sun 3–5 PM</div>
-                <p class="card-meta">Chicken · oats · salads</p>
-              </div>
-              <div class="card">
-                <h3>Plan actions</h3>
-                <div class="split">
-                  <button type="button" class="btn primary" id="genGroceryBtn">Generate grocery</button>
-                  <button type="button" class="btn" id="copyWeekBtn">Copy last week</button>
-                </div>
-              </div>
-            </div>
-
+            <div class="grid-4" style="margin-bottom:12px" id="nutritionTargetsMount"></div>
             <div class="card" style="overflow-x:auto">
               <div class="section-head" style="margin-bottom:10px">
                 <h3 style="margin:0">Weekly meal planner</h3>
-                <span class="section-sub">Drag meals across days · B / L / D / S</span>
+                <span class="section-sub">Click a cell to add · drag to move · edit/remove on cards</span>
                 <button type="button" class="btn" id="addMealBtn" style="margin-left:auto">+ Add meal</button>
               </div>
               <div class="meal-week" id="mealWeek" aria-label="Weekly meal plan"></div>
@@ -820,8 +718,9 @@
               <div class="card span-2">
                 <div class="section-head" style="margin-bottom:8px">
                   <h3 style="margin:0">Grocery list</h3>
-                  <span class="badge ok">From meal plan</span>
-                  <span class="badge">Budget est. $92</span>
+                  <span class="badge ok" id="groceryBadge">Editable</span>
+                  <span class="badge" id="budgetBadge">Budget est. $0</span>
+                  <button type="button" class="btn" id="editBudgetBtn">Edit budget</button>
                   <button type="button" class="btn" id="addGroceryBtn" style="margin-left:auto">+ Item</button>
                   <button type="button" class="btn" id="staplesBtn">Quick staples</button>
                 </div>
@@ -831,22 +730,8 @@
                 </div>
                 <div id="groceryList"></div>
               </div>
-              <div class="card">
-                <h3>Pantry inventory</h3>
-                <p class="card-meta">Already have · reduces list noise</p>
-                <div class="check-row done"><input type="checkbox" checked /><span class="label">Olive oil</span></div>
-                <div class="check-row done"><input type="checkbox" checked /><span class="label">Rice · 2 lb</span></div>
-                <div class="check-row"><input type="checkbox" /><span class="label">Greek yogurt</span></div>
-                <div class="check-row"><input type="checkbox" /><span class="label">Eggs · dozen</span></div>
-              </div>
-              <div class="card">
-                <h3>Store / aisle notes</h3>
-                <ul class="list">
-                  <li class="list-item"><div><div class="title">Produce first</div><div class="meta">Spinach, berries, bananas</div></div></li>
-                  <li class="list-item"><div><div class="title">Protein aisle</div><div class="meta">Chicken thighs, salmon</div></div></li>
-                  <li class="list-item"><div><div class="title">Substitutions</div><div class="meta">Almond milk OK if oat out</div></div></li>
-                </ul>
-              </div>
+              <div class="card" id="pantryCard"></div>
+              <div class="card" id="aisleNotesCard"></div>
             </div>
           </div>
 
@@ -860,6 +745,7 @@
                 <option value="meal-prep">Meal-prep</option>
                 <option value="fav">Favorites</option>
               </select>
+              <button type="button" class="btn primary" id="addRecipeBtn">+ Recipe</button>
               <button type="button" class="btn" id="importRecipeBtn">Link import…</button>
             </div>
             <div class="recipe-grid" id="recipeGrid"></div>
@@ -870,57 +756,9 @@
         <section class="section" id="sec-habits" aria-labelledby="h-habits">
           <div class="section-head">
             <h2 class="section-title" id="h-habits">Planning &amp; habits</h2>
-            <span class="section-sub">Manual tracking · useful before WHOOP</span>
+            <span class="section-sub">Manual tracking · fully editable</span>
           </div>
-          <div class="grid-3">
-            <div class="card">
-              <h3>Supplements / meds</h3>
-              <div class="check-row" data-habit-check><input type="checkbox" checked /><span class="label">Vitamin D · AM</span></div>
-              <div class="check-row" data-habit-check><input type="checkbox" checked /><span class="label">Omega-3 · AM</span></div>
-              <div class="check-row" data-habit-check><input type="checkbox" /><span class="label">Magnesium · PM</span></div>
-              <div class="check-row" data-habit-check><input type="checkbox" /><span class="label">Electrolytes · post-gym</span></div>
-            </div>
-            <div class="card">
-              <h3>Habit tracker</h3>
-              <p class="card-meta">Last 7 days · walk · stretch · no screens late</p>
-              <div style="margin-bottom:8px;font-size:12px;color:var(--text-secondary)">Walk 8k+</div>
-              <div class="habit-grid" id="habitWalk"></div>
-              <div style="margin:10px 0 8px;font-size:12px;color:var(--text-secondary)">Sleep hygiene</div>
-              <div class="habit-grid" id="habitSleep"></div>
-            </div>
-            <div class="card">
-              <h3>Manual tracking panel</h3>
-              <div class="field"><label>Appetite</label><select><option>Normal</option><option>Low</option><option selected>High</option></select></div>
-              <div class="field"><label>Cravings</label><input value="Salty · evening" /></div>
-              <div class="field"><label>Digestive notes</label><input value="Fine" /></div>
-              <div class="field" style="margin:0"><label>Stressors</label><input value="Deadline cluster Wed–Thu" /></div>
-            </div>
-            <div class="card">
-              <h3>Symptom tracker</h3>
-              <div class="check-row"><input type="checkbox" /><span class="label">Headache</span></div>
-              <div class="check-row"><input type="checkbox" /><span class="label">Low energy crash</span></div>
-              <div class="check-row"><input type="checkbox" checked /><span class="label">Tight neck / shoulders</span></div>
-              <div class="check-row"><input type="checkbox" /><span class="label">Poor appetite</span></div>
-            </div>
-            <div class="card">
-              <h3>Body metrics log</h3>
-              <div class="field"><label>Weight</label><input value="178.4 lb · this morning" /></div>
-              <div class="field"><label>Waist</label><input value="34.5 in · weekly" /></div>
-              <div class="field" style="margin:0"><label>Notes</label><input value="Measured fasted" /></div>
-            </div>
-            <div class="card">
-              <h3>Appointments / preventive care</h3>
-              <ul class="list">
-                <li class="list-item"><div><div class="title">Dental cleaning</div><div class="meta">Aug 14</div></div><div class="right">Soon</div></li>
-                <li class="list-item"><div><div class="title">Annual physical</div><div class="meta">Schedule by Sep</div></div><div class="right">Reminder</div></li>
-                <li class="list-item"><div><div class="title">Bloodwork follow-up</div><div class="meta">Results review</div></div><div class="right">Open</div></li>
-              </ul>
-            </div>
-            <div class="card span-full">
-              <h3>Daily notes</h3>
-              <textarea id="dailyNotes" style="width:100%;min-height:80px;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--input-bg)">Walked after lunch. Skipped afternoon coffee. Prep chicken for Wed/Thu dinners.</textarea>
-            </div>
-          </div>
+          <div class="grid-3" id="habitsMount"></div>
         </section>
 
         <!-- INSIGHTS -->
@@ -1038,6 +876,22 @@
     </div>
   </div>
 
+
+  <div class="modal-backdrop" id="editModal" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+    <div class="modal wide">
+      <h2 id="editTitle">Edit</h2>
+      <p class="modal-lead" id="editLead" hidden></p>
+      <div class="modal-grid" id="editFields"></div>
+      <div class="pin-error" id="editError" role="alert"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn danger" id="editDelete" hidden>Delete</button>
+        <div style="flex:1"></div>
+        <button type="button" class="btn" id="editCancel">Cancel</button>
+        <button type="button" class="btn primary" id="editSave">Save</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="toast" role="status"></div>
 
   <script>
@@ -1052,54 +906,223 @@
       { key: 's', label: 'Snack' }
     ];
 
-    var MEALS = {
-      '0-b': { title: 'Greek yogurt bowl', flags: ['prep'] },
-      '0-l': { title: 'Chicken rice bowl', flags: ['prep', 'left'] },
-      '0-d': { title: 'Salmon + greens', flags: [] },
-      '0-s': { title: 'Protein shake', flags: [] },
-      '1-b': { title: 'Egg scramble', flags: [] },
-      '1-l': { title: 'Chicken rice bowl', flags: ['left'] },
-      '1-d': { title: 'Turkey chili', flags: ['prep'] },
-      '2-b': { title: 'Oats + whey', flags: ['prep'] },
-      '2-l': { title: 'Tuna wrap', flags: ['easy'] },
-      '2-d': { title: 'Flexible / dining out', flags: ['out'] },
-      '3-b': { title: 'Greek yogurt bowl', flags: ['prep'] },
-      '3-l': { title: 'Leftover chili', flags: ['left'] },
-      '3-d': { title: 'Sheet-pan chicken', flags: ['prep'] },
-      '4-b': { title: 'Smoothie', flags: ['easy'] },
-      '4-l': { title: 'Salad + chicken', flags: [] },
-      '4-d': { title: 'Dining out', flags: ['out'] },
-      '5-b': { title: 'Eggs + toast', flags: [] },
-      '5-d': { title: 'Steak + potatoes', flags: [] },
-      '6-b': { title: 'Oats + whey', flags: ['prep'] },
-      '6-l': { title: 'Meal-prep bowl', flags: ['prep'] }
+    /* —— Editable health data (localStorage) —— */
+    var DATA_KEY = 'jg_health_data_v1';
+    var uid = function () { return 'id_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4); };
+    var esc = function (s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     };
 
-    var GROCERY = [
-      { cat: 'Produce', name: 'Baby spinach', qty: '2 bags', must: true, have: false, scope: 'week' },
-      { cat: 'Produce', name: 'Blueberries', qty: '1 pint', must: false, have: false, scope: 'week' },
-      { cat: 'Produce', name: 'Bananas', qty: '6', must: false, have: false, scope: 'week' },
-      { cat: 'Protein', name: 'Chicken thighs', qty: '3 lb', must: true, have: false, scope: 'week' },
-      { cat: 'Protein', name: 'Salmon fillets', qty: '2', must: true, have: false, scope: 'week' },
-      { cat: 'Protein', name: 'Ground turkey', qty: '2 lb', must: false, have: false, scope: 'week' },
-      { cat: 'Dairy', name: 'Greek yogurt', qty: '32 oz', must: true, have: false, scope: 'week' },
-      { cat: 'Dairy', name: 'Eggs', qty: '18 ct', must: true, have: false, scope: 'week' },
-      { cat: 'Pantry', name: 'Brown rice', qty: '2 lb', must: false, have: true, scope: 'week' },
-      { cat: 'Pantry', name: 'Black beans', qty: '2 cans', must: false, have: false, scope: 'week' },
-      { cat: 'Frozen', name: 'Mixed berries', qty: '1 bag', must: false, have: false, scope: 'later' },
-      { cat: 'Snacks', name: 'Almonds', qty: '1 bag', must: false, have: false, scope: 'later' },
-      { cat: 'Beverages', name: 'Electrolyte packets', qty: '1 box', must: false, have: false, scope: 'week' },
-      { cat: 'Household', name: 'Dish pods', qty: '1', must: false, have: false, scope: 'later' }
-    ];
+    function defaultData() {
+      return {
+        therapy: {
+          personal: {
+            appointment: {
+              when: 'Thu Jul 31 · 4:30 PM',
+              therapist: 'Dr. Elena Vargas',
+              mode: 'Telehealth · Zoom',
+              link: '',
+              focus: '',
+              tags: 'anxiety, sleep, work stress'
+            },
+            mood: {
+              lastSession: 'Jul 24',
+              before: '3 / 5 — tense shoulders',
+              after: '4 / 5 — clearer next steps',
+              improved: 'Used the pause-before-reply technique twice at work.',
+              difficult: 'Still avoiding the Sunday planning conversation.'
+            },
+            goals: [
+              { id: uid(), title: 'Reduce rumination after 9 PM', meta: 'Active · reviewed weekly', status: 'In progress' },
+              { id: uid(), title: 'Protect one recovery evening / week', meta: 'Linked to sleep hygiene', status: 'On track' },
+              { id: uid(), title: 'Name stressors before they escalate', meta: 'Homework pattern', status: 'Watch' }
+            ],
+            homework: [
+              { id: uid(), label: 'Journal 10 min after stressful meetings', done: true, tag: '' },
+              { id: uid(), label: 'Practice one boundary script this week', done: false, tag: 'Due Fri' },
+              { id: uid(), label: 'Bring sleep log to next session', done: false, tag: '' }
+            ],
+            journal: {
+              sessionNotes: 'Talked through the midweek overload pattern. Agreed to try a hard stop at 7:30 two nights this week.',
+              questions: '1) How to communicate capacity without sounding cold?\n2) Is Sunday planning anxiety more about control or fear of falling behind?'
+            },
+            history: [
+              { id: uid(), title: 'Jul 24 · Zoom', meta: 'Tags: work stress, sleep', right: '45 min' },
+              { id: uid(), title: 'Jul 17 · Zoom', meta: 'Tags: anxiety, boundaries', right: '50 min' },
+              { id: uid(), title: 'Jul 10 · In person', meta: 'Tags: family, energy', right: '55 min' }
+            ],
+            reminders: [
+              { id: uid(), title: 'Complete boundary script practice', meta: 'Before Jul 31 session', status: 'Open' },
+              { id: uid(), title: 'Export sleep notes for review', meta: 'Manual habit log', status: 'Open' }
+            ]
+          },
+          couples: {
+            appointment: {
+              when: 'Sat Aug 2 · 11:00 AM',
+              therapist: 'Jordan Lee, LMFT',
+              mode: 'In person · Clinic room B',
+              link: '',
+              focus: 'Weekly check-in structure',
+              tags: 'communication, scheduling, repair'
+            },
+            checkin: {
+              connection: '4 — good evening walks',
+              conflict: 'Calm · one tense budget talk',
+              gratitude: 'Cooked together twice. Cleared calendar for Saturday morning.'
+            },
+            actions: [
+              { id: uid(), label: 'Sunday 20-min planning huddle', done: true, tag: '' },
+              { id: uid(), label: 'Use repair phrase after disagreements', done: false, tag: 'Shared' },
+              { id: uid(), label: 'Phone-free dinner 3× this week', done: false, tag: '' }
+            ],
+            themes: [
+              { id: uid(), title: 'Time allocation on weekends', meta: 'Recurring · improving', status: '' },
+              { id: uid(), title: 'Tone when discussing money', meta: 'Watch · use pause', status: '' },
+              { id: uid(), title: 'Assumptions about availability', meta: 'New this month', status: '' }
+            ],
+            reflection: {
+              improved: 'Faster repairs after small frictions; clearer asks.',
+              difficult: 'Friday evenings still feel rushed. Need a shared wind-down ritual.'
+            }
+          }
+        },
+        nutrition: {
+          targets: {
+            calories: '2400',
+            protein: '180',
+            carbs: '220',
+            fat: '70',
+            prepDay: 'Sun 3–5 PM',
+            prepNotes: 'Chicken · oats · salads',
+            budget: '92'
+          },
+          meals: {
+            '0-b': { title: 'Greek yogurt bowl', flags: ['prep'] },
+            '0-l': { title: 'Chicken rice bowl', flags: ['prep', 'left'] },
+            '0-d': { title: 'Salmon + greens', flags: [] },
+            '0-s': { title: 'Protein shake', flags: [] },
+            '1-b': { title: 'Egg scramble', flags: [] },
+            '1-l': { title: 'Chicken rice bowl', flags: ['left'] },
+            '1-d': { title: 'Turkey chili', flags: ['prep'] },
+            '2-b': { title: 'Oats + whey', flags: ['prep'] },
+            '2-l': { title: 'Tuna wrap', flags: ['easy'] },
+            '2-d': { title: 'Flexible / dining out', flags: ['out'] },
+            '3-b': { title: 'Greek yogurt bowl', flags: ['prep'] },
+            '3-l': { title: 'Leftover chili', flags: ['left'] },
+            '3-d': { title: 'Sheet-pan chicken', flags: ['prep'] },
+            '4-b': { title: 'Smoothie', flags: ['easy'] },
+            '4-l': { title: 'Salad + chicken', flags: [] },
+            '4-d': { title: 'Dining out', flags: ['out'] },
+            '5-b': { title: 'Eggs + toast', flags: [] },
+            '5-d': { title: 'Steak + potatoes', flags: [] },
+            '6-b': { title: 'Oats + whey', flags: ['prep'] },
+            '6-l': { title: 'Meal-prep bowl', flags: ['prep'] }
+          },
+          grocery: [
+            { id: uid(), cat: 'Produce', name: 'Baby spinach', qty: '2 bags', must: true, have: false, scope: 'week' },
+            { id: uid(), cat: 'Produce', name: 'Blueberries', qty: '1 pint', must: false, have: false, scope: 'week' },
+            { id: uid(), cat: 'Produce', name: 'Bananas', qty: '6', must: false, have: false, scope: 'week' },
+            { id: uid(), cat: 'Protein', name: 'Chicken thighs', qty: '3 lb', must: true, have: false, scope: 'week' },
+            { id: uid(), cat: 'Protein', name: 'Salmon fillets', qty: '2', must: true, have: false, scope: 'week' },
+            { id: uid(), cat: 'Protein', name: 'Ground turkey', qty: '2 lb', must: false, have: false, scope: 'week' },
+            { id: uid(), cat: 'Dairy', name: 'Greek yogurt', qty: '32 oz', must: true, have: false, scope: 'week' },
+            { id: uid(), cat: 'Dairy', name: 'Eggs', qty: '18 ct', must: true, have: false, scope: 'week' },
+            { id: uid(), cat: 'Pantry', name: 'Brown rice', qty: '2 lb', must: false, have: true, scope: 'week' },
+            { id: uid(), cat: 'Pantry', name: 'Black beans', qty: '2 cans', must: false, have: false, scope: 'week' },
+            { id: uid(), cat: 'Frozen', name: 'Mixed berries', qty: '1 bag', must: false, have: false, scope: 'later' },
+            { id: uid(), cat: 'Snacks', name: 'Almonds', qty: '1 bag', must: false, have: false, scope: 'later' },
+            { id: uid(), cat: 'Beverages', name: 'Electrolyte packets', qty: '1 box', must: false, have: false, scope: 'week' },
+            { id: uid(), cat: 'Household', name: 'Dish pods', qty: '1', must: false, have: false, scope: 'later' }
+          ],
+          pantry: [
+            { id: uid(), label: 'Olive oil', have: true },
+            { id: uid(), label: 'Rice · 2 lb', have: true },
+            { id: uid(), label: 'Greek yogurt', have: false },
+            { id: uid(), label: 'Eggs · dozen', have: false }
+          ],
+          aisleNotes: [
+            { id: uid(), title: 'Produce first', meta: 'Spinach, berries, bananas' },
+            { id: uid(), title: 'Protein aisle', meta: 'Chicken thighs, salmon' },
+            { id: uid(), title: 'Substitutions', meta: 'Almond milk OK if oat out' }
+          ],
+          recipes: [
+            { id: uid(), title: 'High-protein chicken bowl', time: '25 min', servings: '4', macros: 'P52 C48 F14', tags: 'high-protein, meal-prep, fav', cuisine: 'American' },
+            { id: uid(), title: 'Turkey chili', time: '40 min', servings: '6', macros: 'P38 C32 F12', tags: 'high-protein, meal-prep', cuisine: 'American' },
+            { id: uid(), title: 'Salmon greens plate', time: '22 min', servings: '2', macros: 'P42 C18 F22', tags: 'high-protein, easy', cuisine: 'Mediterranean' },
+            { id: uid(), title: 'Overnight oats + whey', time: '5 min', servings: '1', macros: 'P36 C44 F10', tags: 'easy, meal-prep, fav', cuisine: 'American' },
+            { id: uid(), title: 'Tuna wrap', time: '10 min', servings: '1', macros: 'P34 C28 F11', tags: 'easy, high-protein', cuisine: 'American' },
+            { id: uid(), title: 'Sheet-pan chicken', time: '35 min', servings: '4', macros: 'P46 C24 F16', tags: 'meal-prep', cuisine: 'American' }
+          ]
+        },
+        habits: {
+          supplements: [
+            { id: uid(), label: 'Vitamin D · AM', done: true },
+            { id: uid(), label: 'Omega-3 · AM', done: true },
+            { id: uid(), label: 'Magnesium · PM', done: false },
+            { id: uid(), label: 'Electrolytes · post-gym', done: false }
+          ],
+          tracks: [
+            { id: uid(), name: 'Walk 8k+', pattern: [1, 1, 0, 1, 1, 1, 1] },
+            { id: uid(), name: 'Sleep hygiene', pattern: [1, 1, 1, 0, 1, 0, 1] }
+          ],
+          manual: {
+            appetite: 'High',
+            cravings: 'Salty · evening',
+            digestive: 'Fine',
+            stressors: 'Deadline cluster Wed–Thu'
+          },
+          symptoms: [
+            { id: uid(), label: 'Headache', done: false },
+            { id: uid(), label: 'Low energy crash', done: false },
+            { id: uid(), label: 'Tight neck / shoulders', done: true },
+            { id: uid(), label: 'Poor appetite', done: false }
+          ],
+          body: {
+            weight: '178.4 lb · this morning',
+            waist: '34.5 in · weekly',
+            notes: 'Measured fasted'
+          },
+          appointments: [
+            { id: uid(), title: 'Dental cleaning', meta: 'Aug 14', status: 'Soon' },
+            { id: uid(), title: 'Annual physical', meta: 'Schedule by Sep', status: 'Reminder' },
+            { id: uid(), title: 'Bloodwork follow-up', meta: 'Results review', status: 'Open' }
+          ],
+          dailyNotes: 'Walked after lunch. Skipped afternoon coffee. Prep chicken for Wed/Thu dinners.'
+        }
+      };
+    }
 
-    var RECIPES = [
-      { id: 1, title: 'High-protein chicken bowl', time: '25 min', servings: 4, macros: 'P52 C48 F14', tags: ['high-protein', 'meal-prep', 'fav'], cuisine: 'American', recent: true },
-      { id: 2, title: 'Turkey chili', time: '40 min', servings: 6, macros: 'P38 C32 F12', tags: ['high-protein', 'meal-prep'], cuisine: 'American', recent: true },
-      { id: 3, title: 'Salmon greens plate', time: '22 min', servings: 2, macros: 'P42 C18 F22', tags: ['high-protein', 'easy'], cuisine: 'Mediterranean', recent: false },
-      { id: 4, title: 'Overnight oats + whey', time: '5 min', servings: 1, macros: 'P36 C44 F10', tags: ['easy', 'meal-prep', 'fav'], cuisine: 'American', recent: true },
-      { id: 5, title: 'Tuna wrap', time: '10 min', servings: 1, macros: 'P34 C28 F11', tags: ['easy', 'high-protein'], cuisine: 'American', recent: false },
-      { id: 6, title: 'Sheet-pan chicken', time: '35 min', servings: 4, macros: 'P46 C24 F16', tags: ['meal-prep'], cuisine: 'American', recent: false }
-    ];
+    function loadData() {
+      try {
+        var raw = localStorage.getItem(DATA_KEY);
+        if (!raw) return defaultData();
+        var parsed = JSON.parse(raw);
+        // light merge so new keys appear if schema grows
+        var base = defaultData();
+        return deepMerge(base, parsed);
+      } catch (e) {
+        return defaultData();
+      }
+    }
+    function deepMerge(base, over) {
+      if (!over || typeof over !== 'object') return base;
+      Object.keys(over).forEach(function (k) {
+        if (Array.isArray(over[k])) base[k] = over[k];
+        else if (over[k] && typeof over[k] === 'object' && base[k] && typeof base[k] === 'object' && !Array.isArray(base[k]))
+          deepMerge(base[k], over[k]);
+        else base[k] = over[k];
+      });
+      return base;
+    }
+    function saveData() {
+      try { localStorage.setItem(DATA_KEY, JSON.stringify(store)); } catch (e) { toast('Could not save changes'); }
+    }
+
+    var store = loadData();
+    var MEALS = store.nutrition.meals;
+    var GROCERY = store.nutrition.grocery;
+    var RECIPES = store.nutrition.recipes;
 
     var WHOOP_STATE = 'disconnected'; // disconnected | loading | connected | error
     var groceryScope = 'week';
@@ -1285,7 +1308,508 @@
       }, 900);
     }
 
+    var editCtx = null; // { kind, mode: add|edit, ... }
+
+    function iconBtn(action, label, extra) {
+      return '<button type="button" class="icon-btn' + (extra || '') + '" data-act="' + action + '" title="' + esc(label) + '" aria-label="' + esc(label) + '">' + label + '</button>';
+    }
+    function cardHead(title, actionsHtml) {
+      return '<div class="card-head"><h3>' + esc(title) + '</h3><div class="card-actions">' + (actionsHtml || '') + '</div></div>';
+    }
+    function tagsHtml(tagsStr) {
+      var tags = String(tagsStr || '').split(',').map(function (t) { return t.trim(); }).filter(Boolean);
+      if (!tags.length) return '';
+      return '<div class="tags" style="margin-top:10px">' + tags.map(function (t) {
+        return '<span class="tag-pill">' + esc(t) + '</span>';
+      }).join('') + '</div>';
+    }
+    function listEmpty(msg) {
+      return '<div class="empty-inline">' + esc(msg || 'Nothing here yet. Use + to add.') + '</div>';
+    }
+    function renderEditableList(items, opts) {
+      opts = opts || {};
+      if (!items || !items.length) return listEmpty(opts.empty);
+      return '<ul class="list">' + items.map(function (it) {
+        return '<li class="list-item" data-id="' + esc(it.id) + '">' +
+          '<div><div class="title">' + esc(it.title || it.label || '') + '</div>' +
+          (it.meta ? '<div class="meta">' + esc(it.meta) + '</div>' : '') + '</div>' +
+          (it.status || it.right ? '<div class="right">' + esc(it.status || it.right) + '</div>' : '') +
+          '<div class="item-actions">' +
+            iconBtn('edit', '✎') + iconBtn('del', '✕', ' danger') +
+          '</div></li>';
+      }).join('') + '</ul>';
+    }
+    function renderCheckList(items, idAttr) {
+      if (!items || !items.length) return listEmpty();
+      return items.map(function (it) {
+        return '<div class="check-row' + (it.done ? ' done' : '') + '" data-id="' + esc(it.id) + '">' +
+          '<input type="checkbox" ' + (it.done ? 'checked' : '') + ' data-check="' + esc(idAttr || 'check') + '" />' +
+          '<span class="label">' + esc(it.label) + '</span>' +
+          (it.tag ? '<span class="tag">' + esc(it.tag) + '</span>' : '') +
+          '<div class="item-actions">' + iconBtn('edit', '✎') + iconBtn('del', '✕', ' danger') + '</div>' +
+          '</div>';
+      }).join('');
+    }
+
+    function openEditModal(cfg) {
+      editCtx = cfg;
+      $('editTitle').textContent = cfg.title || (cfg.mode === 'add' ? 'Add' : 'Edit');
+      $('editLead').hidden = !cfg.lead;
+      $('editLead').textContent = cfg.lead || '';
+      $('editError').textContent = '';
+      $('editDelete').hidden = !(cfg.mode === 'edit' && cfg.canDelete);
+      var fields = $('editFields');
+      fields.innerHTML = (cfg.fields || []).map(function (f) {
+        var full = f.full ? ' full' : '';
+        var val = f.value == null ? '' : f.value;
+        var input;
+        if (f.type === 'textarea') {
+          input = '<textarea id="ef_' + f.key + '" rows="' + (f.rows || 3) + '">' + esc(val) + '</textarea>';
+        } else if (f.type === 'select') {
+          input = '<select id="ef_' + f.key + '">' + (f.options || []).map(function (o) {
+            var v = typeof o === 'string' ? o : o.value;
+            var lab = typeof o === 'string' ? o : o.label;
+            return '<option value="' + esc(v) + '"' + (String(v) === String(val) ? ' selected' : '') + '>' + esc(lab) + '</option>';
+          }).join('') + '</select>';
+        } else if (f.type === 'checkbox') {
+          input = '<label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox" id="ef_' + f.key + '"' + (val ? ' checked' : '') + ' /> ' + esc(f.checkLabel || 'Yes') + '</label>';
+        } else {
+          input = '<input id="ef_' + f.key + '" type="' + (f.type || 'text') + '" value="' + esc(val) + '" placeholder="' + esc(f.placeholder || '') + '" />';
+        }
+        return '<div class="field' + full + '"><label for="ef_' + f.key + '">' + esc(f.label) + '</label>' + input + '</div>';
+      }).join('');
+      $('editModal').classList.add('open');
+      var first = fields.querySelector('input,textarea,select');
+      if (first) setTimeout(function () { first.focus(); }, 20);
+    }
+    function closeEditModal() {
+      $('editModal').classList.remove('open');
+      editCtx = null;
+    }
+    function readEditFields() {
+      var out = {};
+      if (!editCtx || !editCtx.fields) return out;
+      editCtx.fields.forEach(function (f) {
+        var el = $('ef_' + f.key);
+        if (!el) return;
+        if (f.type === 'checkbox') out[f.key] = !!el.checked;
+        else out[f.key] = el.value;
+      });
+      return out;
+    }
+
+    function confirmDelete(msg) {
+      return window.confirm(msg || 'Delete this item?');
+    }
+
+    /* —— Therapy render —— */
+    function renderTherapy() {
+      renderTherapyPersonal();
+      renderTherapyCouples();
+    }
+
+    function renderTherapyPersonal() {
+      var p = store.therapy.personal;
+      var ap = p.appointment || {};
+      var mood = p.mood || {};
+      var journal = p.journal || {};
+      var html = '';
+
+      html += '<div class="card sensitive">' +
+        cardHead('Next appointment', iconBtn('edit-appt', '✎') + iconBtn('clear-appt', '✕', ' danger')) +
+        '<p class="card-meta">Personal</p>' +
+        (ap.when ? '<div class="mini-stat" style="margin-bottom:6px">' + esc(ap.when) + '</div>' : listEmpty('No appointment set')) +
+        '<p style="font-size:13px;color:var(--text-secondary);line-height:1.45">' +
+          esc([ap.therapist, ap.mode].filter(Boolean).join(' · ')) +
+          (ap.focus ? '<br />Focus: ' + esc(ap.focus) : '') +
+          (ap.link ? '<br /><a href="' + esc(ap.link) + '" target="_blank" rel="noopener">Join / location link</a>' : '') +
+        '</p>' + tagsHtml(ap.tags) + '</div>';
+
+      html += '<div class="card sensitive">' +
+        cardHead('Session mood check-in', iconBtn('edit-mood', '✎')) +
+        '<p class="card-meta">Before / after · last session ' + esc(mood.lastSession || '—') + '</p>' +
+        '<div class="grid-2" style="gap:8px">' +
+          '<div class="field"><label>Before</label><input value="' + esc(mood.before || '') + '" readonly /></div>' +
+          '<div class="field"><label>After</label><input value="' + esc(mood.after || '') + '" readonly /></div>' +
+        '</div>' +
+        '<div class="field"><label>What improved</label><textarea readonly>' + esc(mood.improved || '') + '</textarea></div>' +
+        '<div class="field" style="margin:0"><label>What felt difficult</label><textarea readonly>' + esc(mood.difficult || '') + '</textarea></div></div>';
+
+      html += '<div class="card sensitive">' +
+        cardHead('Goals / focus areas', iconBtn('add-goal', '+')) +
+        '<div data-list="goals">' + renderEditableList(p.goals, { empty: 'No goals yet.' }) + '</div></div>';
+
+      html += '<div class="card sensitive">' +
+        cardHead('Homework / action items', iconBtn('add-homework', '+')) +
+        '<div data-list="homework">' + renderCheckList(p.homework, 'homework') + '</div></div>';
+
+      html += '<div class="card sensitive span-2">' +
+        cardHead('Reflection journal', iconBtn('edit-journal', '✎')) +
+        '<p class="card-meta">Private notes · not shared</p>' +
+        '<div class="field"><label>Session notes</label><textarea readonly>' + esc(journal.sessionNotes || '') + '</textarea></div>' +
+        '<div class="field" style="margin:0"><label>Questions for next session</label><textarea readonly>' + esc(journal.questions || '') + '</textarea></div></div>';
+
+      html += '<div class="card sensitive">' +
+        cardHead('Session history', iconBtn('add-history', '+')) +
+        '<div data-list="history">' + renderEditableList(p.history) + '</div></div>';
+
+      html += '<div class="card sensitive">' +
+        cardHead('Follow-up reminders', iconBtn('add-reminder', '+')) +
+        '<div data-list="reminders">' + renderEditableList(p.reminders) + '</div></div>';
+
+      $('therapyPersonalMount').innerHTML = html;
+      wireTherapyPersonal();
+    }
+
+    function wireTherapyPersonal() {
+      var root = $('therapyPersonalMount');
+      var p = store.therapy.personal;
+      root.querySelector('[data-act="edit-appt"]').onclick = function () {
+        openEditModal({
+          title: 'Edit personal appointment', mode: 'edit', canDelete: true, kind: 'personal-appt',
+          fields: [
+            { key: 'when', label: 'When', value: p.appointment.when, full: true, placeholder: 'Thu Jul 31 · 4:30 PM' },
+            { key: 'therapist', label: 'Therapist', value: p.appointment.therapist },
+            { key: 'mode', label: 'Mode / location', value: p.appointment.mode },
+            { key: 'link', label: 'Link', value: p.appointment.link, full: true, placeholder: 'https://…' },
+            { key: 'focus', label: 'Focus', value: p.appointment.focus, full: true },
+            { key: 'tags', label: 'Tags (comma-separated)', value: p.appointment.tags, full: true }
+          ],
+          save: function (v) { Object.assign(p.appointment, v); saveData(); renderTherapyPersonal(); toast('Appointment updated'); },
+          remove: function () {
+            if (!confirmDelete('Clear personal appointment?')) return false;
+            p.appointment = { when: '', therapist: '', mode: '', link: '', focus: '', tags: '' };
+            saveData(); renderTherapyPersonal(); toast('Appointment cleared'); return true;
+          }
+        });
+      };
+      root.querySelector('[data-act="clear-appt"]').onclick = function () {
+        if (!confirmDelete('Clear personal appointment?')) return;
+        p.appointment = { when: '', therapist: '', mode: '', link: '', focus: '', tags: '' };
+        saveData(); renderTherapyPersonal(); toast('Appointment cleared');
+      };
+      root.querySelector('[data-act="edit-mood"]').onclick = function () {
+        openEditModal({
+          title: 'Edit mood check-in', mode: 'edit', kind: 'personal-mood',
+          fields: [
+            { key: 'lastSession', label: 'Last session date', value: p.mood.lastSession },
+            { key: 'before', label: 'Before', value: p.mood.before, full: true },
+            { key: 'after', label: 'After', value: p.mood.after, full: true },
+            { key: 'improved', label: 'What improved', type: 'textarea', value: p.mood.improved, full: true },
+            { key: 'difficult', label: 'What felt difficult', type: 'textarea', value: p.mood.difficult, full: true }
+          ],
+          save: function (v) { Object.assign(p.mood, v); saveData(); renderTherapyPersonal(); toast('Mood check-in updated'); }
+        });
+      };
+      root.querySelector('[data-act="edit-journal"]').onclick = function () {
+        openEditModal({
+          title: 'Edit reflection journal', mode: 'edit', kind: 'personal-journal',
+          fields: [
+            { key: 'sessionNotes', label: 'Session notes', type: 'textarea', rows: 5, value: p.journal.sessionNotes, full: true },
+            { key: 'questions', label: 'Questions for next session', type: 'textarea', rows: 4, value: p.journal.questions, full: true }
+          ],
+          save: function (v) { Object.assign(p.journal, v); saveData(); renderTherapyPersonal(); toast('Journal updated'); }
+        });
+      };
+      root.querySelector('[data-act="add-goal"]').onclick = function () { editListItem('goals', null); };
+      root.querySelector('[data-act="add-homework"]').onclick = function () { editCheckItem('homework', null); };
+      root.querySelector('[data-act="add-history"]').onclick = function () { editListItem('history', null); };
+      root.querySelector('[data-act="add-reminder"]').onclick = function () { editListItem('reminders', null); };
+
+      wireListCrud(root.querySelector('[data-list="goals"]'), 'goals');
+      wireCheckCrud(root.querySelector('[data-list="homework"]'), 'homework');
+      wireListCrud(root.querySelector('[data-list="history"]'), 'history');
+      wireListCrud(root.querySelector('[data-list="reminders"]'), 'reminders');
+    }
+
+    function editListItem(listKey, item) {
+      var isAdd = !item;
+      var arr = store.therapy.personal[listKey];
+      openEditModal({
+        title: (isAdd ? 'Add' : 'Edit') + ' ' + listKey.slice(0, -1),
+        mode: isAdd ? 'add' : 'edit', canDelete: !isAdd, kind: 'list-' + listKey,
+        fields: [
+          { key: 'title', label: 'Title', value: item ? item.title : '', full: true },
+          { key: 'meta', label: 'Details', value: item ? item.meta : '', full: true },
+          { key: 'status', label: listKey === 'history' ? 'Duration / right label' : 'Status', value: item ? (item.status || item.right || '') : '' }
+        ],
+        save: function (v) {
+          if (!v.title.trim()) { $('editError').textContent = 'Title is required'; return false; }
+          if (isAdd) {
+            var row = { id: uid(), title: v.title.trim(), meta: v.meta, status: v.status };
+            if (listKey === 'history') { row.right = v.status; delete row.status; }
+            arr.push(row);
+          } else {
+            item.title = v.title.trim(); item.meta = v.meta;
+            if (listKey === 'history') item.right = v.status; else item.status = v.status;
+          }
+          saveData(); renderTherapyPersonal(); toast(isAdd ? 'Added' : 'Updated');
+        },
+        remove: function () {
+          if (!confirmDelete()) return false;
+          store.therapy.personal[listKey] = arr.filter(function (x) { return x.id !== item.id; });
+          saveData(); renderTherapyPersonal(); toast('Removed'); return true;
+        }
+      });
+    }
+    function editCheckItem(listKey, item) {
+      var isAdd = !item;
+      var arr = store.therapy.personal[listKey];
+      openEditModal({
+        title: (isAdd ? 'Add' : 'Edit') + ' action item',
+        mode: isAdd ? 'add' : 'edit', canDelete: !isAdd,
+        fields: [
+          { key: 'label', label: 'Item', value: item ? item.label : '', full: true },
+          { key: 'tag', label: 'Tag / due', value: item ? item.tag : '' },
+          { key: 'done', label: 'Completed', type: 'checkbox', value: item ? item.done : false, checkLabel: 'Done' }
+        ],
+        save: function (v) {
+          if (!v.label.trim()) { $('editError').textContent = 'Item text is required'; return false; }
+          if (isAdd) arr.push({ id: uid(), label: v.label.trim(), tag: v.tag, done: !!v.done });
+          else { item.label = v.label.trim(); item.tag = v.tag; item.done = !!v.done; }
+          saveData(); renderTherapyPersonal(); toast(isAdd ? 'Added' : 'Updated');
+        },
+        remove: function () {
+          if (!confirmDelete()) return false;
+          store.therapy.personal[listKey] = arr.filter(function (x) { return x.id !== item.id; });
+          saveData(); renderTherapyPersonal(); toast('Removed'); return true;
+        }
+      });
+    }
+    function wireListCrud(el, listKey) {
+      if (!el) return;
+      el.querySelectorAll('.list-item').forEach(function (row) {
+        var id = row.getAttribute('data-id');
+        var item = store.therapy.personal[listKey].find(function (x) { return x.id === id; });
+        row.querySelector('[data-act="edit"]').onclick = function () { editListItem(listKey, item); };
+        row.querySelector('[data-act="del"]').onclick = function () {
+          if (!confirmDelete()) return;
+          store.therapy.personal[listKey] = store.therapy.personal[listKey].filter(function (x) { return x.id !== id; });
+          saveData(); renderTherapyPersonal(); toast('Removed');
+        };
+      });
+    }
+    function wireCheckCrud(el, listKey) {
+      if (!el) return;
+      el.querySelectorAll('.check-row').forEach(function (row) {
+        var id = row.getAttribute('data-id');
+        var item = store.therapy.personal[listKey].find(function (x) { return x.id === id; });
+        var cb = row.querySelector('input[type=checkbox]');
+        cb.onchange = function () { item.done = cb.checked; saveData(); renderTherapyPersonal(); };
+        row.querySelector('[data-act="edit"]').onclick = function () { editCheckItem(listKey, item); };
+        row.querySelector('[data-act="del"]').onclick = function () {
+          if (!confirmDelete()) return;
+          store.therapy.personal[listKey] = store.therapy.personal[listKey].filter(function (x) { return x.id !== id; });
+          saveData(); renderTherapyPersonal(); toast('Removed');
+        };
+      });
+    }
+
+    function renderTherapyCouples() {
+      var c = store.therapy.couples;
+      var ap = c.appointment || {};
+      var checkin = c.checkin || {};
+      var refl = c.reflection || {};
+      var html = '';
+      html += '<div class="card sensitive">' +
+        cardHead('Next appointment', iconBtn('edit-appt', '✎') + iconBtn('clear-appt', '✕', ' danger')) +
+        '<p class="card-meta">Couples</p>' +
+        (ap.when ? '<div class="mini-stat" style="margin-bottom:6px">' + esc(ap.when) + '</div>' : listEmpty('No appointment set')) +
+        '<p style="font-size:13px;color:var(--text-secondary);line-height:1.45">' +
+          esc([ap.therapist, ap.mode].filter(Boolean).join(' · ')) +
+          (ap.focus ? '<br />Focus: ' + esc(ap.focus) : '') +
+          (ap.link ? '<br /><a href="' + esc(ap.link) + '" target="_blank" rel="noopener">Join / location link</a>' : '') +
+        '</p>' + tagsHtml(ap.tags) + '</div>';
+
+      html += '<div class="card sensitive">' +
+        cardHead('Relationship check-in', iconBtn('edit-checkin', '✎')) +
+        '<p class="card-meta">This week · both partners</p>' +
+        '<div class="field"><label>Connection (1–5)</label><input value="' + esc(checkin.connection || '') + '" readonly /></div>' +
+        '<div class="field"><label>Conflict tone</label><input value="' + esc(checkin.conflict || '') + '" readonly /></div>' +
+        '<div class="field" style="margin:0"><label>Gratitude / wins</label><textarea readonly>' + esc(checkin.gratitude || '') + '</textarea></div></div>';
+
+      html += '<div class="card sensitive">' +
+        cardHead('Shared action items', iconBtn('add-action', '+')) +
+        '<div data-list="actions">' + renderCheckList(c.actions, 'actions') + '</div></div>';
+
+      html += '<div class="card sensitive">' +
+        cardHead('Conflict / communication themes', iconBtn('add-theme', '+')) +
+        '<div data-list="themes">' + renderEditableList(c.themes) + '</div></div>';
+
+      html += '<div class="card sensitive span-2">' +
+        cardHead('Couples reflection', iconBtn('edit-refl', '✎')) +
+        '<div class="field"><label>What improved</label><textarea readonly>' + esc(refl.improved || '') + '</textarea></div>' +
+        '<div class="field" style="margin:0"><label>What felt difficult</label><textarea readonly>' + esc(refl.difficult || '') + '</textarea></div></div>';
+
+      $('therapyCouplesMount').innerHTML = html;
+      wireTherapyCouples();
+    }
+
+    function wireTherapyCouples() {
+      var root = $('therapyCouplesMount');
+      var c = store.therapy.couples;
+      root.querySelector('[data-act="edit-appt"]').onclick = function () {
+        openEditModal({
+          title: 'Edit couples appointment', mode: 'edit', canDelete: true,
+          fields: [
+            { key: 'when', label: 'When', value: c.appointment.when, full: true },
+            { key: 'therapist', label: 'Therapist', value: c.appointment.therapist },
+            { key: 'mode', label: 'Mode / location', value: c.appointment.mode },
+            { key: 'link', label: 'Link', value: c.appointment.link, full: true },
+            { key: 'focus', label: 'Focus', value: c.appointment.focus, full: true },
+            { key: 'tags', label: 'Tags', value: c.appointment.tags, full: true }
+          ],
+          save: function (v) { Object.assign(c.appointment, v); saveData(); renderTherapyCouples(); toast('Appointment updated'); },
+          remove: function () {
+            if (!confirmDelete('Clear couples appointment?')) return false;
+            c.appointment = { when: '', therapist: '', mode: '', link: '', focus: '', tags: '' };
+            saveData(); renderTherapyCouples(); toast('Appointment cleared'); return true;
+          }
+        });
+      };
+      root.querySelector('[data-act="clear-appt"]').onclick = function () {
+        if (!confirmDelete('Clear couples appointment?')) return;
+        c.appointment = { when: '', therapist: '', mode: '', link: '', focus: '', tags: '' };
+        saveData(); renderTherapyCouples(); toast('Appointment cleared');
+      };
+      root.querySelector('[data-act="edit-checkin"]').onclick = function () {
+        openEditModal({
+          title: 'Edit relationship check-in', mode: 'edit',
+          fields: [
+            { key: 'connection', label: 'Connection', value: c.checkin.connection, full: true },
+            { key: 'conflict', label: 'Conflict tone', value: c.checkin.conflict, full: true },
+            { key: 'gratitude', label: 'Gratitude / wins', type: 'textarea', value: c.checkin.gratitude, full: true }
+          ],
+          save: function (v) { Object.assign(c.checkin, v); saveData(); renderTherapyCouples(); toast('Check-in updated'); }
+        });
+      };
+      root.querySelector('[data-act="edit-refl"]').onclick = function () {
+        openEditModal({
+          title: 'Edit couples reflection', mode: 'edit',
+          fields: [
+            { key: 'improved', label: 'What improved', type: 'textarea', value: c.reflection.improved, full: true },
+            { key: 'difficult', label: 'What felt difficult', type: 'textarea', value: c.reflection.difficult, full: true }
+          ],
+          save: function (v) { Object.assign(c.reflection, v); saveData(); renderTherapyCouples(); toast('Reflection updated'); }
+        });
+      };
+      root.querySelector('[data-act="add-action"]').onclick = function () { editCouplesCheck(null); };
+      root.querySelector('[data-act="add-theme"]').onclick = function () { editCouplesTheme(null); };
+
+      root.querySelectorAll('[data-list="actions"] .check-row').forEach(function (row) {
+        var id = row.getAttribute('data-id');
+        var item = c.actions.find(function (x) { return x.id === id; });
+        row.querySelector('input[type=checkbox]').onchange = function (e) {
+          item.done = e.target.checked; saveData(); renderTherapyCouples();
+        };
+        row.querySelector('[data-act="edit"]').onclick = function () { editCouplesCheck(item); };
+        row.querySelector('[data-act="del"]').onclick = function () {
+          if (!confirmDelete()) return;
+          c.actions = c.actions.filter(function (x) { return x.id !== id; });
+          saveData(); renderTherapyCouples(); toast('Removed');
+        };
+      });
+      root.querySelectorAll('[data-list="themes"] .list-item').forEach(function (row) {
+        var id = row.getAttribute('data-id');
+        var item = c.themes.find(function (x) { return x.id === id; });
+        row.querySelector('[data-act="edit"]').onclick = function () { editCouplesTheme(item); };
+        row.querySelector('[data-act="del"]').onclick = function () {
+          if (!confirmDelete()) return;
+          c.themes = c.themes.filter(function (x) { return x.id !== id; });
+          saveData(); renderTherapyCouples(); toast('Removed');
+        };
+      });
+    }
+    function editCouplesCheck(item) {
+      var isAdd = !item;
+      openEditModal({
+        title: (isAdd ? 'Add' : 'Edit') + ' shared action',
+        mode: isAdd ? 'add' : 'edit', canDelete: !isAdd,
+        fields: [
+          { key: 'label', label: 'Item', value: item ? item.label : '', full: true },
+          { key: 'tag', label: 'Tag', value: item ? item.tag : '' },
+          { key: 'done', label: 'Done', type: 'checkbox', value: item ? item.done : false, checkLabel: 'Completed' }
+        ],
+        save: function (v) {
+          if (!v.label.trim()) { $('editError').textContent = 'Required'; return false; }
+          if (isAdd) store.therapy.couples.actions.push({ id: uid(), label: v.label.trim(), tag: v.tag, done: !!v.done });
+          else { item.label = v.label.trim(); item.tag = v.tag; item.done = !!v.done; }
+          saveData(); renderTherapyCouples(); toast(isAdd ? 'Added' : 'Updated');
+        },
+        remove: function () {
+          if (!confirmDelete()) return false;
+          store.therapy.couples.actions = store.therapy.couples.actions.filter(function (x) { return x.id !== item.id; });
+          saveData(); renderTherapyCouples(); toast('Removed'); return true;
+        }
+      });
+    }
+    function editCouplesTheme(item) {
+      var isAdd = !item;
+      openEditModal({
+        title: (isAdd ? 'Add' : 'Edit') + ' theme',
+        mode: isAdd ? 'add' : 'edit', canDelete: !isAdd,
+        fields: [
+          { key: 'title', label: 'Theme', value: item ? item.title : '', full: true },
+          { key: 'meta', label: 'Notes', value: item ? item.meta : '', full: true }
+        ],
+        save: function (v) {
+          if (!v.title.trim()) { $('editError').textContent = 'Required'; return false; }
+          if (isAdd) store.therapy.couples.themes.push({ id: uid(), title: v.title.trim(), meta: v.meta, status: '' });
+          else { item.title = v.title.trim(); item.meta = v.meta; }
+          saveData(); renderTherapyCouples(); toast(isAdd ? 'Added' : 'Updated');
+        },
+        remove: function () {
+          if (!confirmDelete()) return false;
+          store.therapy.couples.themes = store.therapy.couples.themes.filter(function (x) { return x.id !== item.id; });
+          saveData(); renderTherapyCouples(); toast('Removed'); return true;
+        }
+      });
+    }
+
+    /* —— Nutrition —— */
+    function renderNutritionTargets() {
+      var t = store.nutrition.targets;
+      $('nutritionTargetsMount').innerHTML =
+        '<div class="card">' + cardHead('Daily calorie target', iconBtn('edit-targets', '✎')) +
+          '<div class="mini-stat">' + esc(Number(t.calories).toLocaleString()) + '</div><p class="card-meta">kcal</p></div>' +
+        '<div class="card">' + cardHead('Macros', iconBtn('edit-targets', '✎')) +
+          '<p style="font-family:var(--mono);font-size:13px;line-height:1.5">P ' + esc(t.protein) + 'g · C ' + esc(t.carbs) + 'g · F ' + esc(t.fat) + 'g</p>' +
+          '<p class="card-meta">Targets for this week</p></div>' +
+        '<div class="card">' + cardHead('Prep day', iconBtn('edit-targets', '✎')) +
+          '<div class="mini-stat" style="font-size:16px">' + esc(t.prepDay || '—') + '</div>' +
+          '<p class="card-meta">' + esc(t.prepNotes || '') + '</p></div>' +
+        '<div class="card"><h3>Plan actions</h3><div class="split">' +
+          '<button type="button" class="btn primary" id="genGroceryBtn">Generate grocery</button>' +
+          '<button type="button" class="btn" id="copyWeekBtn">Copy last week</button></div></div>';
+      $('nutritionTargetsMount').querySelectorAll('[data-act="edit-targets"]').forEach(function (b) {
+        b.onclick = editNutritionTargets;
+      });
+      var gen = $('genGroceryBtn'); if (gen) gen.onclick = function () {
+        setNutritionTab('grocery'); scrollToSection('nutrition'); toast('Switched to grocery list');
+      };
+      var copy = $('copyWeekBtn'); if (copy) copy.onclick = function () { toast('Copy previous week — coming soon'); };
+      var badge = $('budgetBadge');
+      if (badge) badge.textContent = 'Budget est. $' + (t.budget || '0');
+    }
+    function editNutritionTargets() {
+      var t = store.nutrition.targets;
+      openEditModal({
+        title: 'Edit nutrition targets', mode: 'edit',
+        fields: [
+          { key: 'calories', label: 'Daily calories', value: t.calories },
+          { key: 'budget', label: 'Grocery budget ($)', value: t.budget },
+          { key: 'protein', label: 'Protein (g)', value: t.protein },
+          { key: 'carbs', label: 'Carbs (g)', value: t.carbs },
+          { key: 'fat', label: 'Fat (g)', value: t.fat },
+          { key: 'prepDay', label: 'Prep day', value: t.prepDay, full: true },
+          { key: 'prepNotes', label: 'Prep notes', value: t.prepNotes, full: true }
+        ],
+        save: function (v) { Object.assign(t, v); saveData(); renderNutritionTargets(); toast('Targets updated'); }
+      });
+    }
+
     function renderMeals() {
+      MEALS = store.nutrition.meals;
       var html = '<div class="meal-corner"></div>';
       DAYS.forEach(function (d, i) {
         html += '<div class="meal-day-h' + (i === 0 ? ' today' : '') + '">' + d + '</div>';
@@ -1297,18 +1821,37 @@
           var meal = MEALS[key];
           html += '<div class="meal-cell' + (meal ? ' filled' : '') + '" draggable="' + (meal ? 'true' : 'false') + '" data-key="' + key + '">';
           if (meal) {
-            html += '<div class="m-title">' + meal.title + '</div><div class="m-flags">';
+            html += '<div class="m-title">' + esc(meal.title) + '</div><div class="m-flags">';
             (meal.flags || []).forEach(function (f) {
               var cls = f === 'prep' ? 'prep' : f === 'left' ? 'left' : f === 'out' ? 'out' : '';
               var label = f === 'prep' ? 'Prep' : f === 'left' ? 'Leftover' : f === 'out' ? 'Out' : f;
               html += '<span class="flag ' + cls + '">' + label + '</span>';
             });
-            html += '</div>';
+            html += '</div><div class="m-actions">' +
+              '<button type="button" data-meal-edit="' + key + '">Edit</button>' +
+              '<button type="button" data-meal-del="' + key + '">Del</button></div>';
+          } else {
+            html += '<div class="m-actions"><button type="button" data-meal-add="' + key + '">+ Add</button></div>';
           }
           html += '</div>';
         });
       });
       $('mealWeek').innerHTML = html;
+
+      $('mealWeek').querySelectorAll('[data-meal-add]').forEach(function (b) {
+        b.onclick = function (e) { e.stopPropagation(); editMeal(b.getAttribute('data-meal-add'), null); };
+      });
+      $('mealWeek').querySelectorAll('[data-meal-edit]').forEach(function (b) {
+        b.onclick = function (e) { e.stopPropagation(); var k = b.getAttribute('data-meal-edit'); editMeal(k, MEALS[k]); };
+      });
+      $('mealWeek').querySelectorAll('[data-meal-del]').forEach(function (b) {
+        b.onclick = function (e) {
+          e.stopPropagation();
+          var k = b.getAttribute('data-meal-del');
+          if (!confirmDelete('Remove this meal?')) return;
+          delete MEALS[k]; saveData(); renderMeals(); toast('Meal removed');
+        };
+      });
 
       $('mealWeek').querySelectorAll('.meal-cell').forEach(function (cell) {
         cell.addEventListener('dragstart', function (e) {
@@ -1316,10 +1859,7 @@
           dragKey = cell.dataset.key;
           e.dataTransfer.effectAllowed = 'move';
         });
-        cell.addEventListener('dragover', function (e) {
-          e.preventDefault();
-          cell.classList.add('drag-over');
-        });
+        cell.addEventListener('dragover', function (e) { e.preventDefault(); cell.classList.add('drag-over'); });
         cell.addEventListener('dragleave', function () { cell.classList.remove('drag-over'); });
         cell.addEventListener('drop', function (e) {
           e.preventDefault();
@@ -1330,13 +1870,54 @@
           if (target) MEALS[dragKey] = target; else delete MEALS[dragKey];
           MEALS[cell.dataset.key] = moving;
           dragKey = null;
-          renderMeals();
-          toast('Meal moved');
+          saveData(); renderMeals(); toast('Meal moved');
+        });
+        cell.addEventListener('dblclick', function () {
+          var k = cell.dataset.key;
+          editMeal(k, MEALS[k] || null);
         });
       });
     }
 
+    function editMeal(key, meal) {
+      var isAdd = !meal;
+      var day = DAYS[parseInt(key.split('-')[0], 10)] || '';
+      var slot = SLOTS.find(function (s) { return s.key === key.split('-')[1]; });
+      openEditModal({
+        title: (isAdd ? 'Add' : 'Edit') + ' meal · ' + day + ' ' + (slot ? slot.label : ''),
+        mode: isAdd ? 'add' : 'edit', canDelete: !isAdd,
+        fields: [
+          { key: 'title', label: 'Meal name', value: meal ? meal.title : '', full: true },
+          { key: 'flags', label: 'Flags (prep, left, out, easy — comma-separated)', value: meal ? (meal.flags || []).join(', ') : '', full: true },
+          { key: 'slotKey', label: 'Move to slot', type: 'select', value: key, full: true,
+            options: (function () {
+              var opts = [];
+              DAYS.forEach(function (d, di) {
+                SLOTS.forEach(function (s) {
+                  opts.push({ value: di + '-' + s.key, label: d + ' · ' + s.label });
+                });
+              });
+              return opts;
+            })()
+          }
+        ],
+        save: function (v) {
+          if (!v.title.trim()) { $('editError').textContent = 'Meal name required'; return false; }
+          var flags = String(v.flags || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean);
+          var targetKey = v.slotKey || key;
+          if (!isAdd && targetKey !== key) delete MEALS[key];
+          MEALS[targetKey] = { title: v.title.trim(), flags: flags };
+          saveData(); renderMeals(); toast(isAdd ? 'Meal added' : 'Meal updated');
+        },
+        remove: function () {
+          if (!confirmDelete('Remove this meal?')) return false;
+          delete MEALS[key]; saveData(); renderMeals(); toast('Meal removed'); return true;
+        }
+      });
+    }
+
     function renderGrocery() {
+      GROCERY = store.nutrition.grocery;
       var cats = {};
       GROCERY.filter(function (g) { return g.scope === groceryScope; }).forEach(function (g) {
         if (!cats[g.cat]) cats[g.cat] = [];
@@ -1347,13 +1928,12 @@
       order.forEach(function (cat) {
         if (!cats[cat]) return;
         html += '<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-tertiary);margin-bottom:6px">' + cat + '</div>';
-        cats[cat].forEach(function (g, idx) {
-          var id = cat + '-' + idx;
-          html += '<div class="check-row' + (g.have ? ' done' : '') + '">' +
-            '<input type="checkbox" ' + (g.have ? 'checked' : '') + ' data-gname="' + g.name + '" />' +
-            '<span class="label">' + g.name + ' · ' + g.qty + (g.have ? ' · have at home' : '') + '</span>' +
+        cats[cat].forEach(function (g) {
+          html += '<div class="check-row' + (g.have ? ' done' : '') + '" data-id="' + esc(g.id) + '">' +
+            '<input type="checkbox" ' + (g.have ? 'checked' : '') + ' data-gid="' + esc(g.id) + '" />' +
+            '<span class="label">' + esc(g.name) + ' · ' + esc(g.qty) + (g.have ? ' · have at home' : '') + '</span>' +
             (g.must ? '<span class="tag">Must-buy</span>' : '') +
-            '</div>';
+            '<div class="item-actions">' + iconBtn('edit', '✎') + iconBtn('del', '✕', ' danger') + '</div></div>';
         });
         html += '</div>';
       });
@@ -1361,52 +1941,428 @@
       $('groceryList').innerHTML = html;
       $('groceryList').querySelectorAll('input[type=checkbox]').forEach(function (cb) {
         cb.addEventListener('change', function () {
-          var item = GROCERY.find(function (x) { return x.name === cb.getAttribute('data-gname'); });
-          if (item) item.have = cb.checked;
-          renderGrocery();
+          var item = GROCERY.find(function (x) { return x.id === cb.getAttribute('data-gid'); });
+          if (item) { item.have = cb.checked; saveData(); renderGrocery(); }
+        });
+      });
+      $('groceryList').querySelectorAll('.check-row').forEach(function (row) {
+        var id = row.getAttribute('data-id');
+        var item = GROCERY.find(function (x) { return x.id === id; });
+        row.querySelector('[data-act="edit"]').onclick = function () { editGroceryItem(item); };
+        row.querySelector('[data-act="del"]').onclick = function () {
+          if (!confirmDelete()) return;
+          store.nutrition.grocery = GROCERY.filter(function (x) { return x.id !== id; });
+          GROCERY = store.nutrition.grocery; saveData(); renderGrocery(); toast('Item removed');
+        };
+      });
+      renderPantryAndAisle();
+    }
+
+    function editGroceryItem(item) {
+      var isAdd = !item;
+      openEditModal({
+        title: (isAdd ? 'Add' : 'Edit') + ' grocery item',
+        mode: isAdd ? 'add' : 'edit', canDelete: !isAdd,
+        fields: [
+          { key: 'name', label: 'Name', value: item ? item.name : '', full: true },
+          { key: 'qty', label: 'Quantity', value: item ? item.qty : '1' },
+          { key: 'cat', label: 'Category', type: 'select', value: item ? item.cat : 'Produce',
+            options: ['Produce', 'Protein', 'Dairy', 'Frozen', 'Pantry', 'Snacks', 'Beverages', 'Household'] },
+          { key: 'scope', label: 'Scope', type: 'select', value: item ? item.scope : groceryScope,
+            options: [{ value: 'week', label: 'This week' }, { value: 'later', label: 'Later' }] },
+          { key: 'must', label: 'Priority', type: 'checkbox', value: item ? item.must : false, checkLabel: 'Must-buy' },
+          { key: 'have', label: 'Pantry', type: 'checkbox', value: item ? item.have : false, checkLabel: 'Already have at home' }
+        ],
+        save: function (v) {
+          if (!v.name.trim()) { $('editError').textContent = 'Name required'; return false; }
+          if (isAdd) {
+            store.nutrition.grocery.push({
+              id: uid(), name: v.name.trim(), qty: v.qty || '1', cat: v.cat, scope: v.scope,
+              must: !!v.must, have: !!v.have
+            });
+          } else {
+            Object.assign(item, { name: v.name.trim(), qty: v.qty, cat: v.cat, scope: v.scope, must: !!v.must, have: !!v.have });
+          }
+          GROCERY = store.nutrition.grocery; saveData(); renderGrocery(); toast(isAdd ? 'Item added' : 'Item updated');
+        },
+        remove: function () {
+          if (!confirmDelete()) return false;
+          store.nutrition.grocery = GROCERY.filter(function (x) { return x.id !== item.id; });
+          GROCERY = store.nutrition.grocery; saveData(); renderGrocery(); toast('Removed'); return true;
+        }
+      });
+    }
+
+    function renderPantryAndAisle() {
+      var pantry = store.nutrition.pantry || [];
+      $('pantryCard').innerHTML = cardHead('Pantry inventory', iconBtn('add-pantry', '+')) +
+        '<p class="card-meta">Already have · reduces list noise</p>' +
+        (pantry.length ? pantry.map(function (it) {
+          return '<div class="check-row' + (it.have ? ' done' : '') + '" data-id="' + esc(it.id) + '">' +
+            '<input type="checkbox" ' + (it.have ? 'checked' : '') + ' />' +
+            '<span class="label">' + esc(it.label) + '</span>' +
+            '<div class="item-actions">' + iconBtn('edit', '✎') + iconBtn('del', '✕', ' danger') + '</div></div>';
+        }).join('') : listEmpty());
+
+      $('pantryCard').querySelector('[data-act="add-pantry"]').onclick = function () { editPantryItem(null); };
+      $('pantryCard').querySelectorAll('.check-row').forEach(function (row) {
+        var id = row.getAttribute('data-id');
+        var item = pantry.find(function (x) { return x.id === id; });
+        row.querySelector('input').onchange = function (e) { item.have = e.target.checked; saveData(); renderPantryAndAisle(); };
+        row.querySelector('[data-act="edit"]').onclick = function () { editPantryItem(item); };
+        row.querySelector('[data-act="del"]').onclick = function () {
+          if (!confirmDelete()) return;
+          store.nutrition.pantry = pantry.filter(function (x) { return x.id !== id; });
+          saveData(); renderPantryAndAisle(); toast('Removed');
+        };
+      });
+
+      var notes = store.nutrition.aisleNotes || [];
+      $('aisleNotesCard').innerHTML = cardHead('Store / aisle notes', iconBtn('add-aisle', '+')) +
+        (notes.length ? renderEditableList(notes) : listEmpty());
+      $('aisleNotesCard').querySelector('[data-act="add-aisle"]').onclick = function () { editAisleNote(null); };
+      $('aisleNotesCard').querySelectorAll('.list-item').forEach(function (row) {
+        var id = row.getAttribute('data-id');
+        var item = notes.find(function (x) { return x.id === id; });
+        row.querySelector('[data-act="edit"]').onclick = function () { editAisleNote(item); };
+        row.querySelector('[data-act="del"]').onclick = function () {
+          if (!confirmDelete()) return;
+          store.nutrition.aisleNotes = notes.filter(function (x) { return x.id !== id; });
+          saveData(); renderPantryAndAisle(); toast('Removed');
+        };
+      });
+    }
+    function editPantryItem(item) {
+      var isAdd = !item;
+      openEditModal({
+        title: (isAdd ? 'Add' : 'Edit') + ' pantry item', mode: isAdd ? 'add' : 'edit', canDelete: !isAdd,
+        fields: [
+          { key: 'label', label: 'Item', value: item ? item.label : '', full: true },
+          { key: 'have', label: 'Have', type: 'checkbox', value: item ? item.have : true, checkLabel: 'Already have' }
+        ],
+        save: function (v) {
+          if (!v.label.trim()) { $('editError').textContent = 'Required'; return false; }
+          if (isAdd) store.nutrition.pantry.push({ id: uid(), label: v.label.trim(), have: !!v.have });
+          else { item.label = v.label.trim(); item.have = !!v.have; }
+          saveData(); renderPantryAndAisle(); toast(isAdd ? 'Added' : 'Updated');
+        },
+        remove: function () {
+          if (!confirmDelete()) return false;
+          store.nutrition.pantry = store.nutrition.pantry.filter(function (x) { return x.id !== item.id; });
+          saveData(); renderPantryAndAisle(); toast('Removed'); return true;
+        }
+      });
+    }
+    function editAisleNote(item) {
+      var isAdd = !item;
+      openEditModal({
+        title: (isAdd ? 'Add' : 'Edit') + ' aisle note', mode: isAdd ? 'add' : 'edit', canDelete: !isAdd,
+        fields: [
+          { key: 'title', label: 'Title', value: item ? item.title : '', full: true },
+          { key: 'meta', label: 'Details', value: item ? item.meta : '', full: true }
+        ],
+        save: function (v) {
+          if (!v.title.trim()) { $('editError').textContent = 'Required'; return false; }
+          if (isAdd) store.nutrition.aisleNotes.push({ id: uid(), title: v.title.trim(), meta: v.meta });
+          else { item.title = v.title.trim(); item.meta = v.meta; }
+          saveData(); renderPantryAndAisle(); toast(isAdd ? 'Added' : 'Updated');
+        },
+        remove: function () {
+          if (!confirmDelete()) return false;
+          store.nutrition.aisleNotes = store.nutrition.aisleNotes.filter(function (x) { return x.id !== item.id; });
+          saveData(); renderPantryAndAisle(); toast('Removed'); return true;
+        }
+      });
+    }
+
+    function recipeTagsArr(r) {
+      if (Array.isArray(r.tags)) return r.tags;
+      return String(r.tags || '').split(',').map(function (t) { return t.trim(); }).filter(Boolean);
+    }
+
+    function renderRecipes() {
+      RECIPES = store.nutrition.recipes;
+      var q = ($('recipeSearch').value || '').toLowerCase();
+      var f = $('recipeFilter').value;
+      var list = RECIPES.filter(function (r) {
+        var tags = recipeTagsArr(r);
+        if (q && r.title.toLowerCase().indexOf(q) === -1 && tags.join(' ').indexOf(q) === -1) return false;
+        if (f === 'fav') return tags.indexOf('fav') !== -1;
+        if (f !== 'all') return tags.indexOf(f) !== -1;
+        return true;
+      });
+      $('recipeGrid').innerHTML = list.map(function (r) {
+        var tags = recipeTagsArr(r);
+        return '<div class="card recipe-card" data-id="' + esc(r.id) + '">' +
+          '<div class="img">Image placeholder</div>' +
+          '<div class="card-head" style="margin-bottom:4px"><div class="rtitle" style="flex:1">' + esc(r.title) + '</div>' +
+            '<div class="card-actions">' + iconBtn('edit', '✎') + iconBtn('del', '✕', ' danger') + '</div></div>' +
+          '<div class="rmeta">' + esc(r.time) + ' · ' + esc(r.servings) + ' servings · ' + esc(r.cuisine) + '</div>' +
+          '<div class="macros">' + esc(r.macros) + '</div>' +
+          '<div class="tags" style="margin:8px 0">' + tags.map(function (t) { return '<span class="tag-pill">' + esc(t) + '</span>'; }).join('') + '</div>' +
+          '<div class="split">' +
+            '<button type="button" class="btn primary" data-attach="' + esc(r.id) + '">Add to plan</button>' +
+            '<button type="button" class="btn" data-cook="' + esc(r.id) + '">Cook again</button>' +
+          '</div></div>';
+      }).join('') || '<div class="card empty-state span-full"><strong>No recipes</strong>Add one or clear filters.</div>';
+
+      $('recipeGrid').querySelectorAll('.recipe-card').forEach(function (card) {
+        var id = card.getAttribute('data-id');
+        var item = RECIPES.find(function (x) { return x.id === id; });
+        var editBtn = card.querySelector('[data-act="edit"]');
+        var delBtn = card.querySelector('[data-act="del"]');
+        if (editBtn) editBtn.onclick = function () { editRecipe(item); };
+        if (delBtn) delBtn.onclick = function () {
+          if (!confirmDelete('Delete this recipe?')) return;
+          store.nutrition.recipes = RECIPES.filter(function (x) { return x.id !== id; });
+          RECIPES = store.nutrition.recipes; saveData(); renderRecipes(); toast('Recipe deleted');
+        };
+      });
+      $('recipeGrid').querySelectorAll('[data-attach]').forEach(function (btn) {
+        btn.onclick = function () {
+          var id = btn.getAttribute('data-attach');
+          var r = RECIPES.find(function (x) { return x.id === id; });
+          if (!r) return;
+          // place on first empty dinner slot or overwrite Mon dinner
+          var placed = false;
+          for (var di = 0; di < 7 && !placed; di++) {
+            var k = di + '-d';
+            if (!MEALS[k]) { MEALS[k] = { title: r.title, flags: [] }; placed = true; }
+          }
+          if (!placed) MEALS['0-d'] = { title: r.title, flags: [] };
+          saveData(); renderMeals(); setNutritionTab('meals'); toast('Added to meal plan');
+        };
+      });
+      $('recipeGrid').querySelectorAll('[data-cook]').forEach(function (btn) {
+        btn.onclick = function () { toast('Marked as cooked'); };
+      });
+    }
+
+    function editRecipe(item) {
+      var isAdd = !item;
+      openEditModal({
+        title: (isAdd ? 'Add' : 'Edit') + ' recipe', mode: isAdd ? 'add' : 'edit', canDelete: !isAdd,
+        fields: [
+          { key: 'title', label: 'Title', value: item ? item.title : '', full: true },
+          { key: 'time', label: 'Cook / prep time', value: item ? item.time : '20 min' },
+          { key: 'servings', label: 'Servings', value: item ? item.servings : '2' },
+          { key: 'cuisine', label: 'Cuisine', value: item ? item.cuisine : '' },
+          { key: 'macros', label: 'Macros', value: item ? item.macros : '', full: true, placeholder: 'P40 C30 F12' },
+          { key: 'tags', label: 'Tags (comma-separated)', value: item ? (Array.isArray(item.tags) ? item.tags.join(', ') : item.tags) : '', full: true }
+        ],
+        save: function (v) {
+          if (!v.title.trim()) { $('editError').textContent = 'Title required'; return false; }
+          if (isAdd) {
+            store.nutrition.recipes.push({
+              id: uid(), title: v.title.trim(), time: v.time, servings: v.servings,
+              cuisine: v.cuisine, macros: v.macros, tags: v.tags
+            });
+          } else {
+            Object.assign(item, { title: v.title.trim(), time: v.time, servings: v.servings, cuisine: v.cuisine, macros: v.macros, tags: v.tags });
+          }
+          RECIPES = store.nutrition.recipes; saveData(); renderRecipes(); toast(isAdd ? 'Recipe added' : 'Recipe updated');
+        },
+        remove: function () {
+          if (!confirmDelete('Delete this recipe?')) return false;
+          store.nutrition.recipes = RECIPES.filter(function (x) { return x.id !== item.id; });
+          RECIPES = store.nutrition.recipes; saveData(); renderRecipes(); toast('Deleted'); return true;
+        }
+      });
+    }
+
+    /* —— Habits —— */
+    function renderHabits() {
+      var h = store.habits;
+      var html = '';
+      html += '<div class="card">' + cardHead('Supplements / meds', iconBtn('add-supp', '+')) +
+        '<div data-list="supplements">' + renderCheckList(h.supplements, 'supp') + '</div></div>';
+
+      html += '<div class="card">' + cardHead('Habit tracker', iconBtn('add-track', '+')) +
+        '<p class="card-meta">Last 7 days · click a day to toggle</p>' +
+        (h.tracks || []).map(function (tr) {
+          return '<div style="margin:10px 0 6px;font-size:12px;color:var(--text-secondary);display:flex;align-items:center;gap:8px">' +
+            '<span style="flex:1">' + esc(tr.name) + '</span>' +
+            iconBtn('edit-track', '✎') + iconBtn('del-track', '✕', ' danger') +
+            '</div><div class="habit-grid" data-track="' + esc(tr.id) + '">' +
+            (tr.pattern || [0,0,0,0,0,0,0]).map(function (v, i) {
+              return '<button type="button" class="habit-dot' + (v === 1 ? ' on' : v === 0 ? ' miss' : '') + '" data-day="' + i + '" aria-label="Day ' + (i + 1) + '"></button>';
+            }).join('') + '</div>';
+        }).join('') + '</div>';
+
+      html += '<div class="card">' + cardHead('Manual tracking panel', iconBtn('edit-manual', '✎')) +
+        '<div class="field"><label>Appetite</label><input value="' + esc(h.manual.appetite || '') + '" readonly /></div>' +
+        '<div class="field"><label>Cravings</label><input value="' + esc(h.manual.cravings || '') + '" readonly /></div>' +
+        '<div class="field"><label>Digestive notes</label><input value="' + esc(h.manual.digestive || '') + '" readonly /></div>' +
+        '<div class="field" style="margin:0"><label>Stressors</label><input value="' + esc(h.manual.stressors || '') + '" readonly /></div></div>';
+
+      html += '<div class="card">' + cardHead('Symptom tracker', iconBtn('add-symptom', '+')) +
+        '<div data-list="symptoms">' + renderCheckList(h.symptoms, 'sym') + '</div></div>';
+
+      html += '<div class="card">' + cardHead('Body metrics log', iconBtn('edit-body', '✎')) +
+        '<div class="field"><label>Weight</label><input value="' + esc(h.body.weight || '') + '" readonly /></div>' +
+        '<div class="field"><label>Waist</label><input value="' + esc(h.body.waist || '') + '" readonly /></div>' +
+        '<div class="field" style="margin:0"><label>Notes</label><input value="' + esc(h.body.notes || '') + '" readonly /></div></div>';
+
+      html += '<div class="card">' + cardHead('Appointments / preventive care', iconBtn('add-appt', '+')) +
+        '<div data-list="appts">' + renderEditableList(h.appointments) + '</div></div>';
+
+      html += '<div class="card span-full">' + cardHead('Daily notes', iconBtn('edit-notes', '✎')) +
+        '<textarea id="dailyNotes" readonly style="width:100%;min-height:80px;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--input-bg)">' +
+        esc(h.dailyNotes || '') + '</textarea></div>';
+
+      $('habitsMount').innerHTML = html;
+      wireHabits();
+    }
+
+    function wireHabits() {
+      var h = store.habits;
+      var root = $('habitsMount');
+      root.querySelector('[data-act="add-supp"]').onclick = function () { editHabitCheck('supplements', null); };
+      root.querySelector('[data-act="add-symptom"]').onclick = function () { editHabitCheck('symptoms', null); };
+      root.querySelector('[data-act="add-appt"]').onclick = function () { editHabitAppt(null); };
+      root.querySelector('[data-act="add-track"]').onclick = function () { editHabitTrack(null); };
+      root.querySelector('[data-act="edit-manual"]').onclick = function () {
+        openEditModal({
+          title: 'Edit manual tracking', mode: 'edit',
+          fields: [
+            { key: 'appetite', label: 'Appetite', type: 'select', value: h.manual.appetite, options: ['Low', 'Normal', 'High'] },
+            { key: 'cravings', label: 'Cravings', value: h.manual.cravings, full: true },
+            { key: 'digestive', label: 'Digestive notes', value: h.manual.digestive, full: true },
+            { key: 'stressors', label: 'Stressors', value: h.manual.stressors, full: true }
+          ],
+          save: function (v) { Object.assign(h.manual, v); saveData(); renderHabits(); toast('Updated'); }
+        });
+      };
+      root.querySelector('[data-act="edit-body"]').onclick = function () {
+        openEditModal({
+          title: 'Edit body metrics', mode: 'edit',
+          fields: [
+            { key: 'weight', label: 'Weight', value: h.body.weight, full: true },
+            { key: 'waist', label: 'Waist', value: h.body.waist, full: true },
+            { key: 'notes', label: 'Notes', value: h.body.notes, full: true }
+          ],
+          save: function (v) { Object.assign(h.body, v); saveData(); renderHabits(); toast('Updated'); }
+        });
+      };
+      root.querySelector('[data-act="edit-notes"]').onclick = function () {
+        openEditModal({
+          title: 'Edit daily notes', mode: 'edit',
+          fields: [{ key: 'dailyNotes', label: 'Notes', type: 'textarea', rows: 6, value: h.dailyNotes, full: true }],
+          save: function (v) { h.dailyNotes = v.dailyNotes; saveData(); renderHabits(); toast('Notes saved'); }
+        });
+      };
+
+      ['supplements', 'symptoms'].forEach(function (key) {
+        root.querySelectorAll('[data-list="' + (key === 'supplements' ? 'supplements' : 'symptoms') + '"] .check-row').forEach(function (row) {
+          var id = row.getAttribute('data-id');
+          var item = h[key].find(function (x) { return x.id === id; });
+          row.querySelector('input').onchange = function (e) { item.done = e.target.checked; saveData(); renderHabits(); };
+          row.querySelector('[data-act="edit"]').onclick = function () { editHabitCheck(key, item); };
+          row.querySelector('[data-act="del"]').onclick = function () {
+            if (!confirmDelete()) return;
+            h[key] = h[key].filter(function (x) { return x.id !== id; });
+            saveData(); renderHabits(); toast('Removed');
+          };
+        });
+      });
+
+      root.querySelectorAll('[data-list="appts"] .list-item').forEach(function (row) {
+        var id = row.getAttribute('data-id');
+        var item = h.appointments.find(function (x) { return x.id === id; });
+        row.querySelector('[data-act="edit"]').onclick = function () { editHabitAppt(item); };
+        row.querySelector('[data-act="del"]').onclick = function () {
+          if (!confirmDelete()) return;
+          h.appointments = h.appointments.filter(function (x) { return x.id !== id; });
+          saveData(); renderHabits(); toast('Removed');
+        };
+      });
+
+      root.querySelectorAll('[data-track]').forEach(function (grid) {
+        var tid = grid.getAttribute('data-track');
+        var track = h.tracks.find(function (x) { return x.id === tid; });
+        var head = grid.previousElementSibling;
+        if (head) {
+          var editB = head.querySelector('[data-act="edit-track"]');
+          var delB = head.querySelector('[data-act="del-track"]');
+          if (editB) editB.onclick = function () { editHabitTrack(track); };
+          if (delB) delB.onclick = function () {
+            if (!confirmDelete()) return;
+            h.tracks = h.tracks.filter(function (x) { return x.id !== tid; });
+            saveData(); renderHabits(); toast('Removed');
+          };
+        }
+        grid.querySelectorAll('[data-day]').forEach(function (dot) {
+          dot.onclick = function () {
+            var i = parseInt(dot.getAttribute('data-day'), 10);
+            track.pattern[i] = track.pattern[i] ? 0 : 1;
+            saveData(); renderHabits();
+          };
         });
       });
     }
 
-    function renderRecipes() {
-      var q = ($('recipeSearch').value || '').toLowerCase();
-      var f = $('recipeFilter').value;
-      var list = RECIPES.filter(function (r) {
-        if (q && r.title.toLowerCase().indexOf(q) === -1 && r.tags.join(' ').indexOf(q) === -1) return false;
-        if (f === 'fav') return r.tags.indexOf('fav') !== -1;
-        if (f !== 'all') return r.tags.indexOf(f) !== -1;
-        return true;
+    function editHabitCheck(listKey, item) {
+      var isAdd = !item;
+      openEditModal({
+        title: (isAdd ? 'Add' : 'Edit') + ' item', mode: isAdd ? 'add' : 'edit', canDelete: !isAdd,
+        fields: [
+          { key: 'label', label: 'Label', value: item ? item.label : '', full: true },
+          { key: 'done', label: 'Done', type: 'checkbox', value: item ? item.done : false, checkLabel: 'Checked' }
+        ],
+        save: function (v) {
+          if (!v.label.trim()) { $('editError').textContent = 'Required'; return false; }
+          if (isAdd) store.habits[listKey].push({ id: uid(), label: v.label.trim(), done: !!v.done });
+          else { item.label = v.label.trim(); item.done = !!v.done; }
+          saveData(); renderHabits(); toast(isAdd ? 'Added' : 'Updated');
+        },
+        remove: function () {
+          if (!confirmDelete()) return false;
+          store.habits[listKey] = store.habits[listKey].filter(function (x) { return x.id !== item.id; });
+          saveData(); renderHabits(); toast('Removed'); return true;
+        }
       });
-      $('recipeGrid').innerHTML = list.map(function (r) {
-        return '<div class="card recipe-card">' +
-          '<div class="img">Image placeholder</div>' +
-          '<div class="rtitle">' + r.title + '</div>' +
-          '<div class="rmeta">' + r.time + ' · ' + r.servings + ' servings · ' + r.cuisine + '</div>' +
-          '<div class="macros">' + r.macros + '</div>' +
-          '<div class="tags" style="margin:8px 0">' + r.tags.map(function (t) { return '<span class="tag-pill">' + t + '</span>'; }).join('') + '</div>' +
-          '<div class="split">' +
-            '<button type="button" class="btn primary" data-attach="' + r.id + '">Add to plan</button>' +
-            '<button type="button" class="btn" data-cook="' + r.id + '">Cook again</button>' +
-          '</div></div>';
-      }).join('') || '<div class="card empty-state span-full"><strong>No recipes</strong>Try clearing filters.</div>';
-
-      $('recipeGrid').querySelectorAll('[data-attach]').forEach(function (btn) {
-        btn.onclick = function () { toast('Attached recipe to planner (sample)'); };
+    }
+    function editHabitAppt(item) {
+      var isAdd = !item;
+      openEditModal({
+        title: (isAdd ? 'Add' : 'Edit') + ' appointment', mode: isAdd ? 'add' : 'edit', canDelete: !isAdd,
+        fields: [
+          { key: 'title', label: 'Title', value: item ? item.title : '', full: true },
+          { key: 'meta', label: 'When / details', value: item ? item.meta : '', full: true },
+          { key: 'status', label: 'Status', value: item ? item.status : 'Open' }
+        ],
+        save: function (v) {
+          if (!v.title.trim()) { $('editError').textContent = 'Required'; return false; }
+          if (isAdd) store.habits.appointments.push({ id: uid(), title: v.title.trim(), meta: v.meta, status: v.status });
+          else { item.title = v.title.trim(); item.meta = v.meta; item.status = v.status; }
+          saveData(); renderHabits(); toast(isAdd ? 'Added' : 'Updated');
+        },
+        remove: function () {
+          if (!confirmDelete()) return false;
+          store.habits.appointments = store.habits.appointments.filter(function (x) { return x.id !== item.id; });
+          saveData(); renderHabits(); toast('Removed'); return true;
+        }
       });
-      $('recipeGrid').querySelectorAll('[data-cook]').forEach(function (btn) {
-        btn.onclick = function () { toast('Marked as cooked · grocery sync ready later'); };
+    }
+    function editHabitTrack(item) {
+      var isAdd = !item;
+      openEditModal({
+        title: (isAdd ? 'Add' : 'Edit') + ' habit track', mode: isAdd ? 'add' : 'edit', canDelete: !isAdd,
+        fields: [{ key: 'name', label: 'Habit name', value: item ? item.name : '', full: true }],
+        save: function (v) {
+          if (!v.name.trim()) { $('editError').textContent = 'Required'; return false; }
+          if (isAdd) store.habits.tracks.push({ id: uid(), name: v.name.trim(), pattern: [0,0,0,0,0,0,0] });
+          else item.name = v.name.trim();
+          saveData(); renderHabits(); toast(isAdd ? 'Added' : 'Updated');
+        },
+        remove: function () {
+          if (!confirmDelete()) return false;
+          store.habits.tracks = store.habits.tracks.filter(function (x) { return x.id !== item.id; });
+          saveData(); renderHabits(); toast('Removed'); return true;
+        }
       });
     }
 
-    function renderHabits() {
-      function dots(el, pattern) {
-        el.innerHTML = pattern.map(function (v) {
-          return '<div class="habit-dot' + (v === 1 ? ' on' : v === 0 ? ' miss' : '') + '"></div>';
-        }).join('');
-      }
-      dots($('habitWalk'), [1, 1, 0, 1, 1, 1, 1]);
-      dots($('habitSleep'), [1, 1, 1, 0, 1, 0, 1]);
-    }
 
     function scrollToSection(id) {
       var el = $('sec-' + id);
@@ -1825,32 +2781,67 @@
       setWhoopUI();
     };
 
-    $('genGroceryBtn').onclick = function () {
-      setNutritionTab('grocery');
-      scrollToSection('nutrition');
-      toast('Grocery list refreshed from meal plan');
-    };
-    $('copyWeekBtn').onclick = function () { toast('Previous week plan copied (sample)'); };
-    $('addMealBtn').onclick = function () { toast('Add meal — wire to form later'); };
-    $('addGroceryBtn').onclick = function () {
-      GROCERY.push({ cat: 'Pantry', name: 'Custom item', qty: '1', must: false, have: false, scope: groceryScope });
-      renderGrocery();
-      toast('Item added');
-    };
-    $('staplesBtn').onclick = function () {
-      ['Salt', 'Pepper', 'Garlic'].forEach(function (n) {
-        GROCERY.push({ cat: 'Pantry', name: n, qty: 'staple', must: false, have: false, scope: 'week' });
-      });
-      groceryScope = 'week';
-      renderGrocery();
-      toast('Staples added');
-    };
+    $('genGroceryBtn') && null; // rebound in renderNutritionTargets
+    // nutrition buttons (some rebound after re-render)
+    function bindNutritionChrome() {
+      var addMeal = $('addMealBtn');
+      if (addMeal) addMeal.onclick = function () { editMeal('0-b', null); };
+      var addG = $('addGroceryBtn');
+      if (addG) addG.onclick = function () { editGroceryItem(null); };
+      var staples = $('staplesBtn');
+      if (staples) staples.onclick = function () {
+        ['Salt', 'Pepper', 'Garlic'].forEach(function (n) {
+          store.nutrition.grocery.push({
+            id: uid(), cat: 'Pantry', name: n, qty: 'staple', must: false, have: false, scope: 'week'
+          });
+        });
+        GROCERY = store.nutrition.grocery;
+        groceryScope = 'week';
+        saveData();
+        document.querySelectorAll('[data-grocery-scope]').forEach(function (x) {
+          x.classList.toggle('active', x.getAttribute('data-grocery-scope') === 'week');
+        });
+        renderGrocery();
+        toast('Staples added');
+      };
+      var addRecipe = $('addRecipeBtn');
+      if (addRecipe) addRecipe.onclick = function () { editRecipe(null); };
+      var budgetBtn = $('editBudgetBtn');
+      if (budgetBtn) budgetBtn.onclick = editNutritionTargets;
+      var importBtn = $('importRecipeBtn');
+      if (importBtn) importBtn.onclick = function () { toast('Recipe link import — placeholder'); };
+    }
+    bindNutritionChrome();
     $('recipeSearch').oninput = renderRecipes;
     $('recipeFilter').onchange = renderRecipes;
-    $('importRecipeBtn').onclick = function () { toast('Recipe link import — placeholder'); };
     $('exportSummaryBtn').onclick = function () {
       toast('Export-safe summary prepared (excludes private therapy notes)');
     };
+
+    $('editCancel').onclick = closeEditModal;
+    $('editSave').onclick = function () {
+      if (!editCtx || typeof editCtx.save !== 'function') return;
+      var vals = readEditFields();
+      var result = editCtx.save(vals);
+      if (result === false) return;
+      closeEditModal();
+    };
+    $('editDelete').onclick = function () {
+      if (!editCtx || typeof editCtx.remove !== 'function') return;
+      var ok = editCtx.remove();
+      if (ok === false) return;
+      closeEditModal();
+    };
+    $('editModal').addEventListener('click', function (e) {
+      if (e.target === $('editModal')) closeEditModal();
+    });
+    $('editModal').addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { e.preventDefault(); closeEditModal(); }
+      if (e.key === 'Enter' && e.target && e.target.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        $('editSave').click();
+      }
+    });
 
     $('quickAddBtn').onclick = function () { $('quickAddModal').classList.add('open'); $('qaDetail').focus(); };
     $('qaCancel').onclick = function () { $('quickAddModal').classList.remove('open'); };
@@ -1881,6 +2872,9 @@
     // init
     renderWater();
     setWhoopUI();
+    renderTherapy();
+    renderNutritionTargets();
+    bindNutritionChrome();
     renderMeals();
     renderGrocery();
     renderRecipes();
