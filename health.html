@@ -410,7 +410,29 @@
     }
     [data-theme="light"] .modal { background: #fff; }
     .modal h2 { font-size: 18px; font-weight: 700; margin-bottom: 14px; }
+    .modal .modal-lead {
+      font-size: 13px; color: var(--text-secondary); line-height: 1.45; margin: -6px 0 14px;
+    }
     .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+    .pin-row {
+      display: flex; justify-content: center; gap: 10px; margin: 8px 0 4px;
+    }
+    .pin-digit {
+      width: 48px; height: 56px; text-align: center; font-size: 22px; font-weight: 700;
+      font-family: var(--mono); letter-spacing: 0; border-radius: 12px;
+      border: 1px solid var(--border); background: var(--input-bg); color: var(--text-primary);
+      caret-color: var(--accent);
+    }
+    .pin-digit:focus {
+      outline: none; border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+    }
+    .pin-error {
+      min-height: 18px; margin-top: 8px; font-size: 12px; color: var(--danger); text-align: center;
+    }
+    .pin-hint {
+      font-size: 11px; color: var(--text-tertiary); text-align: center; margin-top: 6px;
+    }
 
     .toast {
       position: fixed; bottom: 20px; right: 20px; z-index: 60; padding: 10px 14px;
@@ -987,6 +1009,35 @@
     </div>
   </div>
 
+  <div class="modal-backdrop" id="pinModal" role="dialog" aria-modal="true" aria-labelledby="pinTitle">
+    <div class="modal" style="max-width:360px">
+      <h2 id="pinTitle">Set privacy PIN</h2>
+      <p class="modal-lead" id="pinLead">Choose a 4-digit PIN to protect therapy and other sensitive sections. Only a salted hash is stored on this device.</p>
+      <div id="pinSetupBlock">
+        <label class="sr-only" for="pinDigit0">PIN digit 1</label>
+        <div class="pin-row" id="pinRow" data-mode="setup">
+          <input class="pin-digit" id="pinDigit0" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="Digit 1" />
+          <input class="pin-digit" id="pinDigit1" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="Digit 2" />
+          <input class="pin-digit" id="pinDigit2" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="Digit 3" />
+          <input class="pin-digit" id="pinDigit3" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="Digit 4" />
+        </div>
+        <p class="pin-hint" id="pinStepHint">Enter PIN</p>
+        <div class="pin-row" id="pinConfirmRow" hidden>
+          <input class="pin-digit" id="pinConfirm0" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="Confirm digit 1" />
+          <input class="pin-digit" id="pinConfirm1" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="Confirm digit 2" />
+          <input class="pin-digit" id="pinConfirm2" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="Confirm digit 3" />
+          <input class="pin-digit" id="pinConfirm3" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="Confirm digit 4" />
+        </div>
+        <p class="pin-hint" id="pinConfirmHint" hidden>Confirm PIN</p>
+      </div>
+      <div class="pin-error" id="pinError" role="alert" aria-live="assertive"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn" id="pinCancel">Cancel</button>
+        <button type="button" class="btn primary" id="pinSubmit">Save PIN</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="toast" role="status"></div>
 
   <script>
@@ -1444,11 +1495,319 @@
     });
 
     $('privacyBtn').addEventListener('click', function () {
-      var on = $('appRoot').classList.toggle('privacy-blur');
+      handlePrivacyClick();
+    });
+
+    /* —— Privacy PIN (PBKDF2 hash in localStorage; never store plaintext) —— */
+    var PIN_STORE_KEY = 'jg_health_privacy_pin_v1';
+    var PIN_LOCK_KEY = 'jg_health_privacy_locked_v1';
+    var PIN_FAIL_KEY = 'jg_health_privacy_pin_fail_v1';
+    var PIN_ITERATIONS = 120000;
+    var pinMode = 'setup'; // setup | unlock
+    var pinBusy = false;
+    var setupFirstPin = '';
+
+    function b64encode(buf) {
+      var bytes = new Uint8Array(buf);
+      var s = '';
+      for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+      return btoa(s);
+    }
+    function b64decode(str) {
+      var s = atob(str);
+      var bytes = new Uint8Array(s.length);
+      for (var i = 0; i < s.length; i++) bytes[i] = s.charCodeAt(i);
+      return bytes.buffer;
+    }
+    function timingSafeEqual(a, b) {
+      if (a.byteLength !== b.byteLength) return false;
+      var x = new Uint8Array(a);
+      var y = new Uint8Array(b);
+      var diff = 0;
+      for (var i = 0; i < x.length; i++) diff |= x[i] ^ y[i];
+      return diff === 0;
+    }
+    function loadPinRecord() {
+      try {
+        var raw = localStorage.getItem(PIN_STORE_KEY);
+        if (!raw) return null;
+        var obj = JSON.parse(raw);
+        if (!obj || !obj.salt || !obj.hash || !obj.iter) return null;
+        return obj;
+      } catch (e) { return null; }
+    }
+    function hasPin() { return !!loadPinRecord(); }
+    function isPrivacyLocked() {
+      try { return localStorage.getItem(PIN_LOCK_KEY) === '1'; } catch (e) { return false; }
+    }
+    function setPrivacyLocked(on) {
+      try { localStorage.setItem(PIN_LOCK_KEY, on ? '1' : '0'); } catch (e) { /* ignore */ }
+      $('appRoot').classList.toggle('privacy-blur', !!on);
       $('privacyBtn').setAttribute('aria-pressed', on ? 'true' : 'false');
       $('privacyBtn').textContent = on ? 'Unlock' : 'Privacy';
-      toast(on ? 'Sensitive sections hidden' : 'Sensitive sections visible');
+      $('privacyBtn').title = on
+        ? 'Enter PIN to show sensitive sections'
+        : 'Hide sensitive sections (PIN protected)';
+    }
+    function readFailState() {
+      try {
+        var raw = localStorage.getItem(PIN_FAIL_KEY);
+        if (!raw) return { count: 0, until: 0 };
+        var o = JSON.parse(raw);
+        return { count: o.count || 0, until: o.until || 0 };
+      } catch (e) { return { count: 0, until: 0 }; }
+    }
+    function writeFailState(state) {
+      try { localStorage.setItem(PIN_FAIL_KEY, JSON.stringify(state)); } catch (e) { /* ignore */ }
+    }
+    function clearFailState() { writeFailState({ count: 0, until: 0 }); }
+    function lockoutRemainingMs() {
+      var st = readFailState();
+      return Math.max(0, (st.until || 0) - Date.now());
+    }
+    function registerFailedAttempt() {
+      var st = readFailState();
+      st.count = (st.count || 0) + 1;
+      if (st.count >= 5) {
+        st.until = Date.now() + 30000;
+        st.count = 0;
+      }
+      writeFailState(st);
+      return st;
+    }
+
+    function derivePinBits(pin, saltBuf, iterations) {
+      var enc = new TextEncoder();
+      return crypto.subtle.importKey('raw', enc.encode(pin), 'PBKDF2', false, ['deriveBits'])
+        .then(function (keyMaterial) {
+          return crypto.subtle.deriveBits({
+            name: 'PBKDF2',
+            salt: saltBuf,
+            iterations: iterations,
+            hash: 'SHA-256'
+          }, keyMaterial, 256);
+        });
+    }
+
+    function savePin(pin) {
+      var salt = crypto.getRandomValues(new Uint8Array(16));
+      return derivePinBits(pin, salt.buffer, PIN_ITERATIONS).then(function (bits) {
+        var rec = {
+          v: 1,
+          alg: 'PBKDF2-SHA256',
+          iter: PIN_ITERATIONS,
+          salt: b64encode(salt.buffer),
+          hash: b64encode(bits),
+          createdAt: new Date().toISOString()
+        };
+        localStorage.setItem(PIN_STORE_KEY, JSON.stringify(rec));
+        clearFailState();
+        return rec;
+      });
+    }
+
+    function verifyPin(pin) {
+      var rec = loadPinRecord();
+      if (!rec) return Promise.resolve(false);
+      return derivePinBits(pin, b64decode(rec.salt), rec.iter || PIN_ITERATIONS).then(function (bits) {
+        return timingSafeEqual(bits, b64decode(rec.hash));
+      });
+    }
+
+    function pinDigits(prefix) {
+      return [0, 1, 2, 3].map(function (i) { return $(prefix + i); });
+    }
+    function getPinValue(prefix) {
+      return pinDigits(prefix).map(function (el) { return el.value; }).join('');
+    }
+    function clearPinDigits(prefix) {
+      pinDigits(prefix).forEach(function (el) { el.value = ''; });
+    }
+    function setPinError(msg) {
+      $('pinError').textContent = msg || '';
+    }
+    function wirePinInputs(prefix) {
+      var digits = pinDigits(prefix);
+      digits.forEach(function (el, idx) {
+        el.oninput = function () {
+          var v = el.value.replace(/\D/g, '');
+          el.value = v.slice(-1);
+          setPinError('');
+          if (el.value && idx < 3) digits[idx + 1].focus();
+        };
+        el.onkeydown = function (e) {
+          if (e.key === 'Backspace' && !el.value && idx > 0) {
+            digits[idx - 1].focus();
+            digits[idx - 1].value = '';
+            e.preventDefault();
+          }
+        };
+        el.onpaste = function (e) {
+          var text = (e.clipboardData || window.clipboardData).getData('text') || '';
+          var nums = text.replace(/\D/g, '').slice(0, 4);
+          if (!nums) return;
+          e.preventDefault();
+          for (var i = 0; i < 4; i++) digits[i].value = nums[i] || '';
+          if (nums.length === 4) digits[3].focus();
+          else if (nums.length) digits[nums.length].focus();
+        };
+      });
+    }
+
+    function openPinModal(mode) {
+      pinMode = mode;
+      pinBusy = false;
+      setupFirstPin = '';
+      setPinError('');
+      clearPinDigits('pinDigit');
+      clearPinDigits('pinConfirm');
+      $('pinConfirmRow').hidden = true;
+      $('pinConfirmHint').hidden = true;
+      $('pinStepHint').hidden = false;
+      $('pinStepHint').textContent = mode === 'setup' ? 'Enter a new 4-digit PIN' : 'Enter your 4-digit PIN';
+      $('pinTitle').textContent = mode === 'setup' ? 'Set privacy PIN' : 'Unlock sensitive sections';
+      $('pinLead').textContent = mode === 'setup'
+        ? 'Choose a 4-digit PIN to protect therapy and other sensitive sections. Only a salted hash is stored on this device — never the PIN itself.'
+        : 'Enter your privacy PIN to reveal therapy notes and other sensitive sections.';
+      $('pinSubmit').textContent = mode === 'setup' ? 'Save PIN & hide' : 'Unlock';
+      $('pinSubmit').disabled = false;
+      $('pinModal').classList.add('open');
+      setTimeout(function () { $('pinDigit0').focus(); }, 30);
+    }
+    function closePinModal() {
+      $('pinModal').classList.remove('open');
+      clearPinDigits('pinDigit');
+      clearPinDigits('pinConfirm');
+      setupFirstPin = '';
+      setPinError('');
+      pinBusy = false;
+    }
+
+    function applyPrivacyLock() {
+      setPrivacyLocked(true);
+      toast('Sensitive sections hidden');
+    }
+
+    function handlePrivacyClick() {
+      if (isPrivacyLocked() || $('appRoot').classList.contains('privacy-blur')) {
+        var wait = lockoutRemainingMs();
+        if (wait > 0) {
+          toast('Try again in ' + Math.ceil(wait / 1000) + 's');
+          return;
+        }
+        if (!hasPin()) {
+          openPinModal('setup');
+          return;
+        }
+        openPinModal('unlock');
+        return;
+      }
+      if (!hasPin()) {
+        openPinModal('setup');
+        return;
+      }
+      applyPrivacyLock();
+    }
+
+    function submitPinModal() {
+      if (pinBusy) return;
+      var pin = getPinValue('pinDigit');
+
+      if (pinMode === 'setup') {
+        if (!setupFirstPin) {
+          if (!/^\d{4}$/.test(pin)) {
+            setPinError('Enter all 4 digits');
+            return;
+          }
+          setupFirstPin = pin;
+          clearPinDigits('pinDigit');
+          $('pinConfirmRow').hidden = false;
+          $('pinConfirmHint').hidden = false;
+          $('pinStepHint').textContent = 'PIN entered — confirm below';
+          $('pinSubmit').textContent = 'Confirm & hide';
+          setTimeout(function () { $('pinConfirm0').focus(); }, 20);
+          return;
+        }
+        var confirm = getPinValue('pinConfirm');
+        if (!/^\d{4}$/.test(confirm)) {
+          setPinError('Confirm all 4 digits');
+          return;
+        }
+        if (confirm !== setupFirstPin) {
+          setPinError('PINs do not match');
+          setupFirstPin = '';
+          clearPinDigits('pinDigit');
+          clearPinDigits('pinConfirm');
+          $('pinConfirmRow').hidden = true;
+          $('pinConfirmHint').hidden = true;
+          $('pinStepHint').textContent = 'Enter a new 4-digit PIN';
+          $('pinSubmit').textContent = 'Save PIN & hide';
+          $('pinDigit0').focus();
+          return;
+        }
+        pinBusy = true;
+        $('pinSubmit').disabled = true;
+        setPinError('Saving…');
+        savePin(setupFirstPin).then(function () {
+          closePinModal();
+          applyPrivacyLock();
+          toast('Privacy PIN set');
+        }).catch(function () {
+          pinBusy = false;
+          $('pinSubmit').disabled = false;
+          setPinError('Could not save PIN on this device');
+        });
+        return;
+      }
+
+      if (!/^\d{4}$/.test(pin)) {
+        setPinError('Enter all 4 digits');
+        return;
+      }
+
+      pinBusy = true;
+      $('pinSubmit').disabled = true;
+      setPinError('Checking…');
+      verifyPin(pin).then(function (ok) {
+        pinBusy = false;
+        $('pinSubmit').disabled = false;
+        if (!ok) {
+          var st = registerFailedAttempt();
+          clearPinDigits('pinDigit');
+          $('pinDigit0').focus();
+          if (lockoutRemainingMs() > 0) {
+            setPinError('Too many attempts — wait 30 seconds');
+            return;
+          }
+          setPinError('Incorrect PIN' + (st.count ? ' (' + st.count + '/5)' : ''));
+          return;
+        }
+        clearFailState();
+        closePinModal();
+        setPrivacyLocked(false);
+        toast('Sensitive sections visible');
+      }).catch(function () {
+        pinBusy = false;
+        $('pinSubmit').disabled = false;
+        setPinError('Could not verify PIN');
+      });
+    }
+
+    wirePinInputs('pinDigit');
+    wirePinInputs('pinConfirm');
+
+    $('pinCancel').onclick = closePinModal;
+    $('pinSubmit').onclick = submitPinModal;
+    $('pinModal').addEventListener('click', function (e) {
+      if (e.target === $('pinModal')) closePinModal();
     });
+    $('pinModal').addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { e.preventDefault(); closePinModal(); }
+      if (e.key === 'Enter') { e.preventDefault(); submitPinModal(); }
+    });
+
+    if (isPrivacyLocked()) setPrivacyLocked(true);
+    else setPrivacyLocked(false);
 
     function bindConnect(id) {
       var el = $(id);
