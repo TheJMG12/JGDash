@@ -44,7 +44,7 @@
         },
         {
           id: uid(), title: 'Zero Trust architecture explained', type: 'article',
-          source: 'Cloudflare', url: 'https://www.cloudflare.com/learning/security/glossary/what-is-zero-trust/', status: 'library', priority: 'high',
+          source: 'Cloudflare Blog', url: 'https://blog.cloudflare.com/', status: 'library', priority: 'high',
           tags: 'cybersecurity', collection: 'Security', estimatedMinutes: 18, savedAt: daysAgo(3),
           author: 'Cloudflare', description: 'Identity-first network security model.',
           image: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=640&q=80',
