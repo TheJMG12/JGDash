@@ -19,61 +19,68 @@
     return d.toISOString().slice(0, 10);
   }
 
+  function defaultFeeds() {
+    return [
+      { id: uid(), name: 'Hacker News', type: 'news', url: 'https://hnrss.org/frontpage', enabled: true },
+      { id: uid(), name: 'BBC World', type: 'news', url: 'http://feeds.bbci.co.uk/news/world/rss.xml', enabled: true },
+      { id: uid(), name: 'The Verge', type: 'news', url: 'https://www.theverge.com/rss/index.xml', enabled: false },
+      { id: uid(), name: 'TED Talks (YouTube)', type: 'youtube', url: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCAuUUnT6oDeKwE6v1NGQxug', enabled: true },
+      { id: uid(), name: 'r/netsec', type: 'reddit', url: 'https://www.reddit.com/r/netsec/.rss', enabled: true },
+      { id: uid(), name: 'r/soccer', type: 'reddit', url: 'https://www.reddit.com/r/soccer/.rss', enabled: true },
+      { id: uid(), name: 'r/personalfinance', type: 'reddit', url: 'https://www.reddit.com/r/personalfinance/.rss', enabled: false }
+    ];
+  }
+
   function defaultData() {
     return {
       items: [
         {
           id: uid(), title: 'How elite midfielders scan before receiving', type: 'article',
-          source: 'The Athletic', url: 'https://example.com/soccer-scan', status: 'inbox', priority: 'high',
+          source: 'The Athletic', url: 'https://theathletic.com/', status: 'library', priority: 'medium',
           tags: 'soccer, analysis', collection: 'Soccer', estimatedMinutes: 12, savedAt: daysAgo(1),
-          author: 'Tactical Desk', notes: [{ id: uid(), kind: 'why', text: 'Apply to half-space receives', pinned: true }],
-          inQueue: false, archived: false, completed: false
+          author: 'Tactical Desk', description: 'Scanning habits before the ball arrives.',
+          image: 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=640&q=80',
+          notes: '', archived: false, inbox: false
         },
         {
           id: uid(), title: 'Zero Trust architecture explained', type: 'article',
-          source: 'Cloudflare Blog', url: 'https://example.com/zero-trust', status: 'queue', priority: 'medium',
+          source: 'Cloudflare Blog', url: 'https://blog.cloudflare.com/', status: 'library', priority: 'high',
           tags: 'cybersecurity', collection: 'Security', estimatedMinutes: 18, savedAt: daysAgo(3),
-          author: 'Security Team', notes: [{ id: uid(), kind: 'takeaway', text: 'Identity is the perimeter', pinned: false }],
-          inQueue: true, queueOrder: 1, archived: false, completed: false
+          author: 'Cloudflare', description: 'Identity-first network security model.',
+          image: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=640&q=80',
+          notes: '', archived: false, inbox: false
         },
         {
-          id: uid(), title: 'Index funds vs stock picking (long form)', type: 'video',
-          source: 'YouTube', url: 'https://youtube.com/watch?v=demo1', status: 'queue', priority: 'medium',
+          id: uid(), title: 'Index funds vs stock picking', type: 'video',
+          source: 'YouTube', url: 'https://www.youtube.com/watch?v=VhgMzI1tC4U', status: 'library', priority: 'medium',
           tags: 'finance, investing', collection: 'Finance', estimatedMinutes: 24, savedAt: daysAgo(2),
-          author: 'Investing Channel', notes: [], inQueue: true, queueOrder: 2, archived: false, completed: false
+          author: 'YouTube', description: 'Long-form investing primer.',
+          image: 'https://i.ytimg.com/vi/VhgMzI1tC4U/hqdefault.jpg',
+          notes: '', archived: false, inbox: false
         },
         {
-          id: uid(), title: 'r/netsec — interesting CVE write-up thread', type: 'reddit',
-          source: 'Reddit', url: 'https://reddit.com/r/netsec/demo', status: 'inbox', priority: 'low',
-          tags: 'cybersecurity, CVE', collection: 'Security', estimatedMinutes: 8, savedAt: daysAgo(0),
-          author: 'u/researcher', notes: [{ id: uid(), kind: 'follow-up', text: 'Check if stack matches home lab', pinned: false }],
-          inQueue: false, archived: false, completed: false
+          id: uid(), title: 'Interesting CVE discussion in r/netsec', type: 'reddit',
+          source: 'Reddit', url: 'https://www.reddit.com/r/netsec/', status: 'inbox', priority: 'low',
+          tags: 'cybersecurity', collection: 'Security', estimatedMinutes: 8, savedAt: daysAgo(0),
+          author: 'r/netsec', description: 'Community thread — review later.',
+          image: '',
+          notes: '', archived: false, inbox: true
         },
         {
           id: uid(), title: 'The Ottoman siege logistics essay', type: 'article',
-          source: 'History Today', url: 'https://example.com/ottoman-siege', status: 'library', priority: 'low',
+          source: 'History Today', url: 'https://www.historytoday.com/', status: 'library', priority: 'low',
           tags: 'history', collection: 'History', estimatedMinutes: 22, savedAt: daysAgo(20),
-          author: 'H. Reed', notes: [], inQueue: false, archived: false, completed: false
+          author: 'H. Reed', description: 'Logistics behind early modern siege warfare.',
+          image: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?w=640&q=80',
+          notes: '', archived: false, inbox: false
         },
         {
-          id: uid(), title: 'Dashboard density patterns — reference', type: 'link',
-          source: 'Personal site', url: 'https://example.com/dashboard-density', status: 'library', priority: 'high',
+          id: uid(), title: 'Dashboard density patterns', type: 'link',
+          source: 'Personal reference', url: 'https://example.com/dashboard-density', status: 'library', priority: 'high',
           tags: 'design, dashboard', collection: 'Dashboard Inspiration', estimatedMinutes: 6, savedAt: daysAgo(5),
-          author: '', notes: [{ id: uid(), kind: 'why', text: 'Reference for JGDash cards', pinned: true }],
-          inQueue: false, archived: false, completed: false
-        },
-        {
-          id: uid(), title: 'High-protein meal prep basics', type: 'video',
-          source: 'YouTube', url: 'https://youtube.com/watch?v=demo2', status: 'completed', priority: 'low',
-          tags: 'recipes', collection: 'Recipes', estimatedMinutes: 15, savedAt: daysAgo(12),
-          author: 'Kitchen Lab', notes: [{ id: uid(), kind: 'takeaway', text: 'Batch chicken + oats Sunday', pinned: false }],
-          inQueue: false, archived: false, completed: true
-        },
-        {
-          id: uid(), title: 'Stale bookmark — unread crypto thread', type: 'reddit',
-          source: 'Reddit', url: 'https://reddit.com/r/investing/old', status: 'inbox', priority: 'low',
-          tags: 'finance', collection: 'Finance', estimatedMinutes: 10, savedAt: daysAgo(45),
-          author: 'u/markets', notes: [], inQueue: false, archived: false, completed: false
+          author: '', description: 'Reference for JGDash card density.',
+          image: 'https://images.unsplash.com/photo-1551281049-01b386ae3b14?w=640&q=80',
+          notes: '', archived: false, inbox: false
         }
       ],
       visuals: [
@@ -151,7 +158,8 @@
         { id: uid(), title: 'Deep Work', author: 'Cal Newport', cover: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=400&q=80', genre: 'Productivity', pages: 296, format: 'ebook', status: 'Paused', priority: 'medium', rating: 0, notes: 'Resume after travel week', tags: 'productivity', progressPct: 55, why: 'Focus blocks', addedAt: daysAgo(50), startDate: daysAgo(45), finishDate: '', quotes: [] }
       ],
       collections: ['Soccer', 'Security', 'Finance', 'History', 'Recipes', 'Dashboard Inspiration', 'UI Ideas', 'Travel', 'Fashion', 'Interiors', 'Design', 'Memes'],
-      readingGoal: { year: 2026, target: 24, completed: 1 }
+      readingGoal: { year: 2026, target: 24, completed: 1 },
+      feeds: defaultFeeds()
     };
   }
 
@@ -162,6 +170,15 @@
       var parsed = JSON.parse(raw);
       var base = defaultData();
       Object.keys(parsed).forEach(function (k) { base[k] = parsed[k]; });
+      if (!Array.isArray(base.feeds) || !base.feeds.length) base.feeds = defaultFeeds();
+      if (!Array.isArray(base.items)) base.items = [];
+      base.items.forEach(function (it) {
+        if (it.inbox == null) it.inbox = it.status === 'inbox';
+        if (!it.status) it.status = it.inbox ? 'inbox' : 'library';
+        if (it.description == null) it.description = '';
+        if (it.image == null) it.image = '';
+        if (it.notes == null) it.notes = '';
+      });
       return base;
     } catch (e) {
       return defaultData();
@@ -208,15 +225,217 @@
     });
   }
 
+  function hostnameOf(url) {
+    try { return new URL(url).hostname.replace(/^www\./, ''); } catch (e) { return ''; }
+  }
+
+  function detectType(url) {
+    var u = String(url || '').toLowerCase();
+    if (/youtube\.com|youtu\.be/.test(u)) return 'video';
+    if (/reddit\.com|redd\.it/.test(u)) return 'reddit';
+    if (/\.(pdf)(\?|$)/.test(u)) return 'link';
+    return 'article';
+  }
+
+  function titleFromUrl(url) {
+    try {
+      var u = new URL(url);
+      var parts = u.pathname.split('/').filter(Boolean);
+      if (!parts.length) return hostnameOf(url) || 'Untitled';
+      var last = decodeURIComponent(parts[parts.length - 1]).replace(/[-_]+/g, ' ').replace(/\.\w+$/, '');
+      if (/^[a-z0-9]{6,}$/i.test(last) && parts.length > 1) {
+        last = decodeURIComponent(parts[parts.length - 2]).replace(/[-_]+/g, ' ');
+      }
+      return last.replace(/\b\w/g, function (c) { return c.toUpperCase(); }).slice(0, 120) || hostnameOf(url);
+    } catch (e) {
+      return 'Untitled';
+    }
+  }
+
+  function youtubeId(url) {
+    try {
+      var u = new URL(url);
+      if (u.hostname.indexOf('youtu.be') !== -1) return u.pathname.slice(1).split('/')[0];
+      return u.searchParams.get('v') || '';
+    } catch (e) { return ''; }
+  }
+
+  function guessMeta(url) {
+    var type = detectType(url);
+    var host = hostnameOf(url);
+    var source = host;
+    var author = '';
+    var image = '';
+    var title = titleFromUrl(url);
+    if (type === 'video') {
+      source = 'YouTube';
+      var vid = youtubeId(url);
+      if (vid) image = 'https://i.ytimg.com/vi/' + vid + '/hqdefault.jpg';
+    } else if (type === 'reddit') {
+      source = 'Reddit';
+      var m = String(url).match(/reddit\.com\/r\/([^/]+)/i);
+      if (m) { author = 'r/' + m[1]; title = title || ('Post in r/' + m[1]); }
+    }
+    return {
+      url: url,
+      title: title,
+      type: type,
+      source: source,
+      author: author,
+      description: '',
+      image: image,
+      tags: type === 'video' ? 'youtube' : type === 'reddit' ? 'reddit' : ''
+    };
+  }
+
+  function fetchJson(url, timeoutMs) {
+    var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, timeoutMs || 8000);
+    return fetch(url, { signal: ctrl ? ctrl.signal : undefined, credentials: 'omit' })
+      .then(function (r) {
+        clearTimeout(timer);
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .catch(function (err) {
+        clearTimeout(timer);
+        throw err;
+      });
+  }
+
+  function enrichMeta(url) {
+    var base = guessMeta(url);
+    var tasks = [];
+
+    if (base.type === 'video') {
+      tasks.push(
+        fetchJson('https://www.youtube.com/oembed?url=' + encodeURIComponent(url) + '&format=json', 6000)
+          .then(function (j) {
+            if (j.title) base.title = j.title;
+            if (j.author_name) base.author = j.author_name;
+            if (j.thumbnail_url) base.image = j.thumbnail_url;
+            base.source = 'YouTube';
+            base.type = 'video';
+          })
+          .catch(function () {
+            return fetchJson('https://noembed.com/embed?url=' + encodeURIComponent(url), 6000).then(function (j) {
+              if (j && !j.error) {
+                if (j.title) base.title = j.title;
+                if (j.author_name) base.author = j.author_name;
+                if (j.thumbnail_url) base.image = j.thumbnail_url;
+                base.source = 'YouTube';
+                base.type = 'video';
+              }
+            }).catch(function () {});
+          })
+      );
+    }
+
+    if (base.type === 'reddit') {
+      var jsonUrl = url.replace(/\/?(\?.*)?$/, '') + '.json';
+      tasks.push(
+        fetchJson('https://api.allorigins.win/raw?url=' + encodeURIComponent(jsonUrl), 7000)
+          .then(function (j) {
+            var post = j && j[0] && j[0].data && j[0].data.children && j[0].data.children[0] && j[0].data.children[0].data;
+            if (!post) return;
+            if (post.title) base.title = post.title;
+            if (post.author) base.author = 'u/' + post.author;
+            if (post.subreddit) { base.source = 'r/' + post.subreddit; base.tags = 'reddit, ' + post.subreddit; }
+            if (post.thumbnail && String(post.thumbnail).indexOf('http') === 0) base.image = post.thumbnail;
+            if (post.selftext) base.description = String(post.selftext).slice(0, 280);
+            base.type = 'reddit';
+          })
+          .catch(function () {})
+      );
+    }
+
+    tasks.push(
+      fetchJson('https://api.microlink.io?url=' + encodeURIComponent(url), 8000)
+        .then(function (j) {
+          if (!j || j.status !== 'success' || !j.data) return;
+          var d = j.data;
+          if (d.title) base.title = d.title;
+          if (d.description) base.description = String(d.description).slice(0, 320);
+          if (d.author) base.author = typeof d.author === 'string' ? d.author : (d.author.name || base.author);
+          if (d.publisher) base.source = d.publisher;
+          else if (!base.source) base.source = hostnameOf(url);
+          if (d.image && d.image.url) base.image = d.image.url;
+          if (!base.type || base.type === 'article' || base.type === 'link') {
+            if (d.logo || d.image) base.type = base.type === 'video' ? 'video' : 'article';
+          }
+        })
+        .catch(function () {})
+    );
+
+    return Promise.all(tasks).then(function () { return base; });
+  }
+
+  function fetchRss(feedUrl) {
+    var endpoints = [
+      'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(feedUrl),
+      'https://api.allorigins.win/raw?url=' + encodeURIComponent(feedUrl)
+    ];
+    return fetchJson(endpoints[0], 10000)
+      .then(function (j) {
+        if (j && j.items && j.items.length) {
+          return {
+            title: (j.feed && j.feed.title) || '',
+            items: j.items.map(function (it) {
+              return {
+                title: it.title || 'Untitled',
+                url: it.link || it.url || '',
+                description: (it.description || it.content || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 220),
+                image: (it.thumbnail || (it.enclosure && it.enclosure.link) || ''),
+                author: it.author || '',
+                pubDate: it.pubDate || ''
+              };
+            })
+          };
+        }
+        throw new Error('Empty feed');
+      })
+      .catch(function () {
+        return fetch(endpoints[1], { credentials: 'omit' }).then(function (r) { return r.text(); }).then(function (xml) {
+          var doc = new DOMParser().parseFromString(xml, 'text/xml');
+          var nodes = Array.prototype.slice.call(doc.querySelectorAll('item, entry')).slice(0, 20);
+          return {
+            title: (doc.querySelector('channel > title, feed > title') || {}).textContent || '',
+            items: nodes.map(function (n) {
+              var linkEl = n.querySelector('link');
+              var link = '';
+              if (linkEl) link = linkEl.getAttribute('href') || linkEl.textContent || '';
+              var thumb = n.querySelector('media\\:thumbnail, thumbnail, enclosure');
+              var image = '';
+              if (thumb) image = thumb.getAttribute('url') || thumb.getAttribute('href') || '';
+              return {
+                title: (n.querySelector('title') || {}).textContent || 'Untitled',
+                url: link.trim(),
+                description: ((n.querySelector('description, summary, content') || {}).textContent || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 220),
+                image: image,
+                author: ((n.querySelector('author, dc\\:creator') || {}).textContent || ''),
+                pubDate: ((n.querySelector('pubDate, published, updated') || {}).textContent || '')
+              };
+            })
+          };
+        });
+      });
+  }
+
   global.JGMedia = {
     DATA_KEY: DATA_KEY,
     uid: uid,
     today: today,
     daysAgo: daysAgo,
     defaultData: defaultData,
+    defaultFeeds: defaultFeeds,
     load: load,
     save: save,
     idbPut: idbPut,
-    idbGet: idbGet
+    idbGet: idbGet,
+    detectType: detectType,
+    guessMeta: guessMeta,
+    enrichMeta: enrichMeta,
+    fetchRss: fetchRss,
+    hostnameOf: hostnameOf
   };
 })(window);

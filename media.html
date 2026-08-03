@@ -177,6 +177,32 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
 @media(max-width:860px){.sidebar{position:fixed;left:0;top:0;bottom:0;z-index:40;transform:translateX(-105%);transition:transform .22s ease;box-shadow:8px 0 32px rgba(0,0,0,0.4)}.sidebar.open{transform:translateX(0)}.sidebar-overlay.open{display:block}.mobile-bar{display:flex}.main{max-height:none}.modal-grid{grid-template-columns:1fr}}
 @media(max-width:560px){.poster-grid,.book-grid,.media-grid{grid-template-columns:1fr}.masonry{column-count:1}.kpi-row{grid-template-columns:1fr 1fr}}
 
+
+.lib-card{display:block;text-decoration:none;color:inherit;border-radius:14px;border:1px solid var(--border);background:var(--card-bg);overflow:hidden;transition:transform .15s,border-color .15s;cursor:pointer}
+.lib-card:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--accent) 40%,transparent)}
+.lib-card .media{aspect-ratio:16/10;background:linear-gradient(160deg,rgba(167,139,250,0.18),rgba(255,255,255,0.03));display:flex;align-items:center;justify-content:center;overflow:hidden}
+.lib-card .media img{width:100%;height:100%;object-fit:cover}
+.lib-card .body{padding:12px}
+.lib-card .title{font-size:14px;font-weight:650;line-height:1.35;margin-bottom:4px}
+.lib-card .desc{font-size:12px;color:var(--text-tertiary);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.lib-card .foot{display:flex;align-items:center;gap:6px;margin-top:10px;flex-wrap:wrap}
+.lib-actions{display:flex;gap:4px}
+.lib-actions .icon-btn{pointer-events:auto}
+.capture-preview{display:grid;grid-template-columns:120px 1fr;gap:12px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+.capture-preview .thumb{width:120px;height:80px;border-radius:10px;border:1px solid var(--border);overflow:hidden;background:var(--input-bg);display:flex;align-items:center;justify-content:center}
+.capture-preview .thumb img{width:100%;height:100%;object-fit:cover}
+.feed-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.feed-tab{padding:6px 12px;border-radius:999px;border:1px solid var(--border);font-size:12px;font-weight:600;color:var(--text-tertiary)}
+.feed-tab.active{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 45%,transparent);background:color-mix(in srgb,var(--accent) 14%,transparent)}
+.rss-item{display:flex;gap:12px;padding:12px;border-radius:12px;border:1px solid var(--border);background:var(--input-bg);margin-bottom:8px;align-items:flex-start}
+.rss-item .thumb{width:72px;height:54px;border-radius:8px;overflow:hidden;flex-shrink:0;background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text-tertiary)}
+.rss-item .thumb img{width:100%;height:100%;object-fit:cover}
+.meta-status{font-size:12px;color:var(--text-tertiary);min-height:18px}
+.meta-status.loading{color:var(--accent)}
+.meta-status.ok{color:var(--success)}
+.meta-status.err{color:var(--warning)}
+.inbox-row{display:flex;gap:10px;align-items:stretch}
+
   </style>
 </head>
 <body data-page-title="Media">
@@ -184,20 +210,13 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
   <div class="app">
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-brand">Media</div>
-      <button type="button" class="nav-link active" data-section="overview">Hub overview</button>
-      <button type="button" class="nav-link" data-section="inbox">Inbox</button>
-      <button type="button" class="nav-link" data-section="queue">Up Next</button>
+      <button type="button" class="nav-link active" data-section="capture">Capture / Inbox</button>
       <button type="button" class="nav-link" data-section="library">Library</button>
-      <button type="button" class="nav-link" data-section="notes">Notes</button>
-      <button type="button" class="nav-link" data-section="backlog">Backlog</button>
+      <button type="button" class="nav-link" data-section="feeds">RSS Feeds</button>
       <div class="sidebar-section">Spaces</div>
       <a class="nav-link" href="visual-bookmarks.html">Visual Bookmarks</a>
       <a class="nav-link" href="watchlist.html">Watchlist</a>
       <a class="nav-link" href="reading-list.html">Reading List</a>
-      <div class="sidebar-section">Quick add</div>
-      <button type="button" class="nav-link" id="navAddLink">+ Link</button>
-      <button type="button" class="nav-link" id="navAddArticle">+ Article</button>
-      <button type="button" class="nav-link" id="navAddVideo">+ Video</button>
       <div class="sidebar-back"><a href="index.html">← Dashboard</a></div>
     </aside>
     <div class="main">
@@ -209,111 +228,105 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
         <div class="page-header">
           <div class="page-title-block">
             <h1 class="page-title">Media</h1>
-            <p class="page-sub">Organize what I save, queue what matters, and clear the backlog.</p>
+            <p class="page-sub">Paste a link — metadata fills in. Click a card to open the article. Spaces keep visuals, watch, and reading separate.</p>
           </div>
           <div class="toolbar">
-            <input type="search" class="search-input" id="searchInput" placeholder="Search links, notes, tags…" aria-label="Search media" />
-            <button type="button" class="btn" id="quickSaveBtn">Quick Save</button>
-            <button type="button" class="btn primary" id="addLinkBtn">+ Add Link</button>
+            <input type="search" class="search-input" id="searchInput" placeholder="Search library…" aria-label="Search library" />
           </div>
         </div>
 
-        <div class="filters" id="filterRow">
-          <select class="select" id="fType"><option value="all">Type: All</option><option>article</option><option>video</option><option>reddit</option><option>link</option></select>
-          <select class="select" id="fSource"><option value="all">Source: All</option></select>
-          <select class="select" id="fStatus"><option value="all">Status: All</option><option>inbox</option><option>queue</option><option>library</option><option>completed</option><option>archived</option></select>
-          <select class="select" id="fPriority"><option value="all">Priority: All</option><option>high</option><option>medium</option><option>low</option></select>
-          <select class="select" id="fTag"><option value="all">Tag: All</option></select>
-          <select class="select" id="fTime"><option value="all">Time: All</option><option value="short">≤10 min</option><option value="mid">11–20</option><option value="long">20+</option></select>
-          <button type="button" class="btn" id="clearFilters">Clear</button>
-        </div>
-
-        <div class="split" style="margin-bottom:14px">
-          <a class="btn" href="visual-bookmarks.html">Open Visual Bookmarks</a>
-          <a class="btn" href="watchlist.html">Open Watchlist</a>
-          <a class="btn" href="reading-list.html">Open Reading List</a>
-          <button type="button" class="btn" id="addCollectionBtn">+ Collection</button>
-          <button type="button" class="btn" id="addNoteBtn">+ Note</button>
-        </div>
-
-        <section class="section" id="sec-overview">
-          <div class="section-head"><h2 class="section-title">Overview</h2><span class="section-sub">Lightweight counts — not analytics</span></div>
-          <div class="kpi-row" id="kpiRow"></div>
-        </section>
-
-        <section class="section" id="sec-inbox">
+        <section class="section" id="sec-capture">
           <div class="section-head">
             <h2 class="section-title">Capture / Inbox</h2>
-            <span class="section-sub">Paste a URL · default save to inbox</span>
+            <span class="section-sub">Paste URL · auto-fill title, source, thumbnail · save to library</span>
           </div>
-          <div class="card" style="margin-bottom:12px">
-            <div class="capture-bar">
-              <input class="search-input" id="captureUrl" placeholder="Paste URL to save…" aria-label="Paste URL" />
-              <button type="button" class="btn primary" id="captureBtn">Save to inbox</button>
+          <div class="card">
+            <div class="field" style="margin-bottom:8px">
+              <label for="captureUrl">URL</label>
+              <div class="capture-bar">
+                <input class="search-input" id="captureUrl" type="url" placeholder="https://… article, YouTube, or Reddit" aria-label="Paste URL" autocomplete="off" />
+                <button type="button" class="btn" id="lookupBtn">Lookup</button>
+                <button type="button" class="btn primary" id="saveBtn">Add to library</button>
+              </div>
+              <div class="meta-status" id="metaStatus" aria-live="polite"></div>
             </div>
+            <div class="modal-grid">
+              <div class="field"><label for="fTitle">Title</label><input id="fTitle" /></div>
+              <div class="field"><label for="fType">Type</label>
+                <select id="fType"><option value="article">article</option><option value="video">video</option><option value="reddit">reddit</option><option value="link">link</option><option value="rss">rss</option></select>
+              </div>
+              <div class="field"><label for="fSource">Source</label><input id="fSource" /></div>
+              <div class="field"><label for="fAuthor">Author / channel</label><input id="fAuthor" /></div>
+              <div class="field"><label for="fTags">Tags</label><input id="fTags" placeholder="cybersecurity, soccer" /></div>
+              <div class="field"><label for="fCollection">Collection</label><input id="fCollection" list="colList" /></div>
+              <div class="field full"><label for="fDesc">Description</label><textarea id="fDesc" rows="2"></textarea></div>
+              <div class="field full"><label for="fImage">Thumbnail URL</label><input id="fImage" type="url" /></div>
+              <div class="field full"><label for="fNotes">Note (optional)</label><textarea id="fNotes" rows="2"></textarea></div>
+            </div>
+            <datalist id="colList"></datalist>
+            <div class="capture-preview hidden" id="capturePreview">
+              <div class="thumb" id="previewThumb"><span>No image</span></div>
+              <div>
+                <div class="title" id="previewTitle" style="font-size:14px;font-weight:650"></div>
+                <div class="card-meta" id="previewMeta"></div>
+                <div class="desc" id="previewDesc" style="font-size:12px;color:var(--text-tertiary);margin-top:4px"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-head" style="margin-top:18px">
+            <h3 class="section-title" style="font-size:14px">Inbox</h3>
+            <span class="section-sub">Recently captured — open or move to library</span>
           </div>
           <div id="inboxMount"></div>
-        </section>
-
-        <section class="section" id="sec-queue">
-          <div class="section-head">
-            <h2 class="section-title">Up Next</h2>
-            <span class="section-sub">Intentional queue · drag to reorder</span>
-            <div class="view-toggle" style="margin-left:auto">
-              <button type="button" class="active" data-qfilter="all">All</button>
-              <button type="button" data-qfilter="short">Short</button>
-              <button type="button" data-qfilter="long">Long</button>
-            </div>
-          </div>
-          <div id="queueMount"></div>
         </section>
 
         <section class="section" id="sec-library">
           <div class="section-head">
             <h2 class="section-title">Library</h2>
-            <span class="section-sub">Articles · videos · Reddit · links</span>
-            <div class="view-toggle" style="margin-left:auto">
-              <button type="button" class="active" data-libview="list">List</button>
-              <button type="button" data-libview="cards">Cards</button>
-            </div>
-            <select class="select" id="groupBy" style="width:auto">
-              <option value="none">Group: None</option>
-              <option value="source">Source</option>
-              <option value="tag">Tag</option>
-              <option value="status">Status</option>
-              <option value="collection">Collection</option>
+            <span class="section-sub">Click a card to open in a new tab</span>
+            <select class="select" id="filterType" style="width:auto;margin-left:auto">
+              <option value="all">Type: All</option>
+              <option value="article">article</option>
+              <option value="video">video</option>
+              <option value="reddit">reddit</option>
+              <option value="link">link</option>
+              <option value="rss">rss</option>
             </select>
+            <select class="select" id="filterSource" style="width:auto"><option value="all">Source: All</option></select>
           </div>
-          <div id="libraryMount"></div>
+          <div class="media-grid" id="libraryMount"></div>
+          <div id="libraryEmpty" class="empty-state hidden"><strong>Library is empty</strong>Paste a URL above to start saving articles, videos, and threads.</div>
         </section>
 
-        <section class="section" id="sec-notes">
-          <div class="section-head"><h2 class="section-title">Notes / takeaways</h2></div>
-          <div id="notesMount"></div>
-        </section>
-
-        <section class="section" id="sec-backlog">
+        <section class="section" id="sec-feeds">
           <div class="section-head">
-            <h2 class="section-title">Backlog management</h2>
-            <button type="button" class="btn" id="bulkArchiveBtn" style="margin-left:auto">Bulk archive stale</button>
-            <button type="button" class="btn danger" id="cleanupBtn">Queue cleanup</button>
+            <h2 class="section-title">RSS Feeds</h2>
+            <span class="section-sub">News · YouTube · Reddit — save items into your library</span>
+            <button type="button" class="btn" id="addFeedBtn" style="margin-left:auto">+ Add feed</button>
+            <button type="button" class="btn primary" id="refreshFeedsBtn">Refresh</button>
           </div>
-          <div class="grid-2" id="backlogMount"></div>
+          <div class="feed-tabs" id="feedTabs"></div>
+          <div id="feedList" class="card" style="margin-bottom:12px"></div>
+          <div id="feedItems"></div>
+          <div id="feedEmpty" class="empty-state hidden"><strong>No feed items</strong>Enable a feed and hit Refresh. Some feeds need a public CORS/RSS proxy.</div>
         </section>
       </div>
     </div>
   </div>
 
-  <div class="modal-backdrop" id="editModal" role="dialog" aria-modal="true">
-    <div class="modal wide">
-      <h2 id="editTitle">Edit</h2>
-      <p class="modal-lead" id="editLead"></p>
-      <div class="modal-grid" id="editFields"></div>
+  <div class="modal-backdrop" id="feedModal">
+    <div class="modal" role="dialog" aria-modal="true">
+      <h2>Add RSS feed</h2>
+      <p class="modal-lead">News site RSS, YouTube channel feed, or subreddit <code>/.rss</code>.</p>
+      <div class="field"><label>Name</label><input id="feedName" placeholder="r/netsec" /></div>
+      <div class="field"><label>Type</label>
+        <select id="feedType"><option value="news">news</option><option value="youtube">youtube</option><option value="reddit">reddit</option></select>
+      </div>
+      <div class="field"><label>Feed URL</label><input id="feedUrl" type="url" placeholder="https://…" /></div>
       <div class="modal-actions">
-        <button type="button" class="btn danger" id="editDelete" hidden>Delete</button>
-        <div class="spacer"></div>
-        <button type="button" class="btn" id="editCancel">Cancel</button>
-        <button type="button" class="btn primary" id="editSave">Save</button>
+        <button type="button" class="btn" id="feedCancel">Cancel</button>
+        <button type="button" class="btn primary" id="feedSave">Save feed</button>
       </div>
     </div>
   </div>
@@ -323,488 +336,420 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
 (function () {
   'use strict';
   var store = JGMedia.load();
+  var activeFeedId = null;
+  var feedCache = {};
+  var lookupTimer = null;
   var $ = function (id) { return document.getElementById(id); };
-  var esc = function (s) {
+  function esc(s) {
     return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  };
-  var editCtx = null;
-  var libView = 'list';
-  var qFilter = 'all';
-  var filters = { type:'all', source:'all', status:'all', priority:'all', tag:'all', time:'all', q:'' };
-  var dragId = null;
-
+  }
   function toast(msg) {
     var el = $('toast'); el.textContent = msg; el.classList.add('show');
     clearTimeout(toast._t); toast._t = setTimeout(function () { el.classList.remove('show'); }, 2200);
   }
   function persist() { JGMedia.save(store); }
-  function iconBtn(act, label, extra) {
-    return '<button type="button" class="icon-btn' + (extra||'') + '" data-act="' + act + '" title="' + esc(label) + '" aria-label="' + esc(label) + '">' + label + '</button>';
+  function openSidebar(open) {
+    $('sidebar').classList.toggle('open', open);
+    $('sidebarOverlay').classList.toggle('open', open);
   }
+  $('hamburger').addEventListener('click', function () { openSidebar(true); });
+  $('sidebarOverlay').addEventListener('click', function () { openSidebar(false); });
+
+  document.querySelectorAll('[data-section]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var id = btn.getAttribute('data-section');
+      document.querySelectorAll('.sidebar .nav-link[data-section]').forEach(function (n) { n.classList.remove('active'); });
+      btn.classList.add('active');
+      var el = $('sec-' + id);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      openSidebar(false);
+    });
+  });
+
+  function setStatus(msg, kind) {
+    var el = $('metaStatus');
+    el.textContent = msg || '';
+    el.className = 'meta-status' + (kind ? ' ' + kind : '');
+  }
+
+  function fillCollections() {
+    $('colList').innerHTML = (store.collections || []).map(function (c) {
+      return '<option value="' + esc(c) + '">';
+    }).join('');
+  }
+
+  function readForm() {
+    return {
+      url: $('captureUrl').value.trim(),
+      title: $('fTitle').value.trim(),
+      type: $('fType').value,
+      source: $('fSource').value.trim(),
+      author: $('fAuthor').value.trim(),
+      tags: $('fTags').value.trim(),
+      collection: $('fCollection').value.trim(),
+      description: $('fDesc').value.trim(),
+      image: $('fImage').value.trim(),
+      notes: $('fNotes').value.trim()
+    };
+  }
+
+  function applyMeta(meta) {
+    if (!meta) return;
+    if (meta.title) $('fTitle').value = meta.title;
+    if (meta.type) $('fType').value = meta.type;
+    if (meta.source) $('fSource').value = meta.source;
+    if (meta.author) $('fAuthor').value = meta.author;
+    if (meta.tags && !$('fTags').value) $('fTags').value = meta.tags;
+    if (meta.description) $('fDesc').value = meta.description;
+    if (meta.image) $('fImage').value = meta.image;
+    updatePreview();
+  }
+
+  function updatePreview() {
+    var f = readForm();
+    var show = !!(f.url || f.title || f.image);
+    $('capturePreview').classList.toggle('hidden', !show);
+    $('previewTitle').textContent = f.title || 'Untitled';
+    $('previewMeta').textContent = [f.type, f.source, f.author].filter(Boolean).join(' · ');
+    $('previewDesc').textContent = f.description || '';
+    var thumb = $('previewThumb');
+    if (f.image) thumb.innerHTML = '<img src="' + esc(f.image) + '" alt="" onerror="this.parentNode.innerHTML=\'No image\'" />';
+    else thumb.innerHTML = '<span>No image</span>';
+  }
+
+  function lookupUrl(url, opts) {
+    opts = opts || {};
+    if (!url) { setStatus(''); return Promise.resolve(null); }
+    try { new URL(url); } catch (e) {
+      setStatus('Enter a valid URL (include https://)', 'err');
+      return Promise.resolve(null);
+    }
+    // Reset autofilled fields for a fresh lookup (keep optional note)
+    $('fTitle').value = '';
+    $('fSource').value = '';
+    $('fAuthor').value = '';
+    $('fTags').value = '';
+    $('fCollection').value = '';
+    $('fDesc').value = '';
+    $('fImage').value = '';
+    $('fType').value = 'article';
+    var guess = JGMedia.guessMeta(url);
+    applyMeta(guess);
+    setStatus('Looking up metadata…', 'loading');
+    return JGMedia.enrichMeta(url).then(function (meta) {
+      applyMeta(meta);
+      setStatus('Fields filled from URL — edit anything before saving', 'ok');
+      return meta;
+    }).catch(function () {
+      setStatus('Using URL guess — metadata lookup unavailable', 'err');
+      return guess;
+    });
+  }
+
+  function duplicateUrl(url) {
+    var norm = url.replace(/\/$/, '').toLowerCase();
+    return (store.items || []).some(function (it) {
+      return String(it.url || '').replace(/\/$/, '').toLowerCase() === norm;
+    });
+  }
+
+  function addItem(partial, toInbox) {
+    var item = {
+      id: JGMedia.uid(),
+      title: partial.title || 'Untitled',
+      type: partial.type || JGMedia.detectType(partial.url || ''),
+      source: partial.source || JGMedia.hostnameOf(partial.url || '') || 'manual',
+      url: partial.url || '',
+      status: toInbox ? 'inbox' : 'library',
+      inbox: !!toInbox,
+      priority: 'medium',
+      tags: partial.tags || '',
+      collection: partial.collection || '',
+      estimatedMinutes: 0,
+      savedAt: JGMedia.today(),
+      author: partial.author || '',
+      description: partial.description || '',
+      image: partial.image || '',
+      notes: partial.notes || '',
+      archived: false
+    };
+    if (item.collection && store.collections.indexOf(item.collection) === -1) {
+      store.collections.push(item.collection);
+    }
+    store.items.unshift(item);
+    persist();
+    return item;
+  }
+
+  function saveCapture() {
+    var f = readForm();
+    if (!f.url) { toast('Paste a URL first'); return; }
+    try { new URL(f.url); } catch (e) { toast('Invalid URL'); return; }
+    if (duplicateUrl(f.url)) {
+      if (!confirm('That URL is already in your library. Save anyway?')) return;
+    }
+    addItem(f, false);
+    toast('Added to library');
+    $('captureUrl').value = '';
+    ['fTitle','fSource','fAuthor','fTags','fCollection','fDesc','fImage','fNotes'].forEach(function (id) { $(id).value = ''; });
+    $('fType').value = 'article';
+    setStatus('');
+    updatePreview();
+    render();
+    $('sec-library').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   function typeBadge(t) {
     var cls = t === 'video' ? 'video' : t === 'article' ? 'article' : t === 'reddit' ? 'reddit' : 'ok';
     return '<span class="badge ' + cls + '">' + esc(t) + '</span>';
   }
-  function daysSince(iso) {
-    if (!iso) return 0;
-    return Math.floor((Date.now() - new Date(iso + 'T12:00:00').getTime()) / 86400000);
-  }
-  function matchItem(it) {
-    if (it.archived && filters.status !== 'archived') {
-      if (filters.status !== 'all') return false;
-    }
-    if (filters.type !== 'all' && it.type !== filters.type) return false;
-    if (filters.source !== 'all' && it.source !== filters.source) return false;
-    if (filters.status !== 'all') {
-      if (filters.status === 'archived') { if (!it.archived) return false; }
-      else if (filters.status === 'queue') { if (!it.inQueue) return false; }
-      else if (it.status !== filters.status && !(filters.status === 'inbox' && it.status === 'inbox')) return false;
-    }
-    if (filters.priority !== 'all' && it.priority !== filters.priority) return false;
-    if (filters.tag !== 'all' && String(it.tags||'').toLowerCase().indexOf(filters.tag.toLowerCase()) === -1) return false;
-    if (filters.time !== 'all') {
-      var m = Number(it.estimatedMinutes) || 0;
-      if (filters.time === 'short' && m > 10) return false;
-      if (filters.time === 'mid' && (m < 11 || m > 20)) return false;
-      if (filters.time === 'long' && m < 20) return false;
-    }
-    if (filters.q) {
-      var hay = (it.title + ' ' + it.source + ' ' + (it.tags||'') + ' ' + (it.collection||'')).toLowerCase();
-      if (hay.indexOf(filters.q.toLowerCase()) === -1) return false;
-    }
-    return true;
-  }
-  function activeItems() { return store.items.filter(function (it) { return !it.archived && matchItem(it); }); }
 
-  function openEdit(cfg) {
-    editCtx = cfg;
-    $('editTitle').textContent = cfg.title || 'Edit';
-    $('editLead').textContent = cfg.lead || '';
-    $('editLead').style.display = cfg.lead ? '' : 'none';
-    $('editDelete').hidden = !(cfg.mode === 'edit' && cfg.canDelete);
-    $('editFields').innerHTML = (cfg.fields || []).map(function (f) {
-      var full = f.full ? ' full' : '';
-      var val = f.value == null ? '' : f.value;
-      var input;
-      if (f.type === 'textarea') input = '<textarea id="ef_' + f.key + '" rows="' + (f.rows||3) + '">' + esc(val) + '</textarea>';
-      else if (f.type === 'select') {
-        input = '<select id="ef_' + f.key + '">' + (f.options||[]).map(function (o) {
-          var v = typeof o === 'string' ? o : o.value;
-          var lab = typeof o === 'string' ? o : o.label;
-          return '<option value="' + esc(v) + '"' + (String(v)===String(val)?' selected':'') + '>' + esc(lab) + '</option>';
-        }).join('') + '</select>';
-      } else if (f.type === 'checkbox') {
-        input = '<label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" id="ef_' + f.key + '"' + (val?' checked':'') + ' /> ' + esc(f.checkLabel||'Yes') + '</label>';
-      } else input = '<input id="ef_' + f.key + '" type="' + (f.type||'text') + '" value="' + esc(val) + '" placeholder="' + esc(f.placeholder||'') + '" />';
-      return '<div class="field' + full + '"><label for="ef_' + f.key + '">' + esc(f.label) + '</label>' + input + '</div>';
-    }).join('');
-    $('editModal').classList.add('open');
-  }
-  function closeEdit() { $('editModal').classList.remove('open'); editCtx = null; }
-  function readFields() {
-    var out = {};
-    (editCtx.fields||[]).forEach(function (f) {
-      var el = $('ef_' + f.key); if (!el) return;
-      out[f.key] = f.type === 'checkbox' ? !!el.checked : el.value;
-    });
-    return out;
-  }
-
-  function guessType(url) {
-    var u = (url||'').toLowerCase();
-    if (u.indexOf('youtube.com') !== -1 || u.indexOf('youtu.be') !== -1) return 'video';
-    if (u.indexOf('reddit.com') !== -1) return 'reddit';
-    if (u.indexOf('http') === 0) return 'article';
-    return 'link';
-  }
-  function guessSource(url) {
-    try { return new URL(url).hostname.replace(/^www\./,''); } catch (e) { return 'manual'; }
-  }
-  function fillFilters() {
-    var sources = {}; var tags = {};
-    store.items.forEach(function (it) {
-      sources[it.source] = true;
-      String(it.tags||'').split(',').forEach(function (t) { t = t.trim(); if (t) tags[t] = true; });
-    });
-    var s = $('fSource'); var cur = s.value;
-    s.innerHTML = '<option value="all">Source: All</option>' + Object.keys(sources).sort().map(function (x) {
-      return '<option>' + esc(x) + '</option>';
-    }).join('');
-    s.value = cur || 'all';
-    var t = $('fTag'); var ct = t.value;
-    t.innerHTML = '<option value="all">Tag: All</option>' + Object.keys(tags).sort().map(function (x) {
-      return '<option value="' + esc(x) + '">' + esc(x) + '</option>';
-    }).join('');
-    t.value = ct || 'all';
-  }
-
-  function renderKpis() {
-    var items = store.items;
-    var unread = items.filter(function (i) { return !i.completed && !i.archived && i.type === 'article'; }).length;
-    var unwatched = items.filter(function (i) { return !i.completed && !i.archived && i.type === 'video'; }).length;
-    var queue = items.filter(function (i) { return i.inQueue && !i.archived; }).length;
-    var archived = items.filter(function (i) { return i.archived; }).length;
-    var high = items.filter(function (i) { return i.priority === 'high' && !i.completed && !i.archived; }).length;
-    var recent = items.filter(function (i) { return daysSince(i.savedAt) <= 7; }).length;
-    var cards = [
-      { label: 'Unread articles', value: unread },
-      { label: 'Unwatched videos', value: unwatched },
-      { label: 'In queue', value: queue },
-      { label: 'Archived', value: archived },
-      { label: 'High-priority', value: high },
-      { label: 'Added this week', value: recent },
-      { label: 'Visual bookmarks', value: store.visuals.filter(function (v){return !v.archived;}).length },
-      { label: 'Watchlist', value: store.watchlist.length },
-      { label: 'Reading list', value: store.books.length },
-      { label: 'Collections', value: store.collections.length }
-    ];
-    $('kpiRow').innerHTML = cards.map(function (c) {
-      return '<div class="kpi"><div class="kpi-label">' + esc(c.label) + '</div><div class="kpi-value">' + c.value + '</div></div>';
-    }).join('');
-  }
-
-  function itemRow(it, opts) {
+  function cardHtml(it, opts) {
     opts = opts || {};
-    return '<div class="list-item' + (opts.queue ? ' queue-item' : '') + '" data-id="' + esc(it.id) + '"' + (opts.queue ? ' draggable="true"' : '') + '>' +
-      '<div class="thumb">' + (it.type === 'video' ? '▶' : it.type === 'reddit' ? 'r/' : 'Aa') + '</div>' +
-      '<div style="flex:1;min-width:0">' +
-        '<div class="title">' + (it.priority==='high'?'⚠ ':'') + esc(it.title) + '</div>' +
-        '<div class="meta">' + typeBadge(it.type) + ' · ' + esc(it.source) + ' · ' + esc(it.estimatedMinutes||'?') + 'm · ' + esc(it.savedAt) +
-          (it.tags ? ' · ' + esc(it.tags) : '') +
-          ((it.notes&&it.notes.length) ? ' · 📝' + it.notes.length : '') + '</div>' +
-      '</div>' +
-      '<div class="right">' + esc(it.status) + '</div>' +
-      '<div class="item-actions">' +
-        (opts.queue ? '' : iconBtn('queue', '⬆')) +
-        iconBtn('edit', '✎') + iconBtn('done', '✓') + iconBtn('arch', '⬇') + iconBtn('del', '✕', ' danger') +
-      '</div></div>';
+    var img = it.image
+      ? '<img src="' + esc(it.image) + '" alt="" loading="lazy" onerror="this.remove()" />'
+      : '<span style="font-size:11px;color:var(--text-tertiary)">' + esc(it.type || 'link') + '</span>';
+    var actions = '<div class="lib-actions" data-stop="1">' +
+      (opts.inbox
+        ? '<button type="button" class="icon-btn" data-act="to-lib" data-id="' + esc(it.id) + '" title="Move to library">↓</button>'
+        : '') +
+      '<button type="button" class="icon-btn danger" data-act="del" data-id="' + esc(it.id) + '" title="Delete">✕</button>' +
+      '</div>';
+    return '<a class="lib-card" href="' + esc(it.url || '#') + '" target="_blank" rel="noopener noreferrer" data-id="' + esc(it.id) + '">' +
+      '<div class="media">' + img + '</div>' +
+      '<div class="body">' +
+        '<div class="title">' + esc(it.title || 'Untitled') + '</div>' +
+        '<div class="desc">' + esc(it.description || it.notes || '') + '</div>' +
+        '<div class="foot">' + typeBadge(it.type) +
+          '<span class="badge">' + esc(it.source || '') + '</span>' +
+          (it.author ? '<span class="badge">' + esc(it.author) + '</span>' : '') +
+          '<span class="card-meta" style="margin:0 0 0 auto">' + esc(it.savedAt || '') + '</span>' +
+          actions +
+        '</div>' +
+      '</div></a>';
   }
 
-  function wireItemActions(root) {
-    root.querySelectorAll('.list-item').forEach(function (row) {
-      var id = row.getAttribute('data-id');
-      var it = store.items.find(function (x) { return x.id === id; });
-      if (!it) return;
-      var q = row.querySelector('[data-act="queue"]');
-      if (q) q.onclick = function (e) { e.stopPropagation(); it.inQueue = true; it.status = 'queue'; it.queueOrder = Date.now(); persist(); renderAll(); toast('Added to queue'); };
-      row.querySelector('[data-act="edit"]').onclick = function (e) { e.stopPropagation(); editItem(it); };
-      row.querySelector('[data-act="done"]').onclick = function (e) {
-        e.stopPropagation(); it.completed = true; it.inQueue = false; it.status = 'completed'; persist(); renderAll(); toast('Marked complete');
-      };
-      row.querySelector('[data-act="arch"]').onclick = function (e) {
-        e.stopPropagation(); it.archived = true; it.inQueue = false; it.status = 'archived'; persist(); renderAll(); toast('Archived');
-      };
-      row.querySelector('[data-act="del"]').onclick = function (e) {
-        e.stopPropagation(); if (!confirm('Delete item?')) return;
-        store.items = store.items.filter(function (x) { return x.id !== id; }); persist(); renderAll(); toast('Deleted');
-      };
-      row.onclick = function (e) { if (e.target.closest('button')) return; editItem(it); };
+  function filteredLibrary() {
+    var q = $('searchInput').value.trim().toLowerCase();
+    var type = $('filterType').value;
+    var source = $('filterSource').value;
+    return (store.items || []).filter(function (it) {
+      if (it.archived) return false;
+      if (it.inbox || it.status === 'inbox') return false;
+      if (type !== 'all' && it.type !== type) return false;
+      if (source !== 'all' && it.source !== source) return false;
+      if (q) {
+        var hay = [it.title, it.source, it.author, it.tags, it.description, it.notes].join(' ').toLowerCase();
+        if (hay.indexOf(q) === -1) return false;
+      }
+      return true;
     });
   }
 
   function renderInbox() {
-    var list = store.items.filter(function (it) { return it.status === 'inbox' && !it.archived && matchItem(it); });
-    if (!list.length) {
-      $('inboxMount').innerHTML = '<div class="card empty-state"><strong>Inbox is clear</strong>Paste a URL above to capture something new.</div>';
+    var inbox = (store.items || []).filter(function (it) { return !it.archived && (it.inbox || it.status === 'inbox'); });
+    var mount = $('inboxMount');
+    if (!inbox.length) {
+      mount.innerHTML = '<div class="empty-state"><strong>Inbox clear</strong>New captures land in the library by default. RSS saves can also go here.</div>';
       return;
     }
-    $('inboxMount').innerHTML = '<div class="card"><ul class="list">' + list.map(function (it) { return itemRow(it); }).join('') + '</ul></div>';
-    wireItemActions($('inboxMount'));
-  }
-
-  function renderQueue() {
-    var list = store.items.filter(function (it) { return it.inQueue && !it.archived && matchItem(it); })
-      .sort(function (a,b) { return (a.queueOrder||0) - (b.queueOrder||0); });
-    if (qFilter === 'short') list = list.filter(function (it) { return (it.estimatedMinutes||0) <= 10; });
-    if (qFilter === 'long') list = list.filter(function (it) { return (it.estimatedMinutes||0) > 20; });
-    if (!list.length) {
-      $('queueMount').innerHTML = '<div class="card empty-state"><strong>Queue is empty</strong>Promote inbox items with the ⬆ action.</div>';
-      return;
-    }
-    $('queueMount').innerHTML = '<div class="card"><ul class="list" id="queueList">' + list.map(function (it) { return itemRow(it, { queue: true }); }).join('') + '</ul></div>';
-    wireItemActions($('queueMount'));
-    $('queueMount').querySelectorAll('.queue-item').forEach(function (row) {
-      row.addEventListener('dragstart', function () { dragId = row.getAttribute('data-id'); });
-      row.addEventListener('dragover', function (e) { e.preventDefault(); row.classList.add('drag-over'); });
-      row.addEventListener('dragleave', function () { row.classList.remove('drag-over'); });
-      row.addEventListener('drop', function (e) {
-        e.preventDefault(); row.classList.remove('drag-over');
-        if (!dragId) return;
-        var moving = store.items.find(function (x) { return x.id === dragId; });
-        var target = store.items.find(function (x) { return x.id === row.getAttribute('data-id'); });
-        if (moving && target) {
-          var tmp = moving.queueOrder; moving.queueOrder = target.queueOrder; target.queueOrder = tmp;
-          persist(); renderQueue(); toast('Reordered');
-        }
-        dragId = null;
-      });
-    });
+    mount.innerHTML = '<div class="media-grid">' + inbox.map(function (it) { return cardHtml(it, { inbox: true }); }).join('') + '</div>';
   }
 
   function renderLibrary() {
-    var list = store.items.filter(function (it) { return !it.archived && matchItem(it); });
-    var groupBy = $('groupBy').value;
-    if (!list.length) {
-      $('libraryMount').innerHTML = '<div class="card empty-state"><strong>No saved media</strong>Add a link to start your library.</div>';
+    var sources = {};
+    (store.items || []).forEach(function (it) { if (it.source) sources[it.source] = 1; });
+    var cur = $('filterSource').value;
+    $('filterSource').innerHTML = '<option value="all">Source: All</option>' + Object.keys(sources).sort().map(function (s) {
+      return '<option value="' + esc(s) + '">' + esc(s) + '</option>';
+    }).join('');
+    if ([].some.call($('filterSource').options, function (o) { return o.value === cur; })) $('filterSource').value = cur;
+
+    var list = filteredLibrary();
+    $('libraryEmpty').classList.toggle('hidden', list.length > 0);
+    $('libraryMount').innerHTML = list.map(function (it) { return cardHtml(it); }).join('');
+  }
+
+  function onCardAction(e) {
+    var stop = e.target.closest('[data-stop]');
+    var btn = e.target.closest('[data-act]');
+    if (btn) {
+      e.preventDefault();
+      e.stopPropagation();
+      var id = btn.getAttribute('data-id');
+      var act = btn.getAttribute('data-act');
+      var it = store.items.find(function (x) { return x.id === id; });
+      if (!it) return;
+      if (act === 'del') {
+        if (!confirm('Remove from Media?')) return;
+        store.items = store.items.filter(function (x) { return x.id !== id; });
+        persist(); render(); toast('Removed');
+      } else if (act === 'to-lib') {
+        it.inbox = false; it.status = 'library';
+        persist(); render(); toast('Moved to library');
+      }
       return;
     }
-    function block(title, items) {
-      if (libView === 'cards') {
-        return '<div class="card" style="margin-bottom:12px"><h3>' + esc(title) + '</h3><div class="media-grid">' +
-          items.map(function (it) {
-            return '<div class="list-item" data-id="' + esc(it.id) + '" style="flex-direction:column">' +
-              '<div class="title">' + esc(it.title) + '</div>' +
-              '<div class="meta">' + typeBadge(it.type) + ' · ' + esc(it.source) + '</div>' +
-              '<div class="item-actions" style="margin-left:0;margin-top:8px">' + iconBtn('edit','✎') + iconBtn('queue','⬆') + iconBtn('del','✕',' danger') + '</div></div>';
-          }).join('') + '</div></div>';
-      }
-      return '<div class="card" style="margin-bottom:12px"><h3>' + esc(title) + '</h3><ul class="list">' +
-        items.map(function (it) { return itemRow(it); }).join('') + '</ul></div>';
-    }
-    if (groupBy === 'none') {
-      $('libraryMount').innerHTML = block('All items', list);
-    } else {
-      var groups = {};
-      list.forEach(function (it) {
-        var key = groupBy === 'tag'
-          ? (String(it.tags||'untagged').split(',')[0].trim() || 'untagged')
-          : (it[groupBy] || '—');
-        if (!groups[key]) groups[key] = [];
-        groups[key].push(it);
-      });
-      $('libraryMount').innerHTML = Object.keys(groups).sort().map(function (k) { return block(k, groups[k]); }).join('');
-    }
-    wireItemActions($('libraryMount'));
+    if (stop) { e.preventDefault(); e.stopPropagation(); }
   }
+  $('inboxMount').addEventListener('click', onCardAction);
+  $('libraryMount').addEventListener('click', onCardAction);
 
-  function renderNotes() {
-    var notes = [];
-    store.items.forEach(function (it) {
-      (it.notes||[]).forEach(function (n) {
-        notes.push({ item: it, note: n });
-      });
-    });
-    if (!notes.length) {
-      $('notesMount').innerHTML = '<div class="card empty-state"><strong>No notes yet</strong>Add takeaways while editing an item.</div>';
+  function renderFeeds() {
+    var feeds = store.feeds || [];
+    if (!activeFeedId && feeds.length) activeFeedId = feeds[0].id;
+    $('feedTabs').innerHTML = feeds.map(function (f) {
+      return '<button type="button" class="feed-tab' + (f.id === activeFeedId ? ' active' : '') + '" data-feed="' + esc(f.id) + '">' +
+        esc(f.name) + ' <span class="badge">' + esc(f.type) + '</span></button>';
+    }).join('');
+    $('feedList').innerHTML = '<ul class="list">' + feeds.map(function (f) {
+      return '<li class="list-item">' +
+        '<div><div class="title">' + esc(f.name) + '</div><div class="meta">' + esc(f.type) + ' · ' + esc(f.url) + '</div></div>' +
+        '<div class="item-actions">' +
+          '<button type="button" class="btn" data-toggle-feed="' + esc(f.id) + '">' + (f.enabled ? 'On' : 'Off') + '</button>' +
+          '<button type="button" class="icon-btn danger" data-del-feed="' + esc(f.id) + '">✕</button>' +
+        '</div></li>';
+    }).join('') + '</ul>';
+
+    var cached = feedCache[activeFeedId];
+    var mount = $('feedItems');
+    if (!cached) {
+      mount.innerHTML = '<div class="empty-state">Select a feed and press Refresh to load items.</div>';
+      $('feedEmpty').classList.add('hidden');
       return;
     }
-    notes.sort(function (a,b) { return (b.note.pinned?1:0) - (a.note.pinned?1:0); });
-    $('notesMount').innerHTML = '<div class="card"><ul class="list">' + notes.map(function (x) {
-      return '<li class="list-item"><div style="flex:1"><div class="title">' + (x.note.pinned?'📌 ':'') + esc(x.note.text) + '</div>' +
-        '<div class="meta">' + esc(x.note.kind) + ' · on ' + esc(x.item.title) + '</div></div></li>';
-    }).join('') + '</ul></div>';
+    if (!cached.items || !cached.items.length) {
+      mount.innerHTML = '';
+      $('feedEmpty').classList.remove('hidden');
+      return;
+    }
+    $('feedEmpty').classList.add('hidden');
+    mount.innerHTML = cached.items.map(function (it, idx) {
+      var thumb = it.image ? '<img src="' + esc(it.image) + '" alt="" loading="lazy" onerror="this.parentNode.textContent=\'—\'" />' : '—';
+      return '<div class="rss-item">' +
+        '<div class="thumb">' + thumb + '</div>' +
+        '<div style="flex:1;min-width:0">' +
+          '<div class="title" style="font-size:13px;font-weight:650">' + esc(it.title) + '</div>' +
+          '<div class="meta" style="font-size:11px;color:var(--text-tertiary);margin-top:2px">' + esc(it.author || '') + (it.pubDate ? ' · ' + esc(String(it.pubDate).slice(0, 16)) : '') + '</div>' +
+          '<div style="font-size:12px;color:var(--text-secondary);margin-top:4px">' + esc(it.description || '') + '</div>' +
+          '<div class="split" style="margin-top:8px">' +
+            '<a class="btn" href="' + esc(it.url) + '" target="_blank" rel="noopener">Open</a>' +
+            '<button type="button" class="btn primary" data-save-rss="' + idx + '">Save to library</button>' +
+          '</div>' +
+        '</div></div>';
+    }).join('');
   }
 
-  function renderBacklog() {
-    var stale = store.items.filter(function (it) { return !it.archived && !it.completed && daysSince(it.savedAt) >= 30; });
-    var untouched = store.items.filter(function (it) { return it.status === 'inbox' && !(it.notes&&it.notes.length); });
-    var dups = [];
-    var seen = {};
-    store.items.forEach(function (it) {
-      var u = (it.url||'').toLowerCase();
-      if (!u) return;
-      if (seen[u]) dups.push(it); else seen[u] = it;
-    });
-    var suggest = store.items.filter(function (it) { return it.inQueue || (it.priority==='high' && !it.completed); }).slice(0,5);
-
-    $('backlogMount').innerHTML =
-      '<div class="card"><h3>Stale / untouched</h3>' +
-        (stale.length ? '<ul class="list">' + stale.slice(0,6).map(function (it) {
-          return '<li class="list-item"><div><div class="title">' + esc(it.title) + '</div><div class="meta">' + daysSince(it.savedAt) + ' days old</div></div></li>';
-        }).join('') + '</ul>' : '<div class="empty-state"><strong>No stale items</strong></div>') + '</div>' +
-      '<div class="card"><h3>Read this week · resurfacing</h3>' +
-        (suggest.length ? '<ul class="list">' + suggest.map(function (it) {
-          return '<li class="list-item"><div><div class="title">' + esc(it.title) + '</div><div class="meta">' + esc(it.estimatedMinutes) + 'm · ' + esc(it.priority) + '</div></div></li>';
-        }).join('') + '</ul>' : '<div class="empty-state"><strong>Nothing queued</strong></div>') +
-        '<p class="card-meta" style="margin-top:10px">Duplicates detected: ' + dups.length + ' · Inbox without notes: ' + untouched.length + '</p></div>';
-  }
-
-  function editItem(it, seed) {
-    var isAdd = !it;
-    seed = seed || {};
-    var draft = it ? JSON.parse(JSON.stringify(it)) : {
-      id: JGMedia.uid(), title: seed.title || '', type: seed.type || 'link', source: seed.source || 'manual',
-      url: seed.url || '', status: 'inbox', priority: 'medium', tags: '', collection: store.collections[0] || '',
-      estimatedMinutes: 10, savedAt: JGMedia.today(), author: '', notes: [], inQueue: false, archived: false, completed: false
-    };
-    openEdit({
-      title: (isAdd ? 'Add' : 'Edit') + ' media item',
-      mode: isAdd ? 'add' : 'edit', canDelete: !isAdd,
-      fields: [
-        { key: 'title', label: 'Title', value: draft.title, full: true },
-        { key: 'url', label: 'URL', value: draft.url, full: true, placeholder: 'https://…' },
-        { key: 'type', label: 'Type', type: 'select', value: draft.type, options: ['article','video','reddit','link'] },
-        { key: 'source', label: 'Source', value: draft.source },
-        { key: 'priority', label: 'Priority', type: 'select', value: draft.priority, options: ['high','medium','low'] },
-        { key: 'status', label: 'Status', type: 'select', value: draft.status, options: ['inbox','queue','library','completed','archived'] },
-        { key: 'estimatedMinutes', label: 'Est. minutes', type: 'number', value: draft.estimatedMinutes },
-        { key: 'collection', label: 'Collection', type: 'select', value: draft.collection, options: store.collections },
-        { key: 'tags', label: 'Tags', value: draft.tags, full: true },
-        { key: 'author', label: 'Author / channel', value: draft.author, full: true },
-        { key: 'note', label: 'Why I saved / takeaway', type: 'textarea', value: (draft.notes[0]&&draft.notes[0].text)||'', full: true },
-        { key: 'inQueue', label: 'Queue', type: 'checkbox', value: draft.inQueue, checkLabel: 'In Up Next' }
-      ],
-      save: function (v) {
-        if (!v.title.trim() && !v.url.trim()) { toast('Title or URL required'); return false; }
-        draft.title = v.title.trim() || v.url; draft.url = v.url.trim();
-        draft.type = v.type; draft.source = v.source || guessSource(draft.url);
-        draft.priority = v.priority; draft.status = v.status;
-        draft.estimatedMinutes = Number(v.estimatedMinutes)||0;
-        draft.collection = v.collection; draft.tags = v.tags; draft.author = v.author;
-        draft.inQueue = !!v.inQueue;
-        if (draft.inQueue) { draft.status = 'queue'; if (!draft.queueOrder) draft.queueOrder = Date.now(); }
-        if (v.note && v.note.trim()) {
-          if (draft.notes && draft.notes[0]) draft.notes[0].text = v.note.trim();
-          else draft.notes = [{ id: JGMedia.uid(), kind: 'why', text: v.note.trim(), pinned: false }];
-        }
-        // duplicate URL check
-        var dup = store.items.find(function (x) { return x.url && draft.url && x.url.toLowerCase()===draft.url.toLowerCase() && x.id !== draft.id; });
-        if (dup && isAdd) toast('Warning: duplicate URL already saved');
-        if (isAdd) store.items.unshift(draft);
-        else {
-          var idx = store.items.findIndex(function (x) { return x.id === draft.id; });
-          if (idx >= 0) store.items[idx] = draft;
-        }
-        persist(); renderAll(); toast(isAdd ? 'Saved' : 'Updated');
-      },
-      remove: function () {
-        if (!confirm('Delete?')) return false;
-        store.items = store.items.filter(function (x) { return x.id !== draft.id; });
-        persist(); renderAll(); toast('Deleted'); return true;
-      }
+  function refreshActiveFeed() {
+    var feed = (store.feeds || []).find(function (f) { return f.id === activeFeedId; });
+    if (!feed) { toast('No feed selected'); return; }
+    toast('Loading ' + feed.name + '…');
+    JGMedia.fetchRss(feed.url).then(function (data) {
+      feedCache[feed.id] = data;
+      renderFeeds();
+      toast((data.items || []).length + ' items from ' + feed.name);
+    }).catch(function (err) {
+      feedCache[feed.id] = { items: [] };
+      renderFeeds();
+      toast('Could not load feed (CORS/proxy). Try another URL.');
+      console.warn(err);
     });
   }
 
-  function captureUrl() {
-    var url = $('captureUrl').value.trim();
-    if (!url) { toast('Paste a URL first'); return; }
-    try { new URL(url); } catch (e) { toast('Enter a valid URL'); return; }
-    var dup = store.items.find(function (x) { return (x.url||'').toLowerCase() === url.toLowerCase(); });
-    if (dup) toast('Duplicate link — opening existing');
-    editItem(dup || null, {
-      url: url, type: guessType(url), source: guessSource(url),
-      title: guessSource(url) + ' — saved link'
-    });
-    $('captureUrl').value = '';
+  $('feedTabs').addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-feed]');
+    if (!btn) return;
+    activeFeedId = btn.getAttribute('data-feed');
+    renderFeeds();
+    if (!feedCache[activeFeedId]) refreshActiveFeed();
+  });
+  $('feedList').addEventListener('click', function (e) {
+    var t = e.target.closest('[data-toggle-feed]');
+    var d = e.target.closest('[data-del-feed]');
+    if (t) {
+      var f = store.feeds.find(function (x) { return x.id === t.getAttribute('data-toggle-feed'); });
+      if (f) { f.enabled = !f.enabled; persist(); renderFeeds(); }
+    }
+    if (d) {
+      var id = d.getAttribute('data-del-feed');
+      if (!confirm('Remove this feed?')) return;
+      store.feeds = store.feeds.filter(function (x) { return x.id !== id; });
+      if (activeFeedId === id) activeFeedId = store.feeds[0] && store.feeds[0].id;
+      persist(); renderFeeds();
+    }
+  });
+  $('feedItems').addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-save-rss]');
+    if (!btn) return;
+    var cached = feedCache[activeFeedId];
+    var feed = (store.feeds || []).find(function (f) { return f.id === activeFeedId; });
+    var it = cached && cached.items[Number(btn.getAttribute('data-save-rss'))];
+    if (!it || !it.url) { toast('Missing item URL'); return; }
+    if (duplicateUrl(it.url)) { toast('Already in library'); return; }
+    var type = feed && feed.type === 'youtube' ? 'video' : feed && feed.type === 'reddit' ? 'reddit' : 'rss';
+    addItem({
+      url: it.url,
+      title: it.title,
+      description: it.description,
+      image: it.image,
+      author: it.author,
+      source: (feed && feed.name) || 'RSS',
+      type: type,
+      tags: feed ? feed.type : 'rss'
+    }, false);
+    render();
+    toast('Saved to library');
+  });
+
+  $('addFeedBtn').addEventListener('click', function () { $('feedModal').classList.add('open'); });
+  $('feedCancel').addEventListener('click', function () { $('feedModal').classList.remove('open'); });
+  $('feedModal').addEventListener('click', function (e) { if (e.target.id === 'feedModal') $('feedModal').classList.remove('open'); });
+  $('feedSave').addEventListener('click', function () {
+    var name = $('feedName').value.trim();
+    var url = $('feedUrl').value.trim();
+    var type = $('feedType').value;
+    if (!name || !url) { toast('Name and feed URL required'); return; }
+    try { new URL(url); } catch (e) { toast('Invalid feed URL'); return; }
+    store.feeds.unshift({ id: JGMedia.uid(), name: name, type: type, url: url, enabled: true });
+    activeFeedId = store.feeds[0].id;
+    persist();
+    $('feedModal').classList.remove('open');
+    $('feedName').value = ''; $('feedUrl').value = '';
+    renderFeeds();
+    refreshActiveFeed();
+  });
+  $('refreshFeedsBtn').addEventListener('click', refreshActiveFeed);
+
+  function scheduleLookup() {
+    clearTimeout(lookupTimer);
+    lookupTimer = setTimeout(function () {
+      var url = $('captureUrl').value.trim();
+      if (url) lookupUrl(url);
+    }, 550);
   }
 
-  function renderAll() {
-    fillFilters();
-    renderKpis();
+  $('captureUrl').addEventListener('input', scheduleLookup);
+  $('captureUrl').addEventListener('paste', function () {
+    setTimeout(function () { lookupUrl($('captureUrl').value.trim()); }, 0);
+  });
+  $('lookupBtn').addEventListener('click', function () { lookupUrl($('captureUrl').value.trim()); });
+  $('saveBtn').addEventListener('click', saveCapture);
+  ['fTitle','fType','fSource','fAuthor','fDesc','fImage'].forEach(function (id) {
+    $(id).addEventListener('input', updatePreview);
+  });
+  $('searchInput').addEventListener('input', renderLibrary);
+  $('filterType').addEventListener('change', renderLibrary);
+  $('filterSource').addEventListener('change', renderLibrary);
+
+  function render() {
+    fillCollections();
     renderInbox();
-    renderQueue();
     renderLibrary();
-    renderNotes();
-    renderBacklog();
+    renderFeeds();
   }
 
-  function scrollToSection(id) {
-    var el = $('sec-' + id); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    document.querySelectorAll('.sidebar .nav-link[data-section]').forEach(function (n) {
-      n.classList.toggle('active', n.getAttribute('data-section') === id);
-    });
-    closeSidebar();
-  }
-  function openSidebar() { $('sidebar').classList.add('open'); $('sidebarOverlay').classList.add('open'); }
-  function closeSidebar() { $('sidebar').classList.remove('open'); $('sidebarOverlay').classList.remove('open'); }
-
-  $('hamburger').onclick = openSidebar;
-  $('sidebarOverlay').onclick = closeSidebar;
-  document.querySelectorAll('.sidebar .nav-link[data-section]').forEach(function (b) {
-    b.onclick = function () { scrollToSection(b.getAttribute('data-section')); };
-  });
-
-  $('addLinkBtn').onclick = function () { editItem(null, { type: 'link' }); };
-  $('quickSaveBtn').onclick = function () { $('captureUrl').focus(); scrollToSection('inbox'); };
-  $('navAddLink').onclick = function () { editItem(null, { type: 'link' }); };
-  $('navAddArticle').onclick = function () { editItem(null, { type: 'article' }); };
-  $('navAddVideo').onclick = function () { editItem(null, { type: 'video' }); };
-  $('captureBtn').onclick = captureUrl;
-  $('captureUrl').addEventListener('keydown', function (e) { if (e.key === 'Enter') captureUrl(); });
-
-  $('addCollectionBtn').onclick = function () {
-    openEdit({
-      title: 'Add collection', mode: 'add',
-      fields: [{ key: 'name', label: 'Collection name', value: '', full: true }],
-      save: function (v) {
-        if (!v.name.trim()) { toast('Name required'); return false; }
-        if (store.collections.indexOf(v.name.trim()) === -1) store.collections.push(v.name.trim());
-        persist(); renderAll(); toast('Collection added');
-      }
-    });
-  };
-  $('addNoteBtn').onclick = function () {
-    var first = store.items.find(function (i) { return !i.archived; });
-    if (!first) { toast('Add a media item first'); return; }
-    editItem(first);
-  };
-
-  document.querySelectorAll('[data-qfilter]').forEach(function (b) {
-    b.onclick = function () {
-      qFilter = b.getAttribute('data-qfilter');
-      document.querySelectorAll('[data-qfilter]').forEach(function (x) { x.classList.toggle('active', x === b); });
-      renderQueue();
-    };
-  });
-  document.querySelectorAll('[data-libview]').forEach(function (b) {
-    b.onclick = function () {
-      libView = b.getAttribute('data-libview');
-      document.querySelectorAll('[data-libview]').forEach(function (x) { x.classList.toggle('active', x === b); });
-      renderLibrary();
-    };
-  });
-  $('groupBy').onchange = renderLibrary;
-
-  ['fType','fSource','fStatus','fPriority','fTag','fTime'].forEach(function (id) {
-    $(id).onchange = function () {
-      filters.type = $('fType').value; filters.source = $('fSource').value; filters.status = $('fStatus').value;
-      filters.priority = $('fPriority').value; filters.tag = $('fTag').value; filters.time = $('fTime').value;
-      renderAll();
-    };
-  });
-  $('searchInput').oninput = function () { filters.q = $('searchInput').value.trim(); renderAll(); };
-  $('clearFilters').onclick = function () {
-    ['fType','fSource','fStatus','fPriority','fTag','fTime'].forEach(function (id) { $(id).value = 'all'; });
-    $('searchInput').value = '';
-    filters = { type:'all', source:'all', status:'all', priority:'all', tag:'all', time:'all', q:'' };
-    renderAll();
-  };
-
-  $('bulkArchiveBtn').onclick = function () {
-    var n = 0;
-    store.items.forEach(function (it) {
-      if (!it.archived && !it.completed && daysSince(it.savedAt) >= 30) { it.archived = true; it.inQueue = false; it.status = 'archived'; n++; }
-    });
-    persist(); renderAll(); toast('Archived ' + n + ' stale item(s)');
-  };
-  $('cleanupBtn').onclick = function () {
-    var n = store.items.filter(function (i) { return i.inQueue; }).length;
-    if (!n) { toast('Queue already clean'); return; }
-    if (!confirm('Remove completed items from queue and keep only high priority?')) return;
-    store.items.forEach(function (it) {
-      if (it.completed) it.inQueue = false;
-      if (it.inQueue && it.priority === 'low' && daysSince(it.savedAt) > 14) it.inQueue = false;
-    });
-    persist(); renderAll(); toast('Queue cleaned');
-  };
-
-  $('editCancel').onclick = closeEdit;
-  $('editSave').onclick = function () {
-    if (!editCtx || typeof editCtx.save !== 'function') return;
-    if (editCtx.save(readFields()) === false) return;
-    closeEdit();
-  };
-  $('editDelete').onclick = function () {
-    if (!editCtx || typeof editCtx.remove !== 'function') return;
-    if (editCtx.remove() === false) return;
-    closeEdit();
-  };
-  $('editModal').addEventListener('click', function (e) { if (e.target === $('editModal')) closeEdit(); });
-  $('editModal').addEventListener('keydown', function (e) { if (e.key === 'Escape') closeEdit(); });
-
-  renderAll();
+  render();
 })();
-
   </script>
 </body>
 </html>
