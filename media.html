@@ -424,6 +424,15 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
       setStatus('Enter a valid URL (include https://)', 'err');
       return Promise.resolve(null);
     }
+    // Reset autofilled fields for a fresh lookup (keep optional note)
+    $('fTitle').value = '';
+    $('fSource').value = '';
+    $('fAuthor').value = '';
+    $('fTags').value = '';
+    $('fCollection').value = '';
+    $('fDesc').value = '';
+    $('fImage').value = '';
+    $('fType').value = 'article';
     var guess = JGMedia.guessMeta(url);
     applyMeta(guess);
     setStatus('Looking up metadata…', 'loading');
