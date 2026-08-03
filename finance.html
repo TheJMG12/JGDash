@@ -7,10 +7,10 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
-
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>JGDash — Finance</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="js/config.js"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/lock.js"></script>
@@ -19,54 +19,1466 @@
   <script src="js/theme.js?v=3"></script>
   <script src="js/topbar.js?v=3"></script>
   <style>
+
     :root {
-      --text-primary: #FAFAFA;
-      --text-secondary: #B8B6B0;
-      --text-tertiary: #76746E;
-      --bg: #050506;
-      --card-bg: rgba(255, 255, 255, 0.04);
+      --text-primary: #FAFAFA; --text-secondary: #B8B6B0; --text-tertiary: #76746E;
+      --success: #6BE3A4; --warning: #F2C063; --danger: #FF6B6B;
+      --bg: #050506; --card-bg: rgba(255,255,255,0.04); --accent: #6BE3A4;
+      --border: rgba(255,255,255,0.08); --input-bg: rgba(255,255,255,0.05);
+      --sidebar-w: 220px; --invest: #7DD3FC; --spend: #F2C063;
+      --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
       --sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
+    [data-theme="light"] {
+      --text-primary: #1A1917; --text-secondary: #5C5A54; --text-tertiary: #8A8780;
+      --bg: #F4F3F0; --card-bg: rgba(255,255,255,0.72); --border: rgba(0,0,0,0.1);
+      --input-bg: rgba(255,255,255,0.9); --success: #1F9D62; --warning: #C4841A;
+      --danger: #D64545; --accent: #1F9D62; --invest: #0284C7; --spend: #C4841A;
+    }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { min-height: 100vh; font-family: var(--sans); color: var(--text-primary); background: var(--bg); position: relative; }
+    html { height: 100%; }
+    body { min-height: 100%; font-family: var(--sans); color: var(--text-primary); background: var(--bg); position: relative; overflow-x: hidden; }
     body::before {
       content: ''; position: fixed; inset: -20%; z-index: 0; pointer-events: none;
       background:
-        radial-gradient(ellipse 50% 40% at 82% 14%, rgba(224, 118, 88, 0.16), transparent 60%),
-        radial-gradient(ellipse 45% 35% at 18% 90%, rgba(180, 180, 200, 0.06), transparent 55%);
-      filter: blur(40px);
-      animation: wash-drift 36s ease-in-out infinite alternate;
+        radial-gradient(ellipse 50% 40% at 82% 14%, rgba(242,192,99,0.14), transparent 60%),
+        radial-gradient(ellipse 45% 35% at 18% 90%, rgba(125,211,252,0.08), transparent 55%);
+      filter: blur(40px); animation: wash-drift 36s ease-in-out infinite alternate;
+    }
+    [data-theme="light"] body::before {
+      background:
+        radial-gradient(ellipse 50% 40% at 82% 14%, rgba(196,132,26,0.08), transparent 60%),
+        radial-gradient(ellipse 45% 35% at 18% 90%, rgba(2,132,199,0.06), transparent 55%);
     }
     body::after {
       content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
-      background-image: radial-gradient(rgba(255, 255, 255, 0.014) 0.6px, transparent 0.6px);
-      background-size: 3px 3px;
+      background-image: radial-gradient(rgba(255,255,255,0.014) 0.6px, transparent 0.6px); background-size: 3px 3px;
     }
-    @keyframes wash-drift {
-      0% { transform: translate(0, 0) scale(1); }
-      100% { transform: translate(-3%, 2%) scale(1.04); }
+    [data-theme="light"] body::after { background-image: radial-gradient(rgba(0,0,0,0.03) 0.6px, transparent 0.6px); }
+    @keyframes wash-drift { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(-3%,2%) scale(1.04); } }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    button, input, select, textarea { font: inherit; color: inherit; }
+    button { cursor: pointer; border: none; background: none; }
+    a { color: var(--accent); }
+    .sr-only { position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0; }
+    .app { position: relative; z-index: 1; display: flex; min-height: 100vh; }
+    .sidebar {
+      width: var(--sidebar-w); flex-shrink: 0; padding: 16px 12px; border-right: 1px solid var(--border);
+      background: rgba(0,0,0,0.25); backdrop-filter: blur(20px); display: flex; flex-direction: column; gap: 4px;
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
     }
-    .wrap { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 12px 20px 48px; }
-    .dash-title {
-      font-size: 28px; font-weight: 700; letter-spacing: -0.025em; margin: 8px 0 16px;
-      background: linear-gradient(180deg, #FFFFFF 0%, #C7C4BC 120%);
-      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    [data-theme="light"] .sidebar { background: rgba(255,255,255,0.55); }
+    .sidebar-brand { font-size: 13px; font-weight: 700; letter-spacing: 0.04em; color: var(--text-secondary); padding: 8px 10px 14px; text-transform: uppercase; }
+    .nav-link {
+      display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px;
+      font-size: 13px; color: var(--text-secondary); text-align: left; width: 100%; transition: background .15s, color .15s;
     }
+    .nav-link:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
+    .nav-link.active { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); font-weight: 600; }
+    .sidebar-section { margin-top: 16px; padding: 0 10px 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-tertiary); }
+    .sidebar-back { margin-top: auto; padding: 12px 10px 4px; font-size: 12px; }
+    .mobile-bar { display: none; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--border); background: rgba(0,0,0,0.35); backdrop-filter: blur(16px); position: sticky; top: 0; z-index: 20; }
+    .hamburger { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border); background: var(--input-bg); display: flex; align-items: center; justify-content: center; font-size: 16px; color: var(--text-primary); }
+    .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 30; }
+    .main { flex: 1; min-width: 0; display: flex; flex-direction: column; max-height: 100vh; overflow: hidden; }
+    .main-scroll { flex: 1; overflow-y: auto; padding: 16px 20px 48px; }
+    .page-header { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
+    .page-title-block { margin-right: auto; min-width: 200px; }
+    .page-title { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+    .page-sub { font-size: 12px; color: var(--text-tertiary); margin-top: 4px; max-width: 440px; line-height: 1.4; }
+    .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .search-input, .select, .field input, .field textarea, .field select {
+      padding: 7px 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--input-bg);
+      font-size: 13px; color: var(--text-primary);
+    }
+    .search-input { min-width: 170px; }
+    .search-input::placeholder { color: var(--text-tertiary); }
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 10px;
+      font-size: 13px; font-weight: 600; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-secondary);
+    }
+    .btn:hover { color: var(--text-primary); }
+    .btn.primary { background: color-mix(in srgb, var(--accent) 22%, transparent); border-color: color-mix(in srgb, var(--accent) 45%, transparent); color: var(--accent); }
+    .btn.invest { background: color-mix(in srgb, var(--invest) 18%, transparent); border-color: color-mix(in srgb, var(--invest) 40%, transparent); color: var(--invest); }
+    .btn.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 35%, transparent); }
+    .filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; align-items: center; }
+    .filters .select { width: auto; min-width: 120px; }
     .card {
-      background: var(--card-bg); border-radius: 16px; padding: 22px;
+      background: var(--card-bg); border-radius: 16px; padding: 14px; border: 1px solid var(--border);
       backdrop-filter: blur(24px) saturate(1.2); box-shadow: 0 12px 40px rgba(0,0,0,0.45);
-      color: var(--text-secondary); line-height: 1.5;
     }
-    a { color: #6BE3A4; }
+    [data-theme="light"] .card { box-shadow: 0 8px 28px rgba(0,0,0,0.08); }
+    .card h3 { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+    .card-meta { font-size: 11px; color: var(--text-tertiary); margin-bottom: 8px; }
+    .card-head { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+    .card-head h3 { margin: 0; flex: 1; }
+    .section { margin-bottom: 26px; scroll-margin-top: 16px; }
+    .section-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .section-title { font-size: 15px; font-weight: 700; }
+    .section-sub { font-size: 12px; color: var(--text-tertiary); }
+    .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; border: 1px solid var(--border); color: var(--text-tertiary); }
+    .badge.ok { color: var(--success); border-color: color-mix(in srgb, var(--success) 40%, transparent); }
+    .badge.warn { color: var(--warning); border-color: color-mix(in srgb, var(--warning) 40%, transparent); }
+    .badge.err { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, transparent); }
+    .badge.live { color: var(--invest); border-color: color-mix(in srgb, var(--invest) 40%, transparent); }
+    .kpi-row { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; margin-bottom: 14px; }
+    .kpi { padding: 12px; border-radius: 14px; border: 1px solid var(--border); background: color-mix(in srgb, var(--card-bg) 80%, transparent); min-height: 88px; display: flex; flex-direction: column; gap: 4px; }
+    .kpi-label { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-tertiary); }
+    .kpi-value { font-size: 20px; font-weight: 700; font-family: var(--mono); letter-spacing: -0.03em; }
+    .kpi-delta { font-size: 11px; color: var(--text-tertiary); }
+    .kpi-delta.up { color: var(--success); }
+    .kpi-delta.down { color: var(--danger); }
+    .spark { display: flex; align-items: flex-end; gap: 2px; height: 18px; margin-top: auto; }
+    .spark i { flex: 1; border-radius: 2px; background: color-mix(in srgb, var(--accent) 40%, transparent); min-height: 3px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .span-2 { grid-column: span 2; }
+    .span-full { grid-column: 1 / -1; }
+    .progress-bar { height: 8px; border-radius: 999px; background: rgba(255,255,255,0.06); overflow: hidden; margin-top: 6px; }
+    [data-theme="light"] .progress-bar { background: rgba(0,0,0,0.08); }
+    .progress-bar > span { display: block; height: 100%; border-radius: 999px; background: var(--accent); }
+    .progress-bar.over > span { background: var(--danger); }
+    .progress-bar.warn > span { background: var(--warning); }
+    .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+    .field label { font-size: 11px; font-weight: 600; color: var(--text-tertiary); }
+    .field textarea { min-height: 72px; resize: vertical; width: 100%; }
+    .field input, .field select { width: 100%; }
+    .table-wrap { overflow-x: auto; }
+    table.t { width: 100%; border-collapse: collapse; font-size: 13px; }
+    table.t th { text-align: left; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-tertiary); padding: 8px 10px; border-bottom: 1px solid var(--border); }
+    table.t td { padding: 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    table.t tr:hover td { background: rgba(255,255,255,0.02); }
+    .amt { font-family: var(--mono); font-weight: 600; white-space: nowrap; }
+    .amt.neg { color: var(--danger); }
+    .amt.pos { color: var(--success); }
+    .list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .list-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--input-bg); }
+    .list-item .title { font-size: 13px; font-weight: 600; }
+    .list-item .meta { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+    .list-item .right { margin-left: auto; text-align: right; font-size: 12px; white-space: nowrap; }
+    .item-actions { display: flex; gap: 4px; margin-left: 8px; }
+    .icon-btn { width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-tertiary); font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+    .icon-btn:hover { color: var(--text-primary); }
+    .icon-btn.danger:hover { color: var(--danger); }
+    .chart-box { position: relative; height: 220px; }
+    .chart-box.sm { height: 160px; }
+    .empty-state { text-align: center; padding: 24px 12px; color: var(--text-tertiary); font-size: 13px; line-height: 1.5; }
+    .empty-state strong { display: block; color: var(--text-secondary); margin-bottom: 6px; }
+    .banner { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; margin-bottom: 12px; border: 1px solid color-mix(in srgb, var(--invest) 35%, transparent); background: color-mix(in srgb, var(--invest) 8%, transparent); font-size: 13px; color: var(--text-secondary); }
+    .banner.warn { border-color: color-mix(in srgb, var(--warning) 35%, transparent); background: color-mix(in srgb, var(--warning) 8%, transparent); }
+    .banner.err { border-color: color-mix(in srgb, var(--danger) 35%, transparent); background: color-mix(in srgb, var(--danger) 8%, transparent); }
+    .tabs { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 12px; }
+    .tabs button { padding: 7px 12px; font-size: 12px; font-weight: 600; color: var(--text-tertiary); border-right: 1px solid var(--border); }
+    .tabs button:last-child { border-right: none; }
+    .tabs button.active { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
+    .mini-stat { font-family: var(--mono); font-size: 18px; font-weight: 700; }
+    .split { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .skel { height: 14px; border-radius: 6px; width: 60%; background: linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.1), rgba(255,255,255,0.04)); background-size: 200% 100%; animation: shimmer 1.2s ease-in-out infinite; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .hidden { display: none !important; }
+    .modal-backdrop { display: none; position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; padding: 20px; }
+    .modal-backdrop.open { display: flex; }
+    .modal { width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; padding: 20px; border-radius: 16px; background: #121214; border: 1px solid var(--border); box-shadow: 0 24px 60px rgba(0,0,0,0.55); }
+    .modal.wide { max-width: 720px; }
+    [data-theme="light"] .modal { background: #fff; }
+    .modal h2 { font-size: 18px; font-weight: 700; margin-bottom: 10px; }
+    .modal-lead { font-size: 13px; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.45; }
+    .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .modal-grid .full { grid-column: 1 / -1; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; align-items: center; }
+    .modal-actions .spacer { flex: 1; }
+    .toast { position: fixed; bottom: 20px; right: 20px; z-index: 60; padding: 10px 14px; border-radius: 10px; background: #121214; border: 1px solid var(--border); font-size: 13px; opacity: 0; transform: translateY(8px); transition: opacity .2s, transform .2s; pointer-events: none; }
+    [data-theme="light"] .toast { background: #fff; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tag-pill { padding: 3px 8px; border-radius: 999px; font-size: 11px; border: 1px solid var(--border); color: var(--text-secondary); background: var(--input-bg); }
+    @media (max-width: 1300px) { .kpi-row { grid-template-columns: repeat(4, 1fr); } }
+    @media (max-width: 960px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } .span-2 { grid-column: span 1; } .kpi-row { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 860px) {
+      .sidebar { position: fixed; left: 0; top: 0; bottom: 0; z-index: 40; transform: translateX(-105%); transition: transform .22s ease; box-shadow: 8px 0 32px rgba(0,0,0,0.4); }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-overlay.open { display: block; }
+      .mobile-bar { display: flex; }
+      .main { max-height: none; }
+      .modal-grid { grid-template-columns: 1fr; }
+    }
+
   </style>
 </head>
 <body data-page-title="Finance">
-  <div class="wrap">
-    <h1 class="dash-title">📊 Finance</h1>
-    <div class="card">
-      <p>Net worth and spending — coming soon.</p>
-      <p style="margin-top:14px"><a href="index.html">← Back to Dashboard</a></p>
+
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">Finance</div>
+      <button type="button" class="nav-link active" data-section="overview">Overview</button>
+      <button type="button" class="nav-link" data-section="budget">Budget</button>
+      <button type="button" class="nav-link" data-section="charts">Spending charts</button>
+      <button type="button" class="nav-link" data-section="transactions">Transactions</button>
+      <button type="button" class="nav-link" data-section="goals">Savings goals</button>
+      <button type="button" class="nav-link" data-section="investing">Investing</button>
+      <button type="button" class="nav-link" data-section="analyzer">Stock analyzer</button>
+      <button type="button" class="nav-link" data-section="watchlist">Watchlist</button>
+      <div class="sidebar-section">Quick add</div>
+      <button type="button" class="nav-link" id="navAddPurchase">+ Purchase</button>
+      <button type="button" class="nav-link" id="navAddGoal">+ Goal</button>
+      <button type="button" class="nav-link" id="navAnalyze">Analyze stock</button>
+      <div class="sidebar-back"><a href="index.html">← Dashboard</a></div>
+    </aside>
+    <div class="main">
+      <div class="mobile-bar">
+        <button type="button" class="hamburger" id="hamburger" aria-label="Open menu">☰</button>
+        <strong style="font-size:15px">Finance</strong>
+      </div>
+      <div class="main-scroll" id="mainScroll">
+        <div class="page-header">
+          <div class="page-title-block">
+            <h1 class="page-title">Finance</h1>
+            <p class="page-sub">Track spending, manage goals, and monitor investments.</p>
+          </div>
+          <div class="toolbar">
+            <select class="select" id="rangeSelect" aria-label="Date range">
+              <option value="month">This month</option>
+              <option value="last">Last month</option>
+              <option value="ytd">Year to date</option>
+              <option value="all">All time</option>
+            </select>
+            <input type="search" class="search-input" id="searchInput" placeholder="Search purchases, goals, tickers…" aria-label="Search finance" />
+            <button type="button" class="btn invest" id="analyzeBtn">Analyze Stock</button>
+            <button type="button" class="btn" id="addGoalBtn">Add Goal</button>
+            <button type="button" class="btn primary" id="addPurchaseBtn">+ Add Purchase</button>
+          </div>
+        </div>
+
+        <div class="filters">
+          <select class="select" id="fAccount" aria-label="Account">
+            <option value="all">Account: All</option>
+            <option>cash</option><option>checking</option><option>savings</option>
+            <option>credit</option><option>brokerage</option><option>retirement</option>
+          </select>
+          <select class="select" id="fCategory" aria-label="Category">
+            <option value="all">Category: All</option>
+          </select>
+          <button type="button" class="btn" id="clearFilters">Clear</button>
+          <span class="badge" id="marketBadge">Market: sample mode</span>
+        </div>
+
+        <section class="section" id="sec-overview">
+          <div class="section-head">
+            <h2 class="section-title">Finance overview</h2>
+            <span class="section-sub">Personal budgeting + investing snapshot</span>
+          </div>
+          <div class="kpi-row" id="kpiRow"></div>
+          <div class="grid-3" id="overviewExtras"></div>
+        </section>
+
+        <section class="section" id="sec-budget">
+          <div class="section-head">
+            <h2 class="section-title">Budget</h2>
+            <span class="section-sub">Monthly budget vs actual</span>
+            <button type="button" class="btn" id="editBudgetsBtn" style="margin-left:auto">Edit budgets</button>
+          </div>
+          <div class="grid-2" id="budgetMount"></div>
+        </section>
+
+        <section class="section" id="sec-charts">
+          <div class="section-head">
+            <h2 class="section-title">Spending charts</h2>
+            <span class="section-sub">Category mix · trends · budget vs actual</span>
+          </div>
+          <div class="grid-2">
+            <div class="card"><h3>Spending by category</h3><div class="chart-box"><canvas id="chartDonut"></canvas></div></div>
+            <div class="card"><h3>Budget vs actual</h3><div class="chart-box"><canvas id="chartBar"></canvas></div></div>
+            <div class="card"><h3>Monthly spending trend</h3><div class="chart-box"><canvas id="chartLine"></canvas></div></div>
+            <div class="card"><h3>Category share over time</h3><div class="chart-box"><canvas id="chartStack"></canvas></div></div>
+          </div>
+        </section>
+
+        <section class="section" id="sec-transactions">
+          <div class="section-head">
+            <h2 class="section-title">Transactions</h2>
+            <button type="button" class="btn" id="exportTxBtn" style="margin-left:auto">Export</button>
+            <button type="button" class="btn primary" id="addPurchaseBtn2">+ Purchase</button>
+          </div>
+          <div class="card table-wrap">
+            <table class="t" id="txTable">
+              <thead>
+                <tr>
+                  <th data-sort="date">Date</th><th data-sort="merchant">Merchant</th><th data-sort="category">Category</th>
+                  <th data-sort="account">Account</th><th data-sort="amount">Amount</th><th></th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="section" id="sec-goals">
+          <div class="section-head">
+            <h2 class="section-title">Savings goals</h2>
+            <button type="button" class="btn primary" id="addGoalBtn2" style="margin-left:auto">+ Goal</button>
+          </div>
+          <div class="grid-3" id="goalsMount"></div>
+        </section>
+
+        <section class="section" id="sec-investing">
+          <div class="section-head">
+            <h2 class="section-title">Investing</h2>
+            <span class="section-sub">Portfolio · allocation · movers</span>
+            <button type="button" class="btn" id="refreshQuotesBtn" style="margin-left:auto">Refresh quotes</button>
+            <button type="button" class="btn" id="addHoldingBtn">+ Holding</button>
+          </div>
+          <div id="marketBanner"></div>
+          <div class="grid-3" id="investSummary"></div>
+          <div class="grid-2" style="margin-top:12px">
+            <div class="card"><h3>Holdings</h3><div class="table-wrap" id="holdingsMount"></div></div>
+            <div class="card"><h3>Portfolio allocation</h3><div class="chart-box sm"><canvas id="chartAlloc"></canvas></div></div>
+            <div class="card"><h3>Performance trend</h3><div class="chart-box sm"><canvas id="chartPerf"></canvas></div></div>
+            <div class="card"><h3>Recent movers</h3><div id="moversMount"></div></div>
+          </div>
+        </section>
+
+        <section class="section" id="sec-analyzer">
+          <div class="section-head">
+            <h2 class="section-title">Stock analyzer</h2>
+            <span class="section-sub">Research workspace · Finnhub-ready</span>
+          </div>
+          <div class="card" style="margin-bottom:12px">
+            <div class="split">
+              <input class="search-input" id="tickerInput" placeholder="Enter ticker e.g. AAPL" aria-label="Ticker" style="text-transform:uppercase;min-width:160px" />
+              <button type="button" class="btn primary" id="runAnalyzeBtn">Analyze</button>
+              <button type="button" class="btn" id="addWatchFromAnalyzer">Add to watchlist</button>
+              <button type="button" class="btn" id="addPortFromAnalyzer">Add to portfolio</button>
+            </div>
+            <div class="tags" id="recentTickers" style="margin-top:10px"></div>
+          </div>
+          <div id="analyzerMount"></div>
+        </section>
+
+        <section class="section" id="sec-watchlist">
+          <div class="section-head">
+            <h2 class="section-title">Watchlist</h2>
+            <button type="button" class="btn" id="addWatchBtn" style="margin-left:auto">+ Ticker</button>
+          </div>
+          <div class="card table-wrap" id="watchMount"></div>
+        </section>
+      </div>
     </div>
   </div>
+
+  <div class="modal-backdrop" id="editModal" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+    <div class="modal wide">
+      <h2 id="editTitle">Edit</h2>
+      <p class="modal-lead" id="editLead"></p>
+      <div class="modal-grid" id="editFields"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn danger" id="editDelete" hidden>Delete</button>
+        <div class="spacer"></div>
+        <button type="button" class="btn" id="editCancel">Cancel</button>
+        <button type="button" class="btn primary" id="editSave">Save</button>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+
+  <script>
+(function () {
+  'use strict';
+
+  var DATA_KEY = 'jg_finance_data_v1';
+  var cfg = (window.JGDASH_CONFIG || {});
+  var API_KEY = cfg.FINNHUB_API_KEY || '';
+  var PROVIDER = cfg.MARKET_DATA_PROVIDER || 'finnhub';
+
+  var CATEGORIES = ['rent','groceries','dining','transportation','subscriptions','entertainment','shopping','travel','health','investing','miscellaneous'];
+  var ACCOUNTS = ['cash','checking','savings','credit','brokerage','retirement'];
+  var CAT_COLORS = ['#6BE3A4','#7DD3FC','#F2C063','#F472B6','#A78BFA','#FB923C','#34D399','#60A5FA','#F87171','#C4B5FD','#94A3B8'];
+
+  var uid = function () { return 'f_' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3); };
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) {
+    return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  };
+  function toast(msg) {
+    var el = $('toast'); el.textContent = msg; el.classList.add('show');
+    clearTimeout(toast._t); toast._t = setTimeout(function () { el.classList.remove('show'); }, 2200);
+  }
+  function money(n) {
+    var v = Number(n) || 0;
+    return (v < 0 ? '-' : '') + '$' + Math.abs(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function pct(n) { return (Number(n) || 0).toFixed(2) + '%'; }
+  function today() { return new Date().toISOString().slice(0, 10); }
+  function monthKey(d) { return String(d || today()).slice(0, 7); }
+  function iconBtn(act, label, extra) {
+    return '<button type="button" class="icon-btn' + (extra || '') + '" data-act="' + act + '" title="' + esc(label) + '" aria-label="' + esc(label) + '">' + label + '</button>';
+  }
+
+  function defaultData() {
+    var m = monthKey();
+    return {
+      budgets: [
+        { id: uid(), category: 'rent', amount: 2200 },
+        { id: uid(), category: 'groceries', amount: 550 },
+        { id: uid(), category: 'dining', amount: 250 },
+        { id: uid(), category: 'transportation', amount: 180 },
+        { id: uid(), category: 'subscriptions', amount: 95 },
+        { id: uid(), category: 'entertainment', amount: 120 },
+        { id: uid(), category: 'shopping', amount: 200 },
+        { id: uid(), category: 'travel', amount: 150 },
+        { id: uid(), category: 'health', amount: 100 },
+        { id: uid(), category: 'investing', amount: 800 },
+        { id: uid(), category: 'miscellaneous', amount: 100 }
+      ],
+      transactions: [
+        { id: uid(), merchant: 'Whole Foods', amount: 86.42, date: m + '-03', category: 'groceries', account: 'checking', notes: 'Weekly shop', recurring: false, tags: 'food' },
+        { id: uid(), merchant: 'Landlord LLC', amount: 2200, date: m + '-01', category: 'rent', account: 'checking', notes: '', recurring: true, tags: 'housing' },
+        { id: uid(), merchant: 'Uber', amount: 24.50, date: m + '-05', category: 'transportation', account: 'credit', notes: '', recurring: false, tags: '' },
+        { id: uid(), merchant: 'Netflix', amount: 15.99, date: m + '-04', category: 'subscriptions', account: 'credit', notes: '', recurring: true, tags: 'stream' },
+        { id: uid(), merchant: 'Chipotle', amount: 14.75, date: m + '-06', category: 'dining', account: 'credit', notes: '', recurring: false, tags: '' },
+        { id: uid(), merchant: 'Shell', amount: 48.20, date: m + '-07', category: 'transportation', account: 'credit', notes: '', recurring: false, tags: 'gas' },
+        { id: uid(), merchant: 'Amazon', amount: 67.33, date: m + '-08', category: 'shopping', account: 'credit', notes: 'Household', recurring: false, tags: '' },
+        { id: uid(), merchant: 'Spotify', amount: 11.99, date: m + '-02', category: 'subscriptions', account: 'credit', notes: '', recurring: true, tags: 'stream' },
+        { id: uid(), merchant: 'Vanguard Deposit', amount: 800, date: m + '-05', category: 'investing', account: 'brokerage', notes: 'Monthly DCA', recurring: true, tags: 'invest' },
+        { id: uid(), merchant: 'Pharmacy', amount: 22.40, date: m + '-09', category: 'health', account: 'checking', notes: '', recurring: false, tags: '' },
+        { id: uid(), merchant: 'Cinema', amount: 32.00, date: m + '-10', category: 'entertainment', account: 'credit', notes: '', recurring: false, tags: '' },
+        { id: uid(), merchant: 'Trader Joe\'s', amount: 54.18, date: m + '-11', category: 'groceries', account: 'checking', notes: '', recurring: false, tags: 'food' }
+      ],
+      goals: [
+        { id: uid(), name: 'Emergency fund', target: 15000, current: 9200, targetDate: '2026-12-31', monthly: 500, status: 'on track', notes: '6 months expenses', pinned: true },
+        { id: uid(), name: 'Travel fund', target: 3500, current: 1450, targetDate: '2026-09-01', monthly: 300, status: 'on track', notes: 'Europe trip', pinned: true },
+        { id: uid(), name: 'Car fund', target: 8000, current: 2100, targetDate: '2027-06-01', monthly: 250, status: 'behind', notes: '', pinned: false },
+        { id: uid(), name: 'Roth IRA target', target: 7000, current: 4200, targetDate: '2026-12-31', monthly: 400, status: 'on track', notes: 'Annual contribution', pinned: true },
+        { id: uid(), name: 'New laptop', target: 1800, current: 600, targetDate: '2026-08-15', monthly: 200, status: 'on track', notes: 'Short-term', pinned: false }
+      ],
+      holdings: [
+        { id: uid(), ticker: 'AAPL', name: 'Apple Inc.', shares: 24, avgCost: 168.5, sector: 'Technology', account: 'brokerage' },
+        { id: uid(), ticker: 'MSFT', name: 'Microsoft Corp.', shares: 12, avgCost: 340.2, sector: 'Technology', account: 'brokerage' },
+        { id: uid(), ticker: 'VTI', name: 'Vanguard Total Stock', shares: 45, avgCost: 230.0, sector: 'ETF', account: 'retirement' },
+        { id: uid(), ticker: 'NVDA', name: 'NVIDIA Corp.', shares: 8, avgCost: 420.0, sector: 'Technology', account: 'brokerage' },
+        { id: uid(), ticker: 'JNJ', name: 'Johnson & Johnson', shares: 15, avgCost: 155.0, sector: 'Healthcare', account: 'brokerage' }
+      ],
+      watchlist: [
+        { id: uid(), ticker: 'GOOGL', name: 'Alphabet Inc.', favorite: true },
+        { id: uid(), ticker: 'AMZN', name: 'Amazon.com', favorite: false },
+        { id: uid(), ticker: 'TSLA', name: 'Tesla Inc.', favorite: true },
+        { id: uid(), ticker: 'SPY', name: 'SPDR S&P 500', favorite: false }
+      ],
+      cash: { checking: 4200, savings: 9100, cash: 350 },
+      analysisNotes: {},
+      recentTickers: ['AAPL', 'MSFT', 'NVDA'],
+      subscriptions: [
+        { name: 'Netflix', amount: 15.99, next: m + '-04' },
+        { name: 'Spotify', amount: 11.99, next: m + '-02' },
+        { name: 'iCloud+', amount: 2.99, next: m + '-12' }
+      ]
+    };
+  }
+
+  // Sample quote cache for demo mode
+  var SAMPLE_QUOTES = {
+    AAPL: { c: 214.35, d: 1.82, dp: 0.86, h: 215.1, l: 211.4, o: 212.0, pc: 212.53, v: 48200000 },
+    MSFT: { c: 428.90, d: -2.15, dp: -0.50, h: 432.0, l: 427.2, o: 430.5, pc: 431.05, v: 21000000 },
+    NVDA: { c: 118.40, d: 3.25, dp: 2.82, h: 119.2, l: 114.8, o: 115.5, pc: 115.15, v: 310000000 },
+    VTI: { c: 278.20, d: 0.95, dp: 0.34, h: 278.8, l: 276.9, o: 277.1, pc: 277.25, v: 3200000 },
+    JNJ: { c: 162.10, d: -0.40, dp: -0.25, h: 163.0, l: 161.5, o: 162.4, pc: 162.50, v: 6500000 },
+    GOOGL: { c: 176.55, d: 1.10, dp: 0.63, h: 177.2, l: 174.9, o: 175.3, pc: 175.45, v: 18000000 },
+    AMZN: { c: 194.20, d: -1.35, dp: -0.69, h: 196.0, l: 193.5, o: 195.4, pc: 195.55, v: 35000000 },
+    TSLA: { c: 248.75, d: 6.40, dp: 2.64, h: 250.1, l: 241.0, o: 242.5, pc: 242.35, v: 95000000 },
+    SPY: { c: 548.30, d: 1.20, dp: 0.22, h: 549.0, l: 546.2, o: 547.0, pc: 547.10, v: 45000000 }
+  };
+  var SAMPLE_PROFILE = {
+    AAPL: { name: 'Apple Inc', ticker: 'AAPL', exchange: 'NASDAQ', finnhubIndustry: 'Technology', marketCapitalization: 3250000, shareOutstanding: 15200, weburl: 'https://www.apple.com', ipo: '1980-12-12', logo: '' },
+    MSFT: { name: 'Microsoft Corporation', ticker: 'MSFT', exchange: 'NASDAQ', finnhubIndustry: 'Technology', marketCapitalization: 3180000, shareOutstanding: 7430, weburl: 'https://www.microsoft.com', ipo: '1986-03-13' },
+    NVDA: { name: 'NVIDIA Corporation', ticker: 'NVDA', exchange: 'NASDAQ', finnhubIndustry: 'Semiconductors', marketCapitalization: 2900000, shareOutstanding: 24500, weburl: 'https://www.nvidia.com', ipo: '1999-01-22' }
+  };
+  var SAMPLE_METRICS = {
+    AAPL: { peNormalizedAnnual: 32.4, epsAnnual: 6.42, dividendYieldIndicatedAnnual: 0.44, '52WeekHigh': 237.2, '52WeekLow': 164.1, beta: 1.22 },
+    MSFT: { peNormalizedAnnual: 35.1, epsAnnual: 11.8, dividendYieldIndicatedAnnual: 0.72, '52WeekHigh': 468.3, '52WeekLow': 362.9, beta: 0.91 },
+    NVDA: { peNormalizedAnnual: 58.2, epsAnnual: 2.1, dividendYieldIndicatedAnnual: 0.03, '52WeekHigh': 152.9, '52WeekLow': 86.6, beta: 1.75 }
+  };
+
+  function loadData() {
+    try {
+      var raw = localStorage.getItem(DATA_KEY);
+      if (!raw) return defaultData();
+      var parsed = JSON.parse(raw);
+      var base = defaultData();
+      Object.keys(parsed).forEach(function (k) { base[k] = parsed[k]; });
+      return base;
+    } catch (e) { return defaultData(); }
+  }
+  function saveData() {
+    try { localStorage.setItem(DATA_KEY, JSON.stringify(store)); }
+    catch (e) { toast('Could not save'); }
+  }
+
+  var store = loadData();
+  var quoteCache = {};
+  var charts = {};
+  var editCtx = null;
+  var filters = { account: 'all', category: 'all', q: '', range: 'month' };
+  var analyzerTicker = '';
+  var txSort = { key: 'date', dir: -1 };
+
+  function hasLiveApi() { return !!(API_KEY && API_KEY.trim()); }
+
+  function deepMergeQuotes() {
+    Object.keys(SAMPLE_QUOTES).forEach(function (t) {
+      if (!quoteCache[t]) quoteCache[t] = SAMPLE_QUOTES[t];
+    });
+  }
+  deepMergeQuotes();
+
+  /* —— Market API —— */
+  function finnhubGet(path, params) {
+    if (!hasLiveApi()) return Promise.reject(new Error('no_api_key'));
+    var q = Object.assign({ token: API_KEY }, params || {});
+    var qs = Object.keys(q).map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(q[k]); }).join('&');
+    return fetch('https://finnhub.io/api/v1/' + path + '?' + qs).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    });
+  }
+
+  function fetchQuote(ticker) {
+    ticker = String(ticker || '').toUpperCase();
+    if (!ticker) return Promise.resolve(null);
+    if (hasLiveApi()) {
+      return finnhubGet('quote', { symbol: ticker }).then(function (q) {
+        if (q && typeof q.c === 'number' && q.c > 0) quoteCache[ticker] = q;
+        return quoteCache[ticker] || null;
+      }).catch(function () { return quoteCache[ticker] || SAMPLE_QUOTES[ticker] || null; });
+    }
+    return Promise.resolve(quoteCache[ticker] || SAMPLE_QUOTES[ticker] || null);
+  }
+
+  function fetchProfile(ticker) {
+    ticker = String(ticker || '').toUpperCase();
+    if (hasLiveApi()) {
+      return finnhubGet('stock/profile2', { symbol: ticker }).catch(function () { return SAMPLE_PROFILE[ticker] || { name: ticker, ticker: ticker }; });
+    }
+    return Promise.resolve(SAMPLE_PROFILE[ticker] || { name: ticker, ticker: ticker, finnhubIndustry: '—', marketCapitalization: 0 });
+  }
+
+  function fetchMetrics(ticker) {
+    ticker = String(ticker || '').toUpperCase();
+    if (hasLiveApi()) {
+      return finnhubGet('stock/metric', { symbol: ticker, metric: 'all' }).then(function (r) { return (r && r.metric) || SAMPLE_METRICS[ticker] || {}; })
+        .catch(function () { return SAMPLE_METRICS[ticker] || {}; });
+    }
+    return Promise.resolve(SAMPLE_METRICS[ticker] || {});
+  }
+
+  function fetchNews(ticker) {
+    ticker = String(ticker || '').toUpperCase();
+    var to = today();
+    var fromDate = new Date(); fromDate.setDate(fromDate.getDate() - 14);
+    var from = fromDate.toISOString().slice(0, 10);
+    if (hasLiveApi()) {
+      return finnhubGet('company-news', { symbol: ticker, from: from, to: to }).then(function (arr) {
+        return Array.isArray(arr) ? arr.slice(0, 6) : [];
+      }).catch(function () { return sampleNews(ticker); });
+    }
+    return Promise.resolve(sampleNews(ticker));
+  }
+
+  function sampleNews(ticker) {
+    return [
+      { headline: ticker + ' in focus as markets digest earnings season', datetime: Date.now() / 1000, source: 'Market Desk', url: '#' },
+      { headline: 'Analysts update targets on ' + ticker, datetime: Date.now() / 1000 - 86400, source: 'Research', url: '#' },
+      { headline: 'Sector peers move with ' + ticker + ' tape', datetime: Date.now() / 1000 - 172800, source: 'Wire', url: '#' }
+    ];
+  }
+
+  function refreshAllQuotes() {
+    var tickers = {};
+    store.holdings.forEach(function (h) { tickers[h.ticker] = true; });
+    store.watchlist.forEach(function (w) { tickers[w.ticker] = true; });
+    if (analyzerTicker) tickers[analyzerTicker] = true;
+    var list = Object.keys(tickers);
+    $('marketBadge').textContent = hasLiveApi() ? 'Market: Finnhub live' : 'Market: sample mode';
+    $('marketBadge').className = 'badge ' + (hasLiveApi() ? 'live' : 'warn');
+    return Promise.all(list.map(fetchQuote)).then(function () {
+      renderInvesting();
+      renderWatchlist();
+      if (analyzerTicker) runAnalyzer(analyzerTicker, true);
+    });
+  }
+
+  /* —— Filters / spend helpers —— */
+  function inRange(dateStr) {
+    var d = String(dateStr || '');
+    var now = new Date();
+    var y = now.getFullYear();
+    var m = String(now.getMonth() + 1).padStart(2, '0');
+    if (filters.range === 'all') return true;
+    if (filters.range === 'month') return d.indexOf(y + '-' + m) === 0;
+    if (filters.range === 'last') {
+      var lm = new Date(y, now.getMonth() - 1, 1);
+      var key = lm.getFullYear() + '-' + String(lm.getMonth() + 1).padStart(2, '0');
+      return d.indexOf(key) === 0;
+    }
+    if (filters.range === 'ytd') return d.indexOf(String(y)) === 0;
+    return true;
+  }
+
+  function filteredTx() {
+    return store.transactions.filter(function (t) {
+      if (!inRange(t.date)) return false;
+      if (filters.account !== 'all' && t.account !== filters.account) return false;
+      if (filters.category !== 'all' && t.category !== filters.category) return false;
+      if (filters.q) {
+        var q = filters.q.toLowerCase();
+        var hay = (t.merchant + ' ' + t.category + ' ' + (t.notes || '') + ' ' + (t.tags || '')).toLowerCase();
+        if (hay.indexOf(q) === -1) return false;
+      }
+      return true;
+    });
+  }
+
+  function spendByCategory(txList) {
+    var map = {};
+    (txList || filteredTx()).forEach(function (t) {
+      map[t.category] = (map[t.category] || 0) + Number(t.amount);
+    });
+    return map;
+  }
+
+  function totalBudget() {
+    return store.budgets.reduce(function (a, b) { return a + Number(b.amount); }, 0);
+  }
+  function totalSpend(txList) {
+    return (txList || filteredTx()).reduce(function (a, t) { return a + Number(t.amount); }, 0);
+  }
+
+  function holdingValue(h) {
+    var q = quoteCache[h.ticker] || SAMPLE_QUOTES[h.ticker];
+    var price = q ? q.c : h.avgCost;
+    return Number(h.shares) * price;
+  }
+  function portfolioValue() {
+    return store.holdings.reduce(function (a, h) { return a + holdingValue(h); }, 0);
+  }
+  function portfolioDayChange() {
+    return store.holdings.reduce(function (a, h) {
+      var q = quoteCache[h.ticker] || SAMPLE_QUOTES[h.ticker];
+      if (!q) return a;
+      return a + Number(h.shares) * (q.d || 0);
+    }, 0);
+  }
+
+  /* —— Edit modal —— */
+  function openEdit(cfg) {
+    editCtx = cfg;
+    $('editTitle').textContent = cfg.title || 'Edit';
+    $('editLead').textContent = cfg.lead || '';
+    $('editLead').style.display = cfg.lead ? '' : 'none';
+    $('editDelete').hidden = !(cfg.mode === 'edit' && cfg.canDelete);
+    $('editFields').innerHTML = (cfg.fields || []).map(function (f) {
+      var full = f.full ? ' full' : '';
+      var val = f.value == null ? '' : f.value;
+      var input;
+      if (f.type === 'textarea') input = '<textarea id="ef_' + f.key + '" rows="' + (f.rows || 3) + '">' + esc(val) + '</textarea>';
+      else if (f.type === 'select') {
+        input = '<select id="ef_' + f.key + '">' + (f.options || []).map(function (o) {
+          var v = typeof o === 'string' ? o : o.value;
+          var lab = typeof o === 'string' ? o : o.label;
+          return '<option value="' + esc(v) + '"' + (String(v) === String(val) ? ' selected' : '') + '>' + esc(lab) + '</option>';
+        }).join('') + '</select>';
+      } else if (f.type === 'checkbox') {
+        input = '<label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" id="ef_' + f.key + '"' + (val ? ' checked' : '') + ' /> ' + esc(f.checkLabel || 'Yes') + '</label>';
+      } else {
+        input = '<input id="ef_' + f.key + '" type="' + (f.type || 'text') + '" value="' + esc(val) + '" placeholder="' + esc(f.placeholder || '') + '" step="' + (f.step || 'any') + '" />';
+      }
+      return '<div class="field' + full + '"><label for="ef_' + f.key + '">' + esc(f.label) + '</label>' + input + '</div>';
+    }).join('');
+    $('editModal').classList.add('open');
+  }
+  function closeEdit() { $('editModal').classList.remove('open'); editCtx = null; }
+  function readFields() {
+    var out = {};
+    (editCtx.fields || []).forEach(function (f) {
+      var el = $('ef_' + f.key);
+      if (!el) return;
+      out[f.key] = f.type === 'checkbox' ? !!el.checked : el.value;
+    });
+    return out;
+  }
+
+  /* —— KPI / Overview —— */
+  function renderKpis() {
+    var tx = filteredTx();
+    var spend = totalSpend(tx);
+    var budget = totalBudget();
+    var remaining = budget - spend;
+    var port = portfolioValue();
+    var dayChg = portfolioDayChange();
+    var cashAvail = (store.cash.checking || 0) + (store.cash.savings || 0) + (store.cash.cash || 0);
+    var goalProg = store.goals.length ? Math.round(store.goals.reduce(function (a, g) {
+      return a + Math.min(100, (g.current / g.target) * 100);
+    }, 0) / store.goals.length) : 0;
+    var investTx = tx.filter(function (t) { return t.category === 'investing'; });
+    var savingsMonth = investTx.reduce(function (a, t) { return a + Number(t.amount); }, 0)
+      + store.goals.reduce(function (a, g) { return a + (Number(g.monthly) || 0) * 0; }, 0);
+
+    var items = [
+      { label: 'Spending this month', value: money(spend), delta: '-4.2% vs prior', up: true, spark: [3,4,2,5,4,6,5] },
+      { label: 'Budget remaining', value: money(remaining), delta: remaining < 0 ? 'Over budget' : 'On pace', up: remaining >= 0, spark: [5,5,4,4,3,3,2] },
+      { label: 'Invested this month', value: money(savingsMonth || 800), delta: '+$800 planned', up: true, spark: [1,1,2,2,2,3,3] },
+      { label: 'Goal progress', value: goalProg + '%', delta: store.goals.length + ' goals', up: true, spark: [2,3,3,4,4,5,5] },
+      { label: 'Portfolio value', value: money(port), delta: money(dayChg) + ' today', up: dayChg >= 0, spark: [4,5,4,6,5,7,6] },
+      { label: 'Daily P/L', value: money(dayChg), delta: port ? pct((dayChg / port) * 100) : '0%', up: dayChg >= 0, spark: [3,2,4,1,5,3,4] },
+      { label: 'Monthly P/L (est.)', value: money(dayChg * 12), delta: 'approx', up: dayChg >= 0, spark: [2,3,4,3,5,4,6] },
+      { label: 'Cash available', value: money(cashAvail), delta: 'checking+savings+cash', up: true, spark: [5,5,5,4,4,5,5] }
+    ];
+    $('kpiRow').innerHTML = items.map(function (k) {
+      return '<div class="kpi"><div class="kpi-label">' + esc(k.label) + '</div>' +
+        '<div class="kpi-value">' + esc(k.value) + '</div>' +
+        '<div class="kpi-delta ' + (k.up ? 'up' : 'down') + '">' + esc(k.delta) + '</div>' +
+        '<div class="spark" aria-hidden="true">' + k.spark.map(function (v) {
+          return '<i style="height:' + Math.max(15, v * 14) + '%"></i>';
+        }).join('') + '</div></div>';
+    }).join('');
+
+    var netWorth = cashAvail + port;
+    var savingsRate = spend > 0 ? Math.round(((savingsMonth || 800) / (spend + (savingsMonth || 800))) * 100) : 0;
+    var recur = store.subscriptions.reduce(function (a, s) { return a + Number(s.amount); }, 0);
+    $('overviewExtras').innerHTML =
+      '<div class="card"><h3>Net worth snapshot</h3><div class="mini-stat">' + money(netWorth) + '</div><p class="card-meta">Cash + brokerage holdings (sample prices if offline)</p></div>' +
+      '<div class="card"><h3>Monthly cash flow</h3><div class="mini-stat amt neg">-' + money(spend).slice(1) + '</div><p class="card-meta">Outflows in selected range · savings rate ~' + savingsRate + '%</p></div>' +
+      '<div class="card"><h3>Recurring / subscriptions</h3><div class="mini-stat">' + money(recur) + '<span style="font-size:12px;color:var(--text-tertiary)"> / mo</span></div>' +
+        '<ul class="list" style="margin-top:8px">' + store.subscriptions.map(function (s) {
+          return '<li class="list-item"><div><div class="title">' + esc(s.name) + '</div><div class="meta">Next ' + esc(s.next) + '</div></div><div class="right amt">' + money(s.amount) + '</div></li>';
+        }).join('') + '</ul></div>';
+  }
+
+  /* —— Budget —— */
+  function renderBudget() {
+    var spendMap = spendByCategory();
+    var rows = store.budgets.map(function (b) {
+      var actual = spendMap[b.category] || 0;
+      var pctUse = b.amount ? (actual / b.amount) * 100 : 0;
+      var cls = pctUse > 100 ? 'over' : pctUse > 85 ? 'warn' : '';
+      return { cat: b.category, budget: b.amount, actual: actual, pct: pctUse, cls: cls, id: b.id };
+    }).sort(function (a, b) { return b.pct - a.pct; });
+
+    var over = rows.filter(function (r) { return r.pct > 100; });
+    var under = rows.filter(function (r) { return r.pct <= 85; });
+    var spend = totalSpend();
+    var budget = totalBudget();
+
+    var summary =
+      '<div class="card span-2"><div class="card-head"><h3>Monthly budget summary</h3></div>' +
+      '<div class="grid-3">' +
+        '<div><div class="card-meta">Total budget</div><div class="mini-stat">' + money(budget) + '</div></div>' +
+        '<div><div class="card-meta">Actual spend</div><div class="mini-stat">' + money(spend) + '</div></div>' +
+        '<div><div class="card-meta">Remaining</div><div class="mini-stat ' + (budget - spend < 0 ? 'amt neg' : 'amt pos') + '">' + money(budget - spend) + '</div></div>' +
+      '</div>' +
+      '<div class="progress-bar ' + (spend > budget ? 'over' : '') + '" style="margin-top:12px"><span style="width:' + Math.min(100, (spend / budget) * 100) + '%"></span></div>' +
+      '<div class="grid-2" style="margin-top:12px">' +
+        '<div><div class="card-meta">Overspent</div>' + (over.length ? over.map(function (r) { return '<span class="tag-pill">' + esc(r.cat) + '</span> '; }).join('') : '<span class="card-meta">None</span>') + '</div>' +
+        '<div><div class="card-meta">Comfortably under</div>' + under.slice(0, 4).map(function (r) { return '<span class="tag-pill">' + esc(r.cat) + '</span> '; }).join('') + '</div>' +
+      '</div></div>';
+
+    var table =
+      '<div class="card span-2"><div class="card-head"><h3>Category budgets</h3></div><div class="table-wrap"><table class="t"><thead><tr><th>Category</th><th>Budget</th><th>Actual</th><th>Left</th><th>Usage</th><th></th></tr></thead><tbody>' +
+      rows.map(function (r) {
+        return '<tr data-id="' + esc(r.id) + '"><td>' + esc(r.cat) + '</td><td class="amt">' + money(r.budget) + '</td><td class="amt">' + money(r.actual) +
+          '</td><td class="amt ' + (r.budget - r.actual < 0 ? 'neg' : '') + '">' + money(r.budget - r.actual) + '</td><td style="min-width:120px">' +
+          '<div class="progress-bar ' + r.cls + '"><span style="width:' + Math.min(100, r.pct) + '%"></span></div>' +
+          '<div class="card-meta">' + r.pct.toFixed(0) + '%</div></td><td>' + iconBtn('edit', '✎') + '</td></tr>';
+      }).join('') + '</tbody></table></div></div>';
+
+    $('budgetMount').innerHTML = summary + table;
+    $('budgetMount').querySelectorAll('tr[data-id]').forEach(function (row) {
+      var id = row.getAttribute('data-id');
+      var b = store.budgets.find(function (x) { return x.id === id; });
+      row.querySelector('[data-act="edit"]').onclick = function () { editBudget(b); };
+    });
+  }
+
+  function editBudget(b) {
+    openEdit({
+      title: 'Edit category budget', mode: 'edit', canDelete: false,
+      fields: [
+        { key: 'category', label: 'Category', type: 'select', value: b.category, options: CATEGORIES, full: true },
+        { key: 'amount', label: 'Monthly budget', type: 'number', value: b.amount, step: '1', full: true }
+      ],
+      save: function (v) {
+        b.category = v.category; b.amount = Number(v.amount) || 0;
+        saveData(); renderAll(); toast('Budget updated');
+      }
+    });
+  }
+
+  function editAllBudgets() {
+    openEdit({
+      title: 'Set budgets',
+      lead: 'Edit amounts for each category. Leave unused categories at 0.',
+      mode: 'edit',
+      fields: store.budgets.map(function (b) {
+        return { key: b.category, label: b.category, type: 'number', value: b.amount, step: '1' };
+      }),
+      save: function (v) {
+        store.budgets.forEach(function (b) { if (v[b.category] != null) b.amount = Number(v[b.category]) || 0; });
+        saveData(); renderAll(); toast('Budgets saved');
+      }
+    });
+  }
+
+  /* —— Charts —— */
+  function destroyChart(key) {
+    if (charts[key]) { charts[key].destroy(); delete charts[key]; }
+  }
+
+  function chartDefaults() {
+    var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    Chart.defaults.color = isLight ? '#5C5A54' : '#B8B6B0';
+    Chart.defaults.borderColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';
+    Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, Inter, Segoe UI, sans-serif';
+  }
+
+  function renderCharts() {
+    if (typeof Chart === 'undefined') return;
+    chartDefaults();
+    var spendMap = spendByCategory();
+    var labels = Object.keys(spendMap);
+    var values = labels.map(function (k) { return spendMap[k]; });
+    var budgetLabels = store.budgets.map(function (b) { return b.category; });
+    var budgetVals = store.budgets.map(function (b) { return b.amount; });
+    var actualVals = store.budgets.map(function (b) { return spendMap[b.category] || 0; });
+
+    destroyChart('donut');
+    charts.donut = new Chart($('chartDonut'), {
+      type: 'doughnut',
+      data: { labels: labels, datasets: [{ data: values, backgroundColor: CAT_COLORS, borderWidth: 0 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 11 } } } }, cutout: '62%' }
+    });
+
+    destroyChart('bar');
+    charts.bar = new Chart($('chartBar'), {
+      type: 'bar',
+      data: {
+        labels: budgetLabels,
+        datasets: [
+          { label: 'Budget', data: budgetVals, backgroundColor: 'rgba(107,227,164,0.35)' },
+          { label: 'Actual', data: actualVals, backgroundColor: 'rgba(242,192,99,0.55)' }
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { maxRotation: 45, font: { size: 10 } } }, y: { beginAtZero: true } }, plugins: { legend: { labels: { boxWidth: 10, font: { size: 11 } } } } }
+    });
+
+    var months = [];
+    for (var i = 5; i >= 0; i--) {
+      var d = new Date(); d.setMonth(d.getMonth() - i);
+      months.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'));
+    }
+    var trend = months.map(function (mk) {
+      return store.transactions.filter(function (t) { return String(t.date).indexOf(mk) === 0; })
+        .reduce(function (a, t) { return a + Number(t.amount); }, 0);
+    });
+    // seed slight variation for empty months
+    trend = trend.map(function (v, i) { return v || (2800 + i * 80); });
+
+    destroyChart('line');
+    charts.line = new Chart($('chartLine'), {
+      type: 'line',
+      data: { labels: months.map(function (m) { return m.slice(5); }), datasets: [{ label: 'Spend', data: trend, borderColor: '#6BE3A4', backgroundColor: 'rgba(107,227,164,0.15)', fill: true, tension: 0.35, pointRadius: 3 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: false } } }
+    });
+
+    var topCats = store.budgets.slice(0, 5).map(function (b) { return b.category; });
+    destroyChart('stack');
+    charts.stack = new Chart($('chartStack'), {
+      type: 'bar',
+      data: {
+        labels: months.map(function (m) { return m.slice(5); }),
+        datasets: topCats.map(function (cat, idx) {
+          return {
+            label: cat,
+            data: months.map(function (mk) {
+              return store.transactions.filter(function (t) { return t.category === cat && String(t.date).indexOf(mk) === 0; })
+                .reduce(function (a, t) { return a + Number(t.amount); }, 0) || Math.round(40 + idx * 20 + Math.random() * 30);
+            }),
+            backgroundColor: CAT_COLORS[idx],
+            stack: 's'
+          };
+        })
+      },
+      options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } }, plugins: { legend: { labels: { boxWidth: 10, font: { size: 10 } } } } }
+    });
+  }
+
+  /* —— Transactions —— */
+  function renderTransactions() {
+    var rows = filteredTx().slice().sort(function (a, b) {
+      var ka = a[txSort.key], kb = b[txSort.key];
+      if (txSort.key === 'amount') return (Number(ka) - Number(kb)) * txSort.dir;
+      return String(ka).localeCompare(String(kb)) * txSort.dir;
+    });
+    var tb = $('txTable').querySelector('tbody');
+    if (!rows.length) {
+      tb.innerHTML = '<tr><td colspan="6"><div class="empty-state"><strong>No transactions yet</strong>Add a purchase to start tracking.</div></td></tr>';
+      return;
+    }
+    tb.innerHTML = rows.map(function (t) {
+      return '<tr data-id="' + esc(t.id) + '">' +
+        '<td>' + esc(t.date) + '</td>' +
+        '<td>' + esc(t.merchant) + (t.recurring ? ' <span class="badge">recurring</span>' : '') + (t.notes ? ' <span class="badge">notes</span>' : '') + (t.tags ? ' <span class="badge">' + esc(t.tags) + '</span>' : '') + '</td>' +
+        '<td>' + esc(t.category) + '</td>' +
+        '<td>' + esc(t.account) + '</td>' +
+        '<td class="amt neg">-' + money(t.amount).slice(1) + '</td>' +
+        '<td><div class="item-actions">' + iconBtn('edit', '✎') + iconBtn('dup', '⧉') + iconBtn('del', '✕', ' danger') + '</div></td></tr>';
+    }).join('');
+    tb.querySelectorAll('tr[data-id]').forEach(function (row) {
+      var id = row.getAttribute('data-id');
+      var t = store.transactions.find(function (x) { return x.id === id; });
+      row.querySelector('[data-act="edit"]').onclick = function (e) { e.stopPropagation(); editPurchase(t); };
+      row.querySelector('[data-act="dup"]').onclick = function (e) { e.stopPropagation(); duplicatePurchase(t); };
+      row.querySelector('[data-act="del"]').onclick = function (e) {
+        e.stopPropagation();
+        if (!confirm('Delete transaction?')) return;
+        store.transactions = store.transactions.filter(function (x) { return x.id !== id; });
+        saveData(); renderAll(); toast('Deleted');
+      };
+      row.onclick = function (e) { if (!e.target.closest('button')) editPurchase(t); };
+    });
+  }
+
+  function editPurchase(t) {
+    var isAdd = !t;
+    openEdit({
+      title: (isAdd ? 'Add' : 'Edit') + ' purchase',
+      mode: isAdd ? 'add' : 'edit', canDelete: !isAdd,
+      fields: [
+        { key: 'merchant', label: 'Merchant / name', value: t ? t.merchant : '', full: true },
+        { key: 'amount', label: 'Amount', type: 'number', value: t ? t.amount : '', step: '0.01' },
+        { key: 'date', label: 'Date', type: 'date', value: t ? t.date : today() },
+        { key: 'category', label: 'Category', type: 'select', value: t ? t.category : 'miscellaneous', options: CATEGORIES },
+        { key: 'account', label: 'Account', type: 'select', value: t ? t.account : 'checking', options: ACCOUNTS },
+        { key: 'tags', label: 'Tags', value: t ? t.tags : '' },
+        { key: 'notes', label: 'Notes', type: 'textarea', value: t ? t.notes : '', full: true },
+        { key: 'recurring', label: 'Recurring', type: 'checkbox', value: t ? t.recurring : false, checkLabel: 'Recurring purchase' },
+        { key: 'goalId', label: 'Link to goal (optional)', type: 'select', value: t && t.goalId ? t.goalId : '', full: true,
+          options: [{ value: '', label: 'None' }].concat(store.goals.map(function (g) { return { value: g.id, label: g.name }; })) }
+      ],
+      save: function (v) {
+        if (!v.merchant.trim() || !v.amount) { toast('Merchant and amount required'); return false; }
+        var row = {
+          merchant: v.merchant.trim(), amount: Number(v.amount), date: v.date, category: v.category,
+          account: v.account, notes: v.notes, recurring: !!v.recurring, tags: v.tags, goalId: v.goalId || ''
+        };
+        if (isAdd) { row.id = uid(); store.transactions.unshift(row); }
+        else Object.assign(t, row);
+        saveData(); renderAll(); toast(isAdd ? 'Purchase added' : 'Updated');
+      },
+      remove: function () {
+        if (!confirm('Delete?')) return false;
+        store.transactions = store.transactions.filter(function (x) { return x.id !== t.id; });
+        saveData(); renderAll(); toast('Deleted'); return true;
+      }
+    });
+  }
+
+  function duplicatePurchase(t) {
+    var copy = JSON.parse(JSON.stringify(t));
+    copy.id = uid(); copy.date = today(); copy.merchant = t.merchant + ' (copy)';
+    store.transactions.unshift(copy); saveData(); renderAll(); toast('Duplicated');
+  }
+
+  /* —— Goals —— */
+  function renderGoals() {
+    if (!store.goals.length) {
+      $('goalsMount').innerHTML = '<div class="card span-full empty-state"><strong>No goals yet</strong>Add a savings goal to track progress.</div>';
+      return;
+    }
+    $('goalsMount').innerHTML = store.goals.map(function (g) {
+      var pctDone = Math.min(100, (Number(g.current) / Number(g.target)) * 100);
+      var left = Number(g.target) - Number(g.current);
+      var monthsLeft = Number(g.monthly) > 0 ? Math.ceil(left / Number(g.monthly)) : '—';
+      var statusCls = g.status === 'behind' ? 'warn' : g.status === 'completed' || pctDone >= 100 ? 'ok' : 'ok';
+      return '<div class="card" data-id="' + esc(g.id) + '">' +
+        '<div class="card-head"><h3>' + (g.pinned ? '📌 ' : '') + esc(g.name) + '</h3>' +
+          '<div class="item-actions">' + iconBtn('add$', '+') + iconBtn('edit', '✎') + iconBtn('del', '✕', ' danger') + '</div></div>' +
+        '<div class="mini-stat">' + money(g.current) + ' <span style="font-size:12px;color:var(--text-tertiary)">/ ' + money(g.target) + '</span></div>' +
+        '<div class="progress-bar" style="margin-top:8px"><span style="width:' + pctDone + '%"></span></div>' +
+        '<p class="card-meta">' + pctDone.toFixed(0) + '% · ' + esc(g.status) + ' · target ' + esc(g.targetDate) +
+          ' · ~' + esc(String(monthsLeft)) + ' mo at ' + money(g.monthly) + '/mo</p>' +
+        '<span class="badge ' + statusCls + '">' + esc(g.status) + '</span></div>';
+    }).join('');
+    $('goalsMount').querySelectorAll('.card[data-id]').forEach(function (card) {
+      var id = card.getAttribute('data-id');
+      var g = store.goals.find(function (x) { return x.id === id; });
+      card.querySelector('[data-act="edit"]').onclick = function () { editGoal(g); };
+      card.querySelector('[data-act="add$"]').onclick = function () { contributeGoal(g); };
+      card.querySelector('[data-act="del"]').onclick = function () {
+        if (!confirm('Delete goal?')) return;
+        store.goals = store.goals.filter(function (x) { return x.id !== id; });
+        saveData(); renderGoals(); renderKpis(); toast('Deleted');
+      };
+    });
+  }
+
+  function editGoal(g) {
+    var isAdd = !g;
+    openEdit({
+      title: (isAdd ? 'Add' : 'Edit') + ' goal',
+      mode: isAdd ? 'add' : 'edit', canDelete: !isAdd,
+      fields: [
+        { key: 'name', label: 'Goal name', value: g ? g.name : '', full: true },
+        { key: 'target', label: 'Target amount', type: 'number', value: g ? g.target : '', step: '1' },
+        { key: 'current', label: 'Current saved', type: 'number', value: g ? g.current : 0, step: '1' },
+        { key: 'targetDate', label: 'Target date', type: 'date', value: g ? g.targetDate : '' },
+        { key: 'monthly', label: 'Monthly contribution', type: 'number', value: g ? g.monthly : '', step: '1' },
+        { key: 'status', label: 'Status', type: 'select', value: g ? g.status : 'on track', options: ['on track', 'behind', 'completed'] },
+        { key: 'notes', label: 'Notes', type: 'textarea', value: g ? g.notes : '', full: true },
+        { key: 'pinned', label: 'Pinned', type: 'checkbox', value: g ? g.pinned : false, checkLabel: 'Priority goal' }
+      ],
+      save: function (v) {
+        if (!v.name.trim() || !v.target) { toast('Name and target required'); return false; }
+        var row = { name: v.name.trim(), target: Number(v.target), current: Number(v.current) || 0, targetDate: v.targetDate, monthly: Number(v.monthly) || 0, status: v.status, notes: v.notes, pinned: !!v.pinned };
+        if (isAdd) { row.id = uid(); store.goals.unshift(row); }
+        else Object.assign(g, row);
+        saveData(); renderAll(); toast(isAdd ? 'Goal added' : 'Updated');
+      },
+      remove: function () {
+        if (!confirm('Delete?')) return false;
+        store.goals = store.goals.filter(function (x) { return x.id !== g.id; });
+        saveData(); renderAll(); toast('Deleted'); return true;
+      }
+    });
+  }
+
+  function contributeGoal(g) {
+    openEdit({
+      title: 'Add contribution · ' + g.name,
+      mode: 'edit',
+      fields: [{ key: 'amount', label: 'Amount', type: 'number', value: g.monthly || 100, step: '1', full: true }],
+      save: function (v) {
+        var amt = Number(v.amount) || 0;
+        g.current = Number(g.current) + amt;
+        if (g.current >= g.target) g.status = 'completed';
+        saveData(); renderAll(); toast('Contribution added');
+      }
+    });
+  }
+
+  /* —— Investing —— */
+  function renderInvesting() {
+    var banner = $('marketBanner');
+    if (hasLiveApi()) {
+      banner.innerHTML = '<div class="banner"><strong style="color:var(--invest)">Finnhub connected</strong><span>Live REST quotes for holdings & analyzer.</span></div>';
+    } else {
+      banner.innerHTML = '<div class="banner warn"><strong style="color:var(--warning)">Sample market data</strong><span>Set <code>FINNHUB_API_KEY</code> in <code>js/config.js</code> for live quotes. Provider is swappable via <code>MARKET_DATA_PROVIDER</code>.</span></div>';
+    }
+
+    var port = portfolioValue();
+    var day = portfolioDayChange();
+    var cost = store.holdings.reduce(function (a, h) { return a + Number(h.shares) * Number(h.avgCost); }, 0);
+    var totalRet = port - cost;
+    var ranked = store.holdings.map(function (h) {
+      var q = quoteCache[h.ticker] || SAMPLE_QUOTES[h.ticker] || { c: h.avgCost, d: 0, dp: 0 };
+      var val = Number(h.shares) * q.c;
+      var ret = (q.c - h.avgCost) * Number(h.shares);
+      return { h: h, q: q, val: val, ret: ret, day: Number(h.shares) * (q.d || 0) };
+    }).sort(function (a, b) { return b.val - a.val; });
+
+    var top = ranked[0];
+    var winner = ranked.slice().sort(function (a, b) { return b.ret - a.ret; })[0];
+    var loser = ranked.slice().sort(function (a, b) { return a.ret - b.ret; })[0];
+    var conc = top && port ? (top.val / port) * 100 : 0;
+
+    $('investSummary').innerHTML =
+      '<div class="card"><div class="card-meta">Portfolio value</div><div class="mini-stat">' + money(port) + '</div><div class="kpi-delta ' + (day >= 0 ? 'up' : 'down') + '">' + money(day) + ' today</div></div>' +
+      '<div class="card"><div class="card-meta">Total gain/loss</div><div class="mini-stat ' + (totalRet >= 0 ? 'amt pos' : 'amt neg') + '">' + money(totalRet) + '</div><div class="card-meta">vs cost basis ' + money(cost) + '</div></div>' +
+      '<div class="card"><div class="card-meta">Top holding</div><div class="mini-stat" style="font-size:16px">' + (top ? esc(top.h.ticker) : '—') + '</div><div class="card-meta">' + (top ? money(top.val) + ' · ' + conc.toFixed(1) + '% weight' : '') + (conc > 35 ? ' · <span class="badge warn">concentration</span>' : '') + '</div></div>' +
+      '<div class="card"><div class="card-meta">Largest winner</div><div class="mini-stat amt pos" style="font-size:16px">' + (winner ? esc(winner.h.ticker) + ' ' + money(winner.ret) : '—') + '</div></div>' +
+      '<div class="card"><div class="card-meta">Largest loser</div><div class="mini-stat amt neg" style="font-size:16px">' + (loser ? esc(loser.h.ticker) + ' ' + money(loser.ret) : '—') + '</div></div>' +
+      '<div class="card"><div class="card-meta">Cash position</div><div class="mini-stat">' + money((store.cash.checking || 0) + (store.cash.cash || 0)) + '</div><div class="card-meta">Ex-savings buffer</div></div>';
+
+    if (!store.holdings.length) {
+      $('holdingsMount').innerHTML = '<div class="empty-state"><strong>No investments added</strong>Add a holding to build your portfolio.</div>';
+    } else {
+      $('holdingsMount').innerHTML = '<table class="t"><thead><tr><th>Ticker</th><th>Shares</th><th>Avg</th><th>Price</th><th>Value</th><th>Day</th><th>Return</th><th>Wt</th><th></th></tr></thead><tbody>' +
+        ranked.map(function (r) {
+          var wt = port ? (r.val / port) * 100 : 0;
+          return '<tr data-id="' + esc(r.h.id) + '"><td><strong>' + esc(r.h.ticker) + '</strong><div class="card-meta">' + esc(r.h.name) + '</div></td>' +
+            '<td>' + esc(r.h.shares) + '</td><td class="amt">' + money(r.h.avgCost) + '</td><td class="amt">' + money(r.q.c) + '</td>' +
+            '<td class="amt">' + money(r.val) + '</td><td class="amt ' + (r.day >= 0 ? 'pos' : 'neg') + '">' + money(r.day) + '</td>' +
+            '<td class="amt ' + (r.ret >= 0 ? 'pos' : 'neg') + '">' + money(r.ret) + '</td><td>' + wt.toFixed(1) + '%</td>' +
+            '<td><div class="item-actions">' + iconBtn('analyze', '↗') + iconBtn('edit', '✎') + iconBtn('del', '✕', ' danger') + '</div></td></tr>';
+        }).join('') + '</tbody></table>';
+      $('holdingsMount').querySelectorAll('tr[data-id]').forEach(function (row) {
+        var id = row.getAttribute('data-id');
+        var h = store.holdings.find(function (x) { return x.id === id; });
+        row.querySelector('[data-act="edit"]').onclick = function () { editHolding(h); };
+        row.querySelector('[data-act="analyze"]').onclick = function () { scrollToSection('analyzer'); runAnalyzer(h.ticker); };
+        row.querySelector('[data-act="del"]').onclick = function () {
+          if (!confirm('Remove holding?')) return;
+          store.holdings = store.holdings.filter(function (x) { return x.id !== id; });
+          saveData(); renderAll(); toast('Removed');
+        };
+      });
+    }
+
+    $('moversMount').innerHTML = '<ul class="list">' + ranked.slice().sort(function (a, b) { return Math.abs(b.q.dp || 0) - Math.abs(a.q.dp || 0); }).slice(0, 5).map(function (r) {
+      return '<li class="list-item"><div><div class="title">' + esc(r.h.ticker) + '</div><div class="meta">' + esc(r.h.name) + '</div></div>' +
+        '<div class="right amt ' + ((r.q.dp || 0) >= 0 ? 'pos' : 'neg') + '">' + pct(r.q.dp) + '</div></li>';
+    }).join('') + '</ul>';
+
+    renderAllocChart(ranked, port);
+    renderPerfChart();
+  }
+
+  function renderAllocChart(ranked, port) {
+    if (typeof Chart === 'undefined') return;
+    chartDefaults();
+    destroyChart('alloc');
+    var bySector = {};
+    ranked.forEach(function (r) {
+      var s = r.h.sector || 'Other';
+      bySector[s] = (bySector[s] || 0) + r.val;
+    });
+    charts.alloc = new Chart($('chartAlloc'), {
+      type: 'doughnut',
+      data: { labels: Object.keys(bySector), datasets: [{ data: Object.keys(bySector).map(function (k) { return bySector[k]; }), backgroundColor: CAT_COLORS, borderWidth: 0 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 11 } } } }, cutout: '60%' }
+    });
+  }
+
+  function renderPerfChart() {
+    if (typeof Chart === 'undefined') return;
+    destroyChart('perf');
+    var base = portfolioValue();
+    var pts = [];
+    for (var i = 0; i < 30; i++) pts.push(base * (0.96 + i * 0.002 + Math.sin(i / 4) * 0.01));
+    charts.perf = new Chart($('chartPerf'), {
+      type: 'line',
+      data: { labels: pts.map(function (_, i) { return i + 1; }), datasets: [{ data: pts, borderColor: '#7DD3FC', backgroundColor: 'rgba(125,211,252,0.12)', fill: true, tension: 0.35, pointRadius: 0 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false } } }
+    });
+  }
+
+  function editHolding(h) {
+    var isAdd = !h;
+    openEdit({
+      title: (isAdd ? 'Add' : 'Edit') + ' holding',
+      mode: isAdd ? 'add' : 'edit', canDelete: !isAdd,
+      fields: [
+        { key: 'ticker', label: 'Ticker', value: h ? h.ticker : '', full: true },
+        { key: 'name', label: 'Company name', value: h ? h.name : '', full: true },
+        { key: 'shares', label: 'Shares', type: 'number', value: h ? h.shares : '', step: '0.01' },
+        { key: 'avgCost', label: 'Average cost', type: 'number', value: h ? h.avgCost : '', step: '0.01' },
+        { key: 'sector', label: 'Sector / type', value: h ? h.sector : 'Technology' },
+        { key: 'account', label: 'Account', type: 'select', value: h ? h.account : 'brokerage', options: ['brokerage', 'retirement'] }
+      ],
+      save: function (v) {
+        if (!v.ticker.trim()) { toast('Ticker required'); return false; }
+        var row = { ticker: v.ticker.trim().toUpperCase(), name: v.name || v.ticker.toUpperCase(), shares: Number(v.shares) || 0, avgCost: Number(v.avgCost) || 0, sector: v.sector, account: v.account };
+        if (isAdd) { row.id = uid(); store.holdings.push(row); }
+        else Object.assign(h, row);
+        saveData();
+        fetchQuote(row.ticker).then(function () { renderAll(); toast(isAdd ? 'Holding added' : 'Updated'); });
+      },
+      remove: function () {
+        if (!confirm('Remove?')) return false;
+        store.holdings = store.holdings.filter(function (x) { return x.id !== h.id; });
+        saveData(); renderAll(); toast('Removed'); return true;
+      }
+    });
+  }
+
+  /* —— Analyzer —— */
+  function renderRecentTickers() {
+    $('recentTickers').innerHTML = (store.recentTickers || []).map(function (t) {
+      return '<button type="button" class="tag-pill" data-t="' + esc(t) + '">' + esc(t) + '</button>';
+    }).join('') || '<span class="card-meta">No recent searches</span>';
+    $('recentTickers').querySelectorAll('[data-t]').forEach(function (b) {
+      b.onclick = function () { runAnalyzer(b.getAttribute('data-t')); };
+    });
+  }
+
+  function runAnalyzer(ticker, silent) {
+    ticker = String(ticker || $('tickerInput').value || '').trim().toUpperCase();
+    if (!ticker) { toast('Enter a ticker'); return; }
+    analyzerTicker = ticker;
+    $('tickerInput').value = ticker;
+    if (store.recentTickers.indexOf(ticker) === -1) {
+      store.recentTickers.unshift(ticker);
+      store.recentTickers = store.recentTickers.slice(0, 8);
+      saveData();
+    }
+    renderRecentTickers();
+    $('analyzerMount').innerHTML = '<div class="card"><div class="skel"></div><div class="skel" style="margin-top:10px;width:40%"></div><p class="card-meta">Loading analysis…</p></div>';
+
+    Promise.all([fetchQuote(ticker), fetchProfile(ticker), fetchMetrics(ticker), fetchNews(ticker)]).then(function (res) {
+      var q = res[0] || { c: 0, d: 0, dp: 0, h: 0, l: 0, o: 0, pc: 0, v: 0 };
+      var p = res[1] || {};
+      var m = res[2] || {};
+      var news = res[3] || [];
+      var note = store.analysisNotes[ticker] || '';
+
+      $('analyzerMount').innerHTML =
+        '<div class="grid-2">' +
+          '<div class="card">' +
+            '<div class="split"><h3 style="margin:0;flex:1">' + esc(p.name || ticker) + ' · ' + esc(ticker) + '</h3>' +
+              '<span class="badge ' + (hasLiveApi() ? 'live' : 'warn') + '">' + (hasLiveApi() ? 'live' : 'sample') + '</span></div>' +
+            '<div class="mini-stat" style="margin:8px 0">' + money(q.c) +
+              ' <span class="amt ' + ((q.dp || 0) >= 0 ? 'pos' : 'neg') + '" style="font-size:14px">' + money(q.d) + ' (' + pct(q.dp) + ')</span></div>' +
+            '<div class="grid-3">' +
+              '<div><div class="card-meta">Open</div><div class="amt">' + money(q.o) + '</div></div>' +
+              '<div><div class="card-meta">Day range</div><div class="amt">' + money(q.l) + ' – ' + money(q.h) + '</div></div>' +
+              '<div><div class="card-meta">Prev close</div><div class="amt">' + money(q.pc) + '</div></div>' +
+              '<div><div class="card-meta">Volume</div><div class="amt">' + (q.v ? Number(q.v).toLocaleString() : '—') + '</div></div>' +
+              '<div><div class="card-meta">Market cap</div><div class="amt">' + (p.marketCapitalization ? ('$' + Number(p.marketCapitalization).toLocaleString() + 'M') : '—') + '</div></div>' +
+              '<div><div class="card-meta">Industry</div><div class="amt" style="font-family:var(--sans);font-weight:600">' + esc(p.finnhubIndustry || '—') + '</div></div>' +
+            '</div>' +
+            '<div class="tabs" id="analyzerTabs" style="margin-top:12px">' +
+              '<button type="button" class="active" data-tab="overview">Overview</button>' +
+              '<button type="button" data-tab="fundamentals">Fundamentals</button>' +
+              '<button type="button" data-tab="technicals">Technicals</button>' +
+              '<button type="button" data-tab="news">News</button>' +
+              '<button type="button" data-tab="notes">Notes</button>' +
+            '</div>' +
+            '<div id="analyzerTabBody"></div>' +
+          '</div>' +
+          '<div class="card"><h3>Price chart</h3><div class="chart-box"><canvas id="chartTicker"></canvas></div>' +
+            '<p class="card-meta">Mini series from quote range (sample path when historical candles unavailable)</p></div>' +
+        '</div>';
+
+      function paintTab(tab) {
+        document.querySelectorAll('#analyzerTabs button').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-tab') === tab); });
+        var body = $('analyzerTabBody');
+        if (tab === 'overview') {
+          body.innerHTML = '<p style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin-top:8px">' +
+            esc(p.name || ticker) + ' trades on ' + esc(p.exchange || '—') + '. IPO ' + esc(p.ipo || '—') +
+            '. Use Fundamentals and Technicals tabs for valuation and risk context.</p>' +
+            '<div class="split" style="margin-top:10px"><a href="' + esc(p.weburl || '#') + '" target="_blank" rel="noopener">Company site</a></div>';
+        } else if (tab === 'fundamentals') {
+          body.innerHTML = '<div class="grid-3" style="margin-top:8px">' +
+            '<div><div class="card-meta">P/E</div><div class="mini-stat" style="font-size:16px">' + esc(m.peNormalizedAnnual != null ? m.peNormalizedAnnual : '—') + '</div></div>' +
+            '<div><div class="card-meta">EPS</div><div class="mini-stat" style="font-size:16px">' + esc(m.epsAnnual != null ? m.epsAnnual : '—') + '</div></div>' +
+            '<div><div class="card-meta">Div yield</div><div class="mini-stat" style="font-size:16px">' + esc(m.dividendYieldIndicatedAnnual != null ? m.dividendYieldIndicatedAnnual + '%' : '—') + '</div></div>' +
+            '<div><div class="card-meta">52w high</div><div class="amt">' + money(m['52WeekHigh'] || q.h) + '</div></div>' +
+            '<div><div class="card-meta">52w low</div><div class="amt">' + money(m['52WeekLow'] || q.l) + '</div></div>' +
+            '<div><div class="card-meta">Beta</div><div class="amt">' + esc(m.beta != null ? m.beta : '—') + '</div></div></div>';
+        } else if (tab === 'technicals') {
+          var rsi = 45 + (q.dp || 0) * 3;
+          body.innerHTML = '<div class="grid-3" style="margin-top:8px">' +
+            '<div><div class="card-meta">Day % (momentum)</div><div class="amt ' + ((q.dp || 0) >= 0 ? 'pos' : 'neg') + '">' + pct(q.dp) + '</div></div>' +
+            '<div><div class="card-meta">RSI proxy</div><div class="amt">' + Math.max(10, Math.min(90, rsi)).toFixed(0) + '</div></div>' +
+            '<div><div class="card-meta">Volatility cue</div><div class="amt">' + esc(m.beta != null && m.beta > 1.3 ? 'Elevated' : 'Moderate') + '</div></div></div>' +
+            '<p class="card-meta" style="margin-top:8px">Live technicals can bind to Finnhub technical-indicator endpoints when API key is set.</p>';
+        } else if (tab === 'news') {
+          body.innerHTML = news.length ? '<ul class="list" style="margin-top:8px">' + news.map(function (n) {
+            return '<li class="list-item"><div><div class="title">' + esc(n.headline) + '</div><div class="meta">' + esc(n.source || '') + '</div></div></li>';
+          }).join('') + '</ul>' : '<div class="empty-state"><strong>No news</strong></div>';
+        } else {
+          body.innerHTML = '<div class="field" style="margin-top:8px"><label>Analysis note</label><textarea id="analysisNote">' + esc(note) + '</textarea></div>' +
+            '<button type="button" class="btn primary" id="saveAnalysisNote">Save analysis note</button>';
+          $('saveAnalysisNote').onclick = function () {
+            store.analysisNotes[ticker] = $('analysisNote').value;
+            saveData(); toast('Note saved');
+          };
+        }
+      }
+      document.querySelectorAll('#analyzerTabs button').forEach(function (b) {
+        b.onclick = function () { paintTab(b.getAttribute('data-tab')); };
+      });
+      paintTab('overview');
+
+      // mini chart
+      if (typeof Chart !== 'undefined') {
+        destroyChart('ticker');
+        var series = [];
+        var base = q.c || 100;
+        for (var i = 0; i < 40; i++) series.push(base * (0.94 + i * 0.002 + Math.sin(i / 5) * 0.015));
+        series[series.length - 1] = q.c || series[series.length - 1];
+        charts.ticker = new Chart($('chartTicker'), {
+          type: 'line',
+          data: { labels: series.map(function (_, i) { return i; }), datasets: [{ data: series, borderColor: ((q.dp || 0) >= 0 ? '#6BE3A4' : '#FF6B6B'), backgroundColor: 'transparent', tension: 0.35, pointRadius: 0, borderWidth: 2 }] },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: true } } }
+        });
+      }
+      if (!silent) toast('Analyzed ' + ticker);
+    }).catch(function () {
+      $('analyzerMount').innerHTML = '<div class="card"><div class="banner err"><strong>Analyzer error</strong><span>Could not load data. Check API key or try again.</span></div></div>';
+    });
+  }
+
+  /* —— Watchlist —— */
+  function renderWatchlist() {
+    if (!store.watchlist.length) {
+      $('watchMount').innerHTML = '<div class="empty-state"><strong>No watchlist items</strong>Add a ticker to track.</div>';
+      return;
+    }
+    $('watchMount').innerHTML = '<table class="t"><thead><tr><th>Ticker</th><th>Name</th><th>Price</th><th>Day %</th><th>Trend</th><th></th></tr></thead><tbody>' +
+      store.watchlist.map(function (w) {
+        var q = quoteCache[w.ticker] || SAMPLE_QUOTES[w.ticker] || { c: 0, dp: 0 };
+        return '<tr data-id="' + esc(w.id) + '"><td>' + (w.favorite ? '★ ' : '') + '<strong>' + esc(w.ticker) + '</strong></td><td>' + esc(w.name) +
+          '</td><td class="amt">' + money(q.c) + '</td><td class="amt ' + ((q.dp || 0) >= 0 ? 'pos' : 'neg') + '">' + pct(q.dp) + '</td>' +
+          '<td><div class="spark" style="width:64px">' + [2,3,2,4,3,5,4].map(function (v) { return '<i style="height:' + (v * 12) + '%"></i>'; }).join('') + '</div></td>' +
+          '<td><div class="item-actions">' + iconBtn('analyze', '↗') + iconBtn('del', '✕', ' danger') + '</div></td></tr>';
+      }).join('') + '</tbody></table>';
+    $('watchMount').querySelectorAll('tr[data-id]').forEach(function (row) {
+      var id = row.getAttribute('data-id');
+      var w = store.watchlist.find(function (x) { return x.id === id; });
+      row.querySelector('[data-act="analyze"]').onclick = function () { scrollToSection('analyzer'); runAnalyzer(w.ticker); };
+      row.querySelector('[data-act="del"]').onclick = function () {
+        store.watchlist = store.watchlist.filter(function (x) { return x.id !== id; });
+        saveData(); renderWatchlist(); toast('Removed');
+      };
+    });
+  }
+
+  function addWatchTicker(ticker, name) {
+    ticker = String(ticker || '').toUpperCase();
+    if (!ticker) return;
+    if (store.watchlist.some(function (w) { return w.ticker === ticker; })) { toast('Already on watchlist'); return; }
+    store.watchlist.push({ id: uid(), ticker: ticker, name: name || ticker, favorite: false });
+    saveData();
+    fetchQuote(ticker).then(function () { renderWatchlist(); toast('Added to watchlist'); });
+  }
+
+  /* —— Nav / wire —— */
+  function scrollToSection(id) {
+    var el = $('sec-' + id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.querySelectorAll('.sidebar .nav-link[data-section]').forEach(function (n) {
+      n.classList.toggle('active', n.getAttribute('data-section') === id);
+    });
+    closeSidebar();
+  }
+  function openSidebar() { $('sidebar').classList.add('open'); $('sidebarOverlay').classList.add('open'); }
+  function closeSidebar() { $('sidebar').classList.remove('open'); $('sidebarOverlay').classList.remove('open'); }
+
+  function fillCategoryFilter() {
+    var sel = $('fCategory');
+    var cur = sel.value;
+    sel.innerHTML = '<option value="all">Category: All</option>' + CATEGORIES.map(function (c) {
+      return '<option value="' + c + '">' + c + '</option>';
+    }).join('');
+    sel.value = cur || 'all';
+  }
+
+  function readFilters() {
+    filters.account = $('fAccount').value;
+    filters.category = $('fCategory').value;
+    filters.q = $('searchInput').value.trim();
+    filters.range = $('rangeSelect').value;
+  }
+
+  function renderAll() {
+    readFilters();
+    renderKpis();
+    renderBudget();
+    renderCharts();
+    renderTransactions();
+    renderGoals();
+    renderInvesting();
+    renderWatchlist();
+    renderRecentTickers();
+  }
+
+  $('hamburger').onclick = openSidebar;
+  $('sidebarOverlay').onclick = closeSidebar;
+  document.querySelectorAll('.sidebar .nav-link[data-section]').forEach(function (btn) {
+    btn.addEventListener('click', function () { scrollToSection(btn.getAttribute('data-section')); });
+  });
+
+  function bindAddPurchase() { editPurchase(null); }
+  function bindAddGoal() { editGoal(null); }
+  $('addPurchaseBtn').onclick = bindAddPurchase;
+  $('addPurchaseBtn2').onclick = bindAddPurchase;
+  $('navAddPurchase').onclick = bindAddPurchase;
+  $('addGoalBtn').onclick = bindAddGoal;
+  $('addGoalBtn2').onclick = bindAddGoal;
+  $('navAddGoal').onclick = bindAddGoal;
+  $('editBudgetsBtn').onclick = editAllBudgets;
+  $('addHoldingBtn').onclick = function () { editHolding(null); };
+  $('addWatchBtn').onclick = function () {
+    openEdit({
+      title: 'Add to watchlist', mode: 'add',
+      fields: [{ key: 'ticker', label: 'Ticker', value: '', full: true }],
+      save: function (v) { addWatchTicker(v.ticker); }
+    });
+  };
+  $('analyzeBtn').onclick = function () { scrollToSection('analyzer'); $('tickerInput').focus(); };
+  $('navAnalyze').onclick = function () { scrollToSection('analyzer'); $('tickerInput').focus(); };
+  $('runAnalyzeBtn').onclick = function () { runAnalyzer(); };
+  $('tickerInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') runAnalyzer(); });
+  $('addWatchFromAnalyzer').onclick = function () {
+    if (!analyzerTicker) { toast('Analyze a ticker first'); return; }
+    var p = SAMPLE_PROFILE[analyzerTicker];
+    addWatchTicker(analyzerTicker, p ? p.name : analyzerTicker);
+  };
+  $('addPortFromAnalyzer').onclick = function () {
+    if (!analyzerTicker) { toast('Analyze a ticker first'); return; }
+    var p = SAMPLE_PROFILE[analyzerTicker];
+    var q = quoteCache[analyzerTicker] || SAMPLE_QUOTES[analyzerTicker] || { c: 100 };
+    editHolding(null);
+    setTimeout(function () {
+      if ($('ef_ticker')) $('ef_ticker').value = analyzerTicker;
+      if ($('ef_name')) $('ef_name').value = p ? p.name : analyzerTicker;
+      if ($('ef_avgCost')) $('ef_avgCost').value = q.c;
+      if ($('ef_shares')) $('ef_shares').value = '1';
+      if ($('ef_sector')) $('ef_sector').value = p && p.finnhubIndustry ? p.finnhubIndustry : 'Technology';
+    }, 40);
+  };
+  $('refreshQuotesBtn').onclick = function () {
+    refreshAllQuotes().then(function () { toast('Quotes refreshed'); });
+  };
+  $('exportTxBtn').onclick = function () {
+    var blob = new Blob([JSON.stringify(filteredTx(), null, 2)], { type: 'application/json' });
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'transactions.json'; a.click();
+    toast('Exported');
+  };
+
+  ['fAccount', 'fCategory', 'rangeSelect'].forEach(function (id) {
+    $(id).onchange = function () { renderAll(); };
+  });
+  $('searchInput').oninput = function () { renderAll(); };
+  $('clearFilters').onclick = function () {
+    $('fAccount').value = 'all'; $('fCategory').value = 'all'; $('searchInput').value = '';
+    renderAll();
+  };
+
+  $('txTable').querySelectorAll('th[data-sort]').forEach(function (th) {
+    th.style.cursor = 'pointer';
+    th.onclick = function () {
+      var k = th.getAttribute('data-sort');
+      if (txSort.key === k) txSort.dir *= -1; else { txSort.key = k; txSort.dir = 1; }
+      renderTransactions();
+    };
+  });
+
+  $('editCancel').onclick = closeEdit;
+  $('editSave').onclick = function () {
+    if (!editCtx || typeof editCtx.save !== 'function') return;
+    var result = editCtx.save(readFields());
+    if (result === false) return;
+    closeEdit();
+  };
+  $('editDelete').onclick = function () {
+    if (!editCtx || typeof editCtx.remove !== 'function') return;
+    var ok = editCtx.remove();
+    if (ok === false) return;
+    closeEdit();
+  };
+  $('editModal').addEventListener('click', function (e) { if (e.target === $('editModal')) closeEdit(); });
+  $('editModal').addEventListener('keydown', function (e) { if (e.key === 'Escape') closeEdit(); });
+
+  // Theme chart redraw
+  document.addEventListener('jg-theme-change', function () { renderCharts(); renderInvesting(); });
+
+  fillCategoryFilter();
+  renderAll();
+  refreshAllQuotes();
+  // Preload analyzer sample
+  runAnalyzer('AAPL', true);
+})();
+
+  </script>
 </body>
 </html>
