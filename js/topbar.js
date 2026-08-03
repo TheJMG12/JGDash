@@ -7,7 +7,7 @@
     { label: 'Projects', href: 'projects.html' },
     { label: 'Training', href: 'training.html' },
     { label: 'Health', href: 'health.html' },
-    { label: 'Water', href: 'po-water.html' },
+    { label: 'Media', href: 'media.html' },
     { label: 'Finance', href: 'finance.html' }
   ];
 

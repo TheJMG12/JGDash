@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>JGDash — Media</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/lock.js"></script>
+  <script src="js/sync.js"></script>
+  <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
+  <script src="js/theme.js?v=3"></script>
+  <script src="js/topbar.js?v=3"></script>
+  <script src="js/media-store.js"></script>
+  <style>
+
+:root {
+  --text-primary:#FAFAFA; --text-secondary:#B8B6B0; --text-tertiary:#76746E;
+  --success:#6BE3A4; --warning:#F2C063; --danger:#FF6B6B;
+  --bg:#050506; --card-bg:rgba(255,255,255,0.04); --accent:#A78BFA;
+  --border:rgba(255,255,255,0.08); --input-bg:rgba(255,255,255,0.05);
+  --sidebar-w:220px; --video:#F87171; --article:#7DD3FC; --reddit:#FB923C; --link:#6BE3A4;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+[data-theme="light"] {
+  --text-primary:#1A1917; --text-secondary:#5C5A54; --text-tertiary:#8A8780;
+  --bg:#F4F3F0; --card-bg:rgba(255,255,255,0.72); --border:rgba(0,0,0,0.1);
+  --input-bg:rgba(255,255,255,0.9); --success:#1F9D62; --warning:#C4841A;
+  --danger:#D64545; --accent:#6D28D9; --video:#DC2626; --article:#0284C7;
+  --reddit:#EA580C; --link:#1F9D62;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{height:100%}
+body{min-height:100%;font-family:var(--sans);color:var(--text-primary);background:var(--bg);position:relative;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:-20%;z-index:0;pointer-events:none;background:radial-gradient(ellipse 50% 40% at 82% 14%,rgba(167,139,250,0.14),transparent 60%),radial-gradient(ellipse 45% 35% at 18% 90%,rgba(125,211,252,0.07),transparent 55%);filter:blur(40px);animation:wash-drift 36s ease-in-out infinite alternate}
+[data-theme="light"] body::before{background:radial-gradient(ellipse 50% 40% at 82% 14%,rgba(109,40,217,0.08),transparent 60%),radial-gradient(ellipse 45% 35% at 18% 90%,rgba(2,132,199,0.06),transparent 55%)}
+body::after{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background-image:radial-gradient(rgba(255,255,255,0.014) 0.6px,transparent 0.6px);background-size:3px 3px}
+[data-theme="light"] body::after{background-image:radial-gradient(rgba(0,0,0,0.03) 0.6px,transparent 0.6px)}
+@keyframes wash-drift{0%{transform:translate(0,0) scale(1)}100%{transform:translate(-3%,2%) scale(1.04)}}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
+a{color:var(--accent)}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+.app{position:relative;z-index:1;display:flex;min-height:100vh}
+.sidebar{width:var(--sidebar-w);flex-shrink:0;padding:16px 12px;border-right:1px solid var(--border);background:rgba(0,0,0,0.25);backdrop-filter:blur(20px);display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh;overflow-y:auto}
+[data-theme="light"] .sidebar{background:rgba(255,255,255,0.55)}
+.sidebar-brand{font-size:13px;font-weight:700;letter-spacing:0.04em;color:var(--text-secondary);padding:8px 10px 14px;text-transform:uppercase}
+.nav-link{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;font-size:13px;color:var(--text-secondary);text-align:left;width:100%;transition:background .15s,color .15s;text-decoration:none}
+.nav-link:hover{background:rgba(255,255,255,0.05);color:var(--text-primary)}
+.nav-link.active{background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent);font-weight:600}
+.sidebar-section{margin-top:16px;padding:0 10px 6px;font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-tertiary)}
+.sidebar-back{margin-top:auto;padding:12px 10px 4px;font-size:12px}
+.mobile-bar{display:none;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);background:rgba(0,0,0,0.35);backdrop-filter:blur(16px);position:sticky;top:0;z-index:20}
+.hamburger{width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--input-bg);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--text-primary)}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:30}
+.main{flex:1;min-width:0;display:flex;flex-direction:column;max-height:100vh;overflow:hidden}
+.main-scroll{flex:1;overflow-y:auto;padding:16px 20px 48px}
+.page-header{display:flex;flex-wrap:wrap;align-items:flex-start;gap:10px;margin-bottom:12px}
+.page-title-block{margin-right:auto;min-width:200px}
+.page-title{font-size:20px;font-weight:700;letter-spacing:-0.02em}
+.page-sub{font-size:12px;color:var(--text-tertiary);margin-top:4px;max-width:480px;line-height:1.4}
+.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.search-input{min-width:180px;padding:7px 12px;border-radius:10px;border:1px solid var(--border);background:var(--input-bg);font-size:13px;color:var(--text-primary)}
+.search-input::placeholder{color:var(--text-tertiary)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:10px;font-size:13px;font-weight:600;border:1px solid var(--border);background:var(--input-bg);color:var(--text-secondary);transition:background .15s,border-color .15s,color .15s}
+.btn:hover{color:var(--text-primary)}
+.btn.primary{background:color-mix(in srgb,var(--accent) 22%,transparent);border-color:color-mix(in srgb,var(--accent) 45%,transparent);color:var(--accent)}
+.btn.danger{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 35%,transparent)}
+.select,.field input,.field textarea,.field select{padding:7px 10px;border-radius:10px;border:1px solid var(--border);background:var(--input-bg);font-size:13px;color:var(--text-primary);width:100%}
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.field label{font-size:11px;font-weight:600;color:var(--text-tertiary)}
+.field textarea{min-height:72px;resize:vertical}
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;align-items:center}
+.filters .select{width:auto;min-width:120px}
+.card{background:var(--card-bg);border-radius:16px;padding:14px;backdrop-filter:blur(24px) saturate(1.2);box-shadow:0 12px 40px rgba(0,0,0,0.45);border:1px solid var(--border)}
+[data-theme="light"] .card{box-shadow:0 8px 28px rgba(0,0,0,0.08)}
+.card h3{font-size:13px;font-weight:700;margin-bottom:8px}
+.card-meta{font-size:11px;color:var(--text-tertiary);margin-bottom:8px}
+.section{margin-bottom:26px;scroll-margin-top:16px}
+.section-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:12px}
+.section-title{font-size:15px;font-weight:700;letter-spacing:-0.01em}
+.section-sub{font-size:12px;color:var(--text-tertiary)}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;border:1px solid var(--border);color:var(--text-tertiary)}
+.badge.ok{color:var(--success);border-color:color-mix(in srgb,var(--success) 40%,transparent)}
+.badge.warn{color:var(--warning);border-color:color-mix(in srgb,var(--warning) 40%,transparent)}
+.badge.video{color:var(--video);border-color:color-mix(in srgb,var(--video) 40%,transparent)}
+.badge.article{color:var(--article);border-color:color-mix(in srgb,var(--article) 40%,transparent)}
+.badge.reddit{color:var(--reddit);border-color:color-mix(in srgb,var(--reddit) 40%,transparent)}
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px}
+.kpi{padding:12px;border-radius:14px;border:1px solid var(--border);background:color-mix(in srgb,var(--card-bg) 80%,transparent);min-height:78px;display:flex;flex-direction:column;gap:4px}
+.kpi-label{font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-tertiary)}
+.kpi-value{font-size:22px;font-weight:700;font-family:var(--mono);letter-spacing:-0.03em}
+.kpi-sub{font-size:11px;color:var(--text-tertiary)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.span-2{grid-column:span 2}
+.span-full{grid-column:1/-1}
+.list{list-style:none;display:flex;flex-direction:column;gap:8px}
+.list-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:var(--input-bg)}
+.list-item .title{font-size:13px;font-weight:600}
+.list-item .meta{font-size:11px;color:var(--text-tertiary);margin-top:2px}
+.list-item .right{margin-left:auto;text-align:right;font-size:11px;color:var(--text-tertiary);white-space:nowrap}
+.item-actions{display:flex;gap:4px;margin-left:8px;flex-shrink:0}
+.icon-btn{width:28px;height:28px;border-radius:8px;border:1px solid var(--border);background:var(--input-bg);color:var(--text-tertiary);font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
+.icon-btn:hover{color:var(--text-primary)}
+.icon-btn.danger:hover{color:var(--danger)}
+.card-head{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px}
+.card-head h3{margin:0;flex:1}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag-pill{padding:3px 8px;border-radius:999px;font-size:11px;border:1px solid var(--border);color:var(--text-secondary);background:var(--input-bg)}
+.thumb{width:44px;height:44px;border-radius:10px;border:1px solid var(--border);background:linear-gradient(135deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02));display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text-tertiary);flex-shrink:0;overflow:hidden}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.queue-item{cursor:grab}
+.queue-item.drag-over{outline:1px dashed var(--accent)}
+.empty-state{text-align:center;padding:24px 12px;color:var(--text-tertiary);font-size:13px;line-height:1.5}
+.empty-state strong{display:block;color:var(--text-secondary);margin-bottom:6px}
+.split{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.mini-stat{font-family:var(--mono);font-size:18px;font-weight:700}
+.hidden{display:none!important}
+.table-wrap{overflow-x:auto}
+table.t{width:100%;border-collapse:collapse;font-size:13px}
+table.t th{text-align:left;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-tertiary);padding:8px 10px;border-bottom:1px solid var(--border)}
+table.t td{padding:10px;border-bottom:1px solid var(--border);vertical-align:top}
+table.t tr:hover td{background:rgba(255,255,255,0.02)}
+.modal-backdrop{display:none;position:fixed;inset:0;z-index:50;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;padding:20px}
+.modal-backdrop.open{display:flex}
+.modal{width:100%;max-width:560px;max-height:90vh;overflow-y:auto;padding:20px;border-radius:16px;background:#121214;border:1px solid var(--border);box-shadow:0 24px 60px rgba(0,0,0,0.55)}
+[data-theme="light"] .modal{background:#fff}
+.modal.wide{max-width:720px}
+.modal h2{font-size:18px;font-weight:700;margin-bottom:10px}
+.modal-lead{font-size:13px;color:var(--text-secondary);margin-bottom:14px;line-height:1.45}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.modal-grid .full{grid-column:1/-1}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;align-items:center}
+.modal-actions .spacer{flex:1}
+.toast{position:fixed;bottom:20px;right:20px;z-index:60;padding:10px 14px;border-radius:10px;background:#121214;border:1px solid var(--border);font-size:13px;color:var(--text-primary);box-shadow:0 12px 32px rgba(0,0,0,0.4);opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;pointer-events:none}
+[data-theme="light"] .toast{background:#fff}
+.toast.show{opacity:1;transform:translateY(0)}
+.capture-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.capture-bar .search-input{flex:1;min-width:220px}
+.view-toggle{display:inline-flex;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.view-toggle button{padding:7px 10px;font-size:12px;font-weight:600;color:var(--text-tertiary);border-right:1px solid var(--border)}
+.view-toggle button:last-child{border-right:none}
+.view-toggle button.active{background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent)}
+.media-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.poster-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.poster-card .art{aspect-ratio:2/3;border-radius:12px;border:1px solid var(--border);background:linear-gradient(160deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02));margin-bottom:8px;display:flex;align-items:center;justify-content:center;color:var(--text-tertiary);font-size:12px;overflow:hidden}
+.poster-card .art img{width:100%;height:100%;object-fit:cover}
+.book-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.book-card .cover{aspect-ratio:2/3;border-radius:10px;border:1px solid var(--border);background:linear-gradient(160deg,rgba(167,139,250,0.2),rgba(255,255,255,0.02));margin-bottom:8px;display:flex;align-items:center;justify-content:center;padding:10px;text-align:center;font-size:12px;font-weight:700;color:var(--text-secondary);overflow:hidden}
+.book-card .cover img{width:100%;height:100%;object-fit:cover}
+.progress-bar{height:6px;border-radius:999px;background:rgba(255,255,255,0.06);overflow:hidden;margin-top:8px}
+[data-theme="light"] .progress-bar{background:rgba(0,0,0,0.08)}
+.progress-bar>span{display:block;height:100%;border-radius:999px;background:var(--accent)}
+.masonry{column-count:4;column-gap:12px}
+.masonry .vcard{break-inside:avoid;margin-bottom:12px;border-radius:14px;border:1px solid var(--border);background:var(--card-bg);overflow:hidden;cursor:pointer;transition:transform .15s,border-color .15s}
+.masonry .vcard:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--accent) 40%,transparent)}
+.masonry .vcard img{width:100%;display:block;background:#111}
+.masonry .vcard .body{padding:10px 12px 12px}
+.lightbox{display:none;position:fixed;inset:0;z-index:55;background:rgba(0,0,0,0.82);padding:24px;align-items:center;justify-content:center}
+.lightbox.open{display:flex}
+.lightbox-inner{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;width:min(1100px,100%);max-height:90vh}
+.lightbox-img{border-radius:14px;overflow:hidden;background:#000;display:flex;align-items:center;justify-content:center}
+.lightbox-img img{max-width:100%;max-height:85vh;object-fit:contain}
+.lightbox-meta{overflow-y:auto;padding:16px;border-radius:14px;background:#121214;border:1px solid var(--border)}
+[data-theme="light"] .lightbox-meta{background:#fff}
+@media(max-width:1200px){.kpi-row{grid-template-columns:repeat(3,1fr)}.poster-grid{grid-template-columns:repeat(4,1fr)}.book-grid{grid-template-columns:repeat(3,1fr)}.masonry{column-count:3}}
+@media(max-width:960px){.grid-2,.grid-3{grid-template-columns:1fr}.span-2{grid-column:span 1}.kpi-row{grid-template-columns:repeat(2,1fr)}.media-grid,.poster-grid,.book-grid{grid-template-columns:repeat(2,1fr)}.masonry{column-count:2}.lightbox-inner{grid-template-columns:1fr}}
+@media(max-width:860px){.sidebar{position:fixed;left:0;top:0;bottom:0;z-index:40;transform:translateX(-105%);transition:transform .22s ease;box-shadow:8px 0 32px rgba(0,0,0,0.4)}.sidebar.open{transform:translateX(0)}.sidebar-overlay.open{display:block}.mobile-bar{display:flex}.main{max-height:none}.modal-grid{grid-template-columns:1fr}}
+@media(max-width:560px){.poster-grid,.book-grid,.media-grid{grid-template-columns:1fr}.masonry{column-count:1}.kpi-row{grid-template-columns:1fr 1fr}}
+
+  </style>
+</head>
+<body data-page-title="Media">
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">Media</div>
+      <button type="button" class="nav-link active" data-section="overview">Hub overview</button>
+      <button type="button" class="nav-link" data-section="inbox">Inbox</button>
+      <button type="button" class="nav-link" data-section="queue">Up Next</button>
+      <button type="button" class="nav-link" data-section="library">Library</button>
+      <button type="button" class="nav-link" data-section="notes">Notes</button>
+      <button type="button" class="nav-link" data-section="backlog">Backlog</button>
+      <div class="sidebar-section">Spaces</div>
+      <a class="nav-link" href="visual-bookmarks.html">Visual Bookmarks</a>
+      <a class="nav-link" href="watchlist.html">Watchlist</a>
+      <a class="nav-link" href="reading-list.html">Reading List</a>
+      <div class="sidebar-section">Quick add</div>
+      <button type="button" class="nav-link" id="navAddLink">+ Link</button>
+      <button type="button" class="nav-link" id="navAddArticle">+ Article</button>
+      <button type="button" class="nav-link" id="navAddVideo">+ Video</button>
+      <div class="sidebar-back"><a href="index.html">← Dashboard</a></div>
+    </aside>
+    <div class="main">
+      <div class="mobile-bar">
+        <button type="button" class="hamburger" id="hamburger" aria-label="Open menu">☰</button>
+        <strong style="font-size:15px">Media</strong>
+      </div>
+      <div class="main-scroll" id="mainScroll">
+        <div class="page-header">
+          <div class="page-title-block">
+            <h1 class="page-title">Media</h1>
+            <p class="page-sub">Organize what I save, queue what matters, and clear the backlog.</p>
+          </div>
+          <div class="toolbar">
+            <input type="search" class="search-input" id="searchInput" placeholder="Search links, notes, tags…" aria-label="Search media" />
+            <button type="button" class="btn" id="quickSaveBtn">Quick Save</button>
+            <button type="button" class="btn primary" id="addLinkBtn">+ Add Link</button>
+          </div>
+        </div>
+
+        <div class="filters" id="filterRow">
+          <select class="select" id="fType"><option value="all">Type: All</option><option>article</option><option>video</option><option>reddit</option><option>link</option></select>
+          <select class="select" id="fSource"><option value="all">Source: All</option></select>
+          <select class="select" id="fStatus"><option value="all">Status: All</option><option>inbox</option><option>queue</option><option>library</option><option>completed</option><option>archived</option></select>
+          <select class="select" id="fPriority"><option value="all">Priority: All</option><option>high</option><option>medium</option><option>low</option></select>
+          <select class="select" id="fTag"><option value="all">Tag: All</option></select>
+          <select class="select" id="fTime"><option value="all">Time: All</option><option value="short">≤10 min</option><option value="mid">11–20</option><option value="long">20+</option></select>
+          <button type="button" class="btn" id="clearFilters">Clear</button>
+        </div>
+
+        <div class="split" style="margin-bottom:14px">
+          <a class="btn" href="visual-bookmarks.html">Open Visual Bookmarks</a>
+          <a class="btn" href="watchlist.html">Open Watchlist</a>
+          <a class="btn" href="reading-list.html">Open Reading List</a>
+          <button type="button" class="btn" id="addCollectionBtn">+ Collection</button>
+          <button type="button" class="btn" id="addNoteBtn">+ Note</button>
+        </div>
+
+        <section class="section" id="sec-overview">
+          <div class="section-head"><h2 class="section-title">Overview</h2><span class="section-sub">Lightweight counts — not analytics</span></div>
+          <div class="kpi-row" id="kpiRow"></div>
+        </section>
+
+        <section class="section" id="sec-inbox">
+          <div class="section-head">
+            <h2 class="section-title">Capture / Inbox</h2>
+            <span class="section-sub">Paste a URL · default save to inbox</span>
+          </div>
+          <div class="card" style="margin-bottom:12px">
+            <div class="capture-bar">
+              <input class="search-input" id="captureUrl" placeholder="Paste URL to save…" aria-label="Paste URL" />
+              <button type="button" class="btn primary" id="captureBtn">Save to inbox</button>
+            </div>
+          </div>
+          <div id="inboxMount"></div>
+        </section>
+
+        <section class="section" id="sec-queue">
+          <div class="section-head">
+            <h2 class="section-title">Up Next</h2>
+            <span class="section-sub">Intentional queue · drag to reorder</span>
+            <div class="view-toggle" style="margin-left:auto">
+              <button type="button" class="active" data-qfilter="all">All</button>
+              <button type="button" data-qfilter="short">Short</button>
+              <button type="button" data-qfilter="long">Long</button>
+            </div>
+          </div>
+          <div id="queueMount"></div>
+        </section>
+
+        <section class="section" id="sec-library">
+          <div class="section-head">
+            <h2 class="section-title">Library</h2>
+            <span class="section-sub">Articles · videos · Reddit · links</span>
+            <div class="view-toggle" style="margin-left:auto">
+              <button type="button" class="active" data-libview="list">List</button>
+              <button type="button" data-libview="cards">Cards</button>
+            </div>
+            <select class="select" id="groupBy" style="width:auto">
+              <option value="none">Group: None</option>
+              <option value="source">Source</option>
+              <option value="tag">Tag</option>
+              <option value="status">Status</option>
+              <option value="collection">Collection</option>
+            </select>
+          </div>
+          <div id="libraryMount"></div>
+        </section>
+
+        <section class="section" id="sec-notes">
+          <div class="section-head"><h2 class="section-title">Notes / takeaways</h2></div>
+          <div id="notesMount"></div>
+        </section>
+
+        <section class="section" id="sec-backlog">
+          <div class="section-head">
+            <h2 class="section-title">Backlog management</h2>
+            <button type="button" class="btn" id="bulkArchiveBtn" style="margin-left:auto">Bulk archive stale</button>
+            <button type="button" class="btn danger" id="cleanupBtn">Queue cleanup</button>
+          </div>
+          <div class="grid-2" id="backlogMount"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="editModal" role="dialog" aria-modal="true">
+    <div class="modal wide">
+      <h2 id="editTitle">Edit</h2>
+      <p class="modal-lead" id="editLead"></p>
+      <div class="modal-grid" id="editFields"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn danger" id="editDelete" hidden>Delete</button>
+        <div class="spacer"></div>
+        <button type="button" class="btn" id="editCancel">Cancel</button>
+        <button type="button" class="btn primary" id="editSave">Save</button>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+
+  <script>
+(function () {
+  'use strict';
+  var store = JGMedia.load();
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) {
+    return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  };
+  var editCtx = null;
+  var libView = 'list';
+  var qFilter = 'all';
+  var filters = { type:'all', source:'all', status:'all', priority:'all', tag:'all', time:'all', q:'' };
+  var dragId = null;
+
+  function toast(msg) {
+    var el = $('toast'); el.textContent = msg; el.classList.add('show');
+    clearTimeout(toast._t); toast._t = setTimeout(function () { el.classList.remove('show'); }, 2200);
+  }
+  function persist() { JGMedia.save(store); }
+  function iconBtn(act, label, extra) {
+    return '<button type="button" class="icon-btn' + (extra||'') + '" data-act="' + act + '" title="' + esc(label) + '" aria-label="' + esc(label) + '">' + label + '</button>';
+  }
+  function typeBadge(t) {
+    var cls = t === 'video' ? 'video' : t === 'article' ? 'article' : t === 'reddit' ? 'reddit' : 'ok';
+    return '<span class="badge ' + cls + '">' + esc(t) + '</span>';
+  }
+  function daysSince(iso) {
+    if (!iso) return 0;
+    return Math.floor((Date.now() - new Date(iso + 'T12:00:00').getTime()) / 86400000);
+  }
+  function matchItem(it) {
+    if (it.archived && filters.status !== 'archived') {
+      if (filters.status !== 'all') return false;
+    }
+    if (filters.type !== 'all' && it.type !== filters.type) return false;
+    if (filters.source !== 'all' && it.source !== filters.source) return false;
+    if (filters.status !== 'all') {
+      if (filters.status === 'archived') { if (!it.archived) return false; }
+      else if (filters.status === 'queue') { if (!it.inQueue) return false; }
+      else if (it.status !== filters.status && !(filters.status === 'inbox' && it.status === 'inbox')) return false;
+    }
+    if (filters.priority !== 'all' && it.priority !== filters.priority) return false;
+    if (filters.tag !== 'all' && String(it.tags||'').toLowerCase().indexOf(filters.tag.toLowerCase()) === -1) return false;
+    if (filters.time !== 'all') {
+      var m = Number(it.estimatedMinutes) || 0;
+      if (filters.time === 'short' && m > 10) return false;
+      if (filters.time === 'mid' && (m < 11 || m > 20)) return false;
+      if (filters.time === 'long' && m < 20) return false;
+    }
+    if (filters.q) {
+      var hay = (it.title + ' ' + it.source + ' ' + (it.tags||'') + ' ' + (it.collection||'')).toLowerCase();
+      if (hay.indexOf(filters.q.toLowerCase()) === -1) return false;
+    }
+    return true;
+  }
+  function activeItems() { return store.items.filter(function (it) { return !it.archived && matchItem(it); }); }
+
+  function openEdit(cfg) {
+    editCtx = cfg;
+    $('editTitle').textContent = cfg.title || 'Edit';
+    $('editLead').textContent = cfg.lead || '';
+    $('editLead').style.display = cfg.lead ? '' : 'none';
+    $('editDelete').hidden = !(cfg.mode === 'edit' && cfg.canDelete);
+    $('editFields').innerHTML = (cfg.fields || []).map(function (f) {
+      var full = f.full ? ' full' : '';
+      var val = f.value == null ? '' : f.value;
+      var input;
+      if (f.type === 'textarea') input = '<textarea id="ef_' + f.key + '" rows="' + (f.rows||3) + '">' + esc(val) + '</textarea>';
+      else if (f.type === 'select') {
+        input = '<select id="ef_' + f.key + '">' + (f.options||[]).map(function (o) {
+          var v = typeof o === 'string' ? o : o.value;
+          var lab = typeof o === 'string' ? o : o.label;
+          return '<option value="' + esc(v) + '"' + (String(v)===String(val)?' selected':'') + '>' + esc(lab) + '</option>';
+        }).join('') + '</select>';
+      } else if (f.type === 'checkbox') {
+        input = '<label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" id="ef_' + f.key + '"' + (val?' checked':'') + ' /> ' + esc(f.checkLabel||'Yes') + '</label>';
+      } else input = '<input id="ef_' + f.key + '" type="' + (f.type||'text') + '" value="' + esc(val) + '" placeholder="' + esc(f.placeholder||'') + '" />';
+      return '<div class="field' + full + '"><label for="ef_' + f.key + '">' + esc(f.label) + '</label>' + input + '</div>';
+    }).join('');
+    $('editModal').classList.add('open');
+  }
+  function closeEdit() { $('editModal').classList.remove('open'); editCtx = null; }
+  function readFields() {
+    var out = {};
+    (editCtx.fields||[]).forEach(function (f) {
+      var el = $('ef_' + f.key); if (!el) return;
+      out[f.key] = f.type === 'checkbox' ? !!el.checked : el.value;
+    });
+    return out;
+  }
+
+  function guessType(url) {
+    var u = (url||'').toLowerCase();
+    if (u.indexOf('youtube.com') !== -1 || u.indexOf('youtu.be') !== -1) return 'video';
+    if (u.indexOf('reddit.com') !== -1) return 'reddit';
+    if (u.indexOf('http') === 0) return 'article';
+    return 'link';
+  }
+  function guessSource(url) {
+    try { return new URL(url).hostname.replace(/^www\./,''); } catch (e) { return 'manual'; }
+  }
+  function fillFilters() {
+    var sources = {}; var tags = {};
+    store.items.forEach(function (it) {
+      sources[it.source] = true;
+      String(it.tags||'').split(',').forEach(function (t) { t = t.trim(); if (t) tags[t] = true; });
+    });
+    var s = $('fSource'); var cur = s.value;
+    s.innerHTML = '<option value="all">Source: All</option>' + Object.keys(sources).sort().map(function (x) {
+      return '<option>' + esc(x) + '</option>';
+    }).join('');
+    s.value = cur || 'all';
+    var t = $('fTag'); var ct = t.value;
+    t.innerHTML = '<option value="all">Tag: All</option>' + Object.keys(tags).sort().map(function (x) {
+      return '<option value="' + esc(x) + '">' + esc(x) + '</option>';
+    }).join('');
+    t.value = ct || 'all';
+  }
+
+  function renderKpis() {
+    var items = store.items;
+    var unread = items.filter(function (i) { return !i.completed && !i.archived && i.type === 'article'; }).length;
+    var unwatched = items.filter(function (i) { return !i.completed && !i.archived && i.type === 'video'; }).length;
+    var queue = items.filter(function (i) { return i.inQueue && !i.archived; }).length;
+    var archived = items.filter(function (i) { return i.archived; }).length;
+    var high = items.filter(function (i) { return i.priority === 'high' && !i.completed && !i.archived; }).length;
+    var recent = items.filter(function (i) { return daysSince(i.savedAt) <= 7; }).length;
+    var cards = [
+      { label: 'Unread articles', value: unread },
+      { label: 'Unwatched videos', value: unwatched },
+      { label: 'In queue', value: queue },
+      { label: 'Archived', value: archived },
+      { label: 'High-priority', value: high },
+      { label: 'Added this week', value: recent },
+      { label: 'Visual bookmarks', value: store.visuals.filter(function (v){return !v.archived;}).length },
+      { label: 'Watchlist', value: store.watchlist.length },
+      { label: 'Reading list', value: store.books.length },
+      { label: 'Collections', value: store.collections.length }
+    ];
+    $('kpiRow').innerHTML = cards.map(function (c) {
+      return '<div class="kpi"><div class="kpi-label">' + esc(c.label) + '</div><div class="kpi-value">' + c.value + '</div></div>';
+    }).join('');
+  }
+
+  function itemRow(it, opts) {
+    opts = opts || {};
+    return '<div class="list-item' + (opts.queue ? ' queue-item' : '') + '" data-id="' + esc(it.id) + '"' + (opts.queue ? ' draggable="true"' : '') + '>' +
+      '<div class="thumb">' + (it.type === 'video' ? '▶' : it.type === 'reddit' ? 'r/' : 'Aa') + '</div>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div class="title">' + (it.priority==='high'?'⚠ ':'') + esc(it.title) + '</div>' +
+        '<div class="meta">' + typeBadge(it.type) + ' · ' + esc(it.source) + ' · ' + esc(it.estimatedMinutes||'?') + 'm · ' + esc(it.savedAt) +
+          (it.tags ? ' · ' + esc(it.tags) : '') +
+          ((it.notes&&it.notes.length) ? ' · 📝' + it.notes.length : '') + '</div>' +
+      '</div>' +
+      '<div class="right">' + esc(it.status) + '</div>' +
+      '<div class="item-actions">' +
+        (opts.queue ? '' : iconBtn('queue', '⬆')) +
+        iconBtn('edit', '✎') + iconBtn('done', '✓') + iconBtn('arch', '⬇') + iconBtn('del', '✕', ' danger') +
+      '</div></div>';
+  }
+
+  function wireItemActions(root) {
+    root.querySelectorAll('.list-item').forEach(function (row) {
+      var id = row.getAttribute('data-id');
+      var it = store.items.find(function (x) { return x.id === id; });
+      if (!it) return;
+      var q = row.querySelector('[data-act="queue"]');
+      if (q) q.onclick = function (e) { e.stopPropagation(); it.inQueue = true; it.status = 'queue'; it.queueOrder = Date.now(); persist(); renderAll(); toast('Added to queue'); };
+      row.querySelector('[data-act="edit"]').onclick = function (e) { e.stopPropagation(); editItem(it); };
+      row.querySelector('[data-act="done"]').onclick = function (e) {
+        e.stopPropagation(); it.completed = true; it.inQueue = false; it.status = 'completed'; persist(); renderAll(); toast('Marked complete');
+      };
+      row.querySelector('[data-act="arch"]').onclick = function (e) {
+        e.stopPropagation(); it.archived = true; it.inQueue = false; it.status = 'archived'; persist(); renderAll(); toast('Archived');
+      };
+      row.querySelector('[data-act="del"]').onclick = function (e) {
+        e.stopPropagation(); if (!confirm('Delete item?')) return;
+        store.items = store.items.filter(function (x) { return x.id !== id; }); persist(); renderAll(); toast('Deleted');
+      };
+      row.onclick = function (e) { if (e.target.closest('button')) return; editItem(it); };
+    });
+  }
+
+  function renderInbox() {
+    var list = store.items.filter(function (it) { return it.status === 'inbox' && !it.archived && matchItem(it); });
+    if (!list.length) {
+      $('inboxMount').innerHTML = '<div class="card empty-state"><strong>Inbox is clear</strong>Paste a URL above to capture something new.</div>';
+      return;
+    }
+    $('inboxMount').innerHTML = '<div class="card"><ul class="list">' + list.map(function (it) { return itemRow(it); }).join('') + '</ul></div>';
+    wireItemActions($('inboxMount'));
+  }
+
+  function renderQueue() {
+    var list = store.items.filter(function (it) { return it.inQueue && !it.archived && matchItem(it); })
+      .sort(function (a,b) { return (a.queueOrder||0) - (b.queueOrder||0); });
+    if (qFilter === 'short') list = list.filter(function (it) { return (it.estimatedMinutes||0) <= 10; });
+    if (qFilter === 'long') list = list.filter(function (it) { return (it.estimatedMinutes||0) > 20; });
+    if (!list.length) {
+      $('queueMount').innerHTML = '<div class="card empty-state"><strong>Queue is empty</strong>Promote inbox items with the ⬆ action.</div>';
+      return;
+    }
+    $('queueMount').innerHTML = '<div class="card"><ul class="list" id="queueList">' + list.map(function (it) { return itemRow(it, { queue: true }); }).join('') + '</ul></div>';
+    wireItemActions($('queueMount'));
+    $('queueMount').querySelectorAll('.queue-item').forEach(function (row) {
+      row.addEventListener('dragstart', function () { dragId = row.getAttribute('data-id'); });
+      row.addEventListener('dragover', function (e) { e.preventDefault(); row.classList.add('drag-over'); });
+      row.addEventListener('dragleave', function () { row.classList.remove('drag-over'); });
+      row.addEventListener('drop', function (e) {
+        e.preventDefault(); row.classList.remove('drag-over');
+        if (!dragId) return;
+        var moving = store.items.find(function (x) { return x.id === dragId; });
+        var target = store.items.find(function (x) { return x.id === row.getAttribute('data-id'); });
+        if (moving && target) {
+          var tmp = moving.queueOrder; moving.queueOrder = target.queueOrder; target.queueOrder = tmp;
+          persist(); renderQueue(); toast('Reordered');
+        }
+        dragId = null;
+      });
+    });
+  }
+
+  function renderLibrary() {
+    var list = store.items.filter(function (it) { return !it.archived && matchItem(it); });
+    var groupBy = $('groupBy').value;
+    if (!list.length) {
+      $('libraryMount').innerHTML = '<div class="card empty-state"><strong>No saved media</strong>Add a link to start your library.</div>';
+      return;
+    }
+    function block(title, items) {
+      if (libView === 'cards') {
+        return '<div class="card" style="margin-bottom:12px"><h3>' + esc(title) + '</h3><div class="media-grid">' +
+          items.map(function (it) {
+            return '<div class="list-item" data-id="' + esc(it.id) + '" style="flex-direction:column">' +
+              '<div class="title">' + esc(it.title) + '</div>' +
+              '<div class="meta">' + typeBadge(it.type) + ' · ' + esc(it.source) + '</div>' +
+              '<div class="item-actions" style="margin-left:0;margin-top:8px">' + iconBtn('edit','✎') + iconBtn('queue','⬆') + iconBtn('del','✕',' danger') + '</div></div>';
+          }).join('') + '</div></div>';
+      }
+      return '<div class="card" style="margin-bottom:12px"><h3>' + esc(title) + '</h3><ul class="list">' +
+        items.map(function (it) { return itemRow(it); }).join('') + '</ul></div>';
+    }
+    if (groupBy === 'none') {
+      $('libraryMount').innerHTML = block('All items', list);
+    } else {
+      var groups = {};
+      list.forEach(function (it) {
+        var key = groupBy === 'tag'
+          ? (String(it.tags||'untagged').split(',')[0].trim() || 'untagged')
+          : (it[groupBy] || '—');
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(it);
+      });
+      $('libraryMount').innerHTML = Object.keys(groups).sort().map(function (k) { return block(k, groups[k]); }).join('');
+    }
+    wireItemActions($('libraryMount'));
+  }
+
+  function renderNotes() {
+    var notes = [];
+    store.items.forEach(function (it) {
+      (it.notes||[]).forEach(function (n) {
+        notes.push({ item: it, note: n });
+      });
+    });
+    if (!notes.length) {
+      $('notesMount').innerHTML = '<div class="card empty-state"><strong>No notes yet</strong>Add takeaways while editing an item.</div>';
+      return;
+    }
+    notes.sort(function (a,b) { return (b.note.pinned?1:0) - (a.note.pinned?1:0); });
+    $('notesMount').innerHTML = '<div class="card"><ul class="list">' + notes.map(function (x) {
+      return '<li class="list-item"><div style="flex:1"><div class="title">' + (x.note.pinned?'📌 ':'') + esc(x.note.text) + '</div>' +
+        '<div class="meta">' + esc(x.note.kind) + ' · on ' + esc(x.item.title) + '</div></div></li>';
+    }).join('') + '</ul></div>';
+  }
+
+  function renderBacklog() {
+    var stale = store.items.filter(function (it) { return !it.archived && !it.completed && daysSince(it.savedAt) >= 30; });
+    var untouched = store.items.filter(function (it) { return it.status === 'inbox' && !(it.notes&&it.notes.length); });
+    var dups = [];
+    var seen = {};
+    store.items.forEach(function (it) {
+      var u = (it.url||'').toLowerCase();
+      if (!u) return;
+      if (seen[u]) dups.push(it); else seen[u] = it;
+    });
+    var suggest = store.items.filter(function (it) { return it.inQueue || (it.priority==='high' && !it.completed); }).slice(0,5);
+
+    $('backlogMount').innerHTML =
+      '<div class="card"><h3>Stale / untouched</h3>' +
+        (stale.length ? '<ul class="list">' + stale.slice(0,6).map(function (it) {
+          return '<li class="list-item"><div><div class="title">' + esc(it.title) + '</div><div class="meta">' + daysSince(it.savedAt) + ' days old</div></div></li>';
+        }).join('') + '</ul>' : '<div class="empty-state"><strong>No stale items</strong></div>') + '</div>' +
+      '<div class="card"><h3>Read this week · resurfacing</h3>' +
+        (suggest.length ? '<ul class="list">' + suggest.map(function (it) {
+          return '<li class="list-item"><div><div class="title">' + esc(it.title) + '</div><div class="meta">' + esc(it.estimatedMinutes) + 'm · ' + esc(it.priority) + '</div></div></li>';
+        }).join('') + '</ul>' : '<div class="empty-state"><strong>Nothing queued</strong></div>') +
+        '<p class="card-meta" style="margin-top:10px">Duplicates detected: ' + dups.length + ' · Inbox without notes: ' + untouched.length + '</p></div>';
+  }
+
+  function editItem(it, seed) {
+    var isAdd = !it;
+    seed = seed || {};
+    var draft = it ? JSON.parse(JSON.stringify(it)) : {
+      id: JGMedia.uid(), title: seed.title || '', type: seed.type || 'link', source: seed.source || 'manual',
+      url: seed.url || '', status: 'inbox', priority: 'medium', tags: '', collection: store.collections[0] || '',
+      estimatedMinutes: 10, savedAt: JGMedia.today(), author: '', notes: [], inQueue: false, archived: false, completed: false
+    };
+    openEdit({
+      title: (isAdd ? 'Add' : 'Edit') + ' media item',
+      mode: isAdd ? 'add' : 'edit', canDelete: !isAdd,
+      fields: [
+        { key: 'title', label: 'Title', value: draft.title, full: true },
+        { key: 'url', label: 'URL', value: draft.url, full: true, placeholder: 'https://…' },
+        { key: 'type', label: 'Type', type: 'select', value: draft.type, options: ['article','video','reddit','link'] },
+        { key: 'source', label: 'Source', value: draft.source },
+        { key: 'priority', label: 'Priority', type: 'select', value: draft.priority, options: ['high','medium','low'] },
+        { key: 'status', label: 'Status', type: 'select', value: draft.status, options: ['inbox','queue','library','completed','archived'] },
+        { key: 'estimatedMinutes', label: 'Est. minutes', type: 'number', value: draft.estimatedMinutes },
+        { key: 'collection', label: 'Collection', type: 'select', value: draft.collection, options: store.collections },
+        { key: 'tags', label: 'Tags', value: draft.tags, full: true },
+        { key: 'author', label: 'Author / channel', value: draft.author, full: true },
+        { key: 'note', label: 'Why I saved / takeaway', type: 'textarea', value: (draft.notes[0]&&draft.notes[0].text)||'', full: true },
+        { key: 'inQueue', label: 'Queue', type: 'checkbox', value: draft.inQueue, checkLabel: 'In Up Next' }
+      ],
+      save: function (v) {
+        if (!v.title.trim() && !v.url.trim()) { toast('Title or URL required'); return false; }
+        draft.title = v.title.trim() || v.url; draft.url = v.url.trim();
+        draft.type = v.type; draft.source = v.source || guessSource(draft.url);
+        draft.priority = v.priority; draft.status = v.status;
+        draft.estimatedMinutes = Number(v.estimatedMinutes)||0;
+        draft.collection = v.collection; draft.tags = v.tags; draft.author = v.author;
+        draft.inQueue = !!v.inQueue;
+        if (draft.inQueue) { draft.status = 'queue'; if (!draft.queueOrder) draft.queueOrder = Date.now(); }
+        if (v.note && v.note.trim()) {
+          if (draft.notes && draft.notes[0]) draft.notes[0].text = v.note.trim();
+          else draft.notes = [{ id: JGMedia.uid(), kind: 'why', text: v.note.trim(), pinned: false }];
+        }
+        // duplicate URL check
+        var dup = store.items.find(function (x) { return x.url && draft.url && x.url.toLowerCase()===draft.url.toLowerCase() && x.id !== draft.id; });
+        if (dup && isAdd) toast('Warning: duplicate URL already saved');
+        if (isAdd) store.items.unshift(draft);
+        else {
+          var idx = store.items.findIndex(function (x) { return x.id === draft.id; });
+          if (idx >= 0) store.items[idx] = draft;
+        }
+        persist(); renderAll(); toast(isAdd ? 'Saved' : 'Updated');
+      },
+      remove: function () {
+        if (!confirm('Delete?')) return false;
+        store.items = store.items.filter(function (x) { return x.id !== draft.id; });
+        persist(); renderAll(); toast('Deleted'); return true;
+      }
+    });
+  }
+
+  function captureUrl() {
+    var url = $('captureUrl').value.trim();
+    if (!url) { toast('Paste a URL first'); return; }
+    try { new URL(url); } catch (e) { toast('Enter a valid URL'); return; }
+    var dup = store.items.find(function (x) { return (x.url||'').toLowerCase() === url.toLowerCase(); });
+    if (dup) toast('Duplicate link — opening existing');
+    editItem(dup || null, {
+      url: url, type: guessType(url), source: guessSource(url),
+      title: guessSource(url) + ' — saved link'
+    });
+    $('captureUrl').value = '';
+  }
+
+  function renderAll() {
+    fillFilters();
+    renderKpis();
+    renderInbox();
+    renderQueue();
+    renderLibrary();
+    renderNotes();
+    renderBacklog();
+  }
+
+  function scrollToSection(id) {
+    var el = $('sec-' + id); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.querySelectorAll('.sidebar .nav-link[data-section]').forEach(function (n) {
+      n.classList.toggle('active', n.getAttribute('data-section') === id);
+    });
+    closeSidebar();
+  }
+  function openSidebar() { $('sidebar').classList.add('open'); $('sidebarOverlay').classList.add('open'); }
+  function closeSidebar() { $('sidebar').classList.remove('open'); $('sidebarOverlay').classList.remove('open'); }
+
+  $('hamburger').onclick = openSidebar;
+  $('sidebarOverlay').onclick = closeSidebar;
+  document.querySelectorAll('.sidebar .nav-link[data-section]').forEach(function (b) {
+    b.onclick = function () { scrollToSection(b.getAttribute('data-section')); };
+  });
+
+  $('addLinkBtn').onclick = function () { editItem(null, { type: 'link' }); };
+  $('quickSaveBtn').onclick = function () { $('captureUrl').focus(); scrollToSection('inbox'); };
+  $('navAddLink').onclick = function () { editItem(null, { type: 'link' }); };
+  $('navAddArticle').onclick = function () { editItem(null, { type: 'article' }); };
+  $('navAddVideo').onclick = function () { editItem(null, { type: 'video' }); };
+  $('captureBtn').onclick = captureUrl;
+  $('captureUrl').addEventListener('keydown', function (e) { if (e.key === 'Enter') captureUrl(); });
+
+  $('addCollectionBtn').onclick = function () {
+    openEdit({
+      title: 'Add collection', mode: 'add',
+      fields: [{ key: 'name', label: 'Collection name', value: '', full: true }],
+      save: function (v) {
+        if (!v.name.trim()) { toast('Name required'); return false; }
+        if (store.collections.indexOf(v.name.trim()) === -1) store.collections.push(v.name.trim());
+        persist(); renderAll(); toast('Collection added');
+      }
+    });
+  };
+  $('addNoteBtn').onclick = function () {
+    var first = store.items.find(function (i) { return !i.archived; });
+    if (!first) { toast('Add a media item first'); return; }
+    editItem(first);
+  };
+
+  document.querySelectorAll('[data-qfilter]').forEach(function (b) {
+    b.onclick = function () {
+      qFilter = b.getAttribute('data-qfilter');
+      document.querySelectorAll('[data-qfilter]').forEach(function (x) { x.classList.toggle('active', x === b); });
+      renderQueue();
+    };
+  });
+  document.querySelectorAll('[data-libview]').forEach(function (b) {
+    b.onclick = function () {
+      libView = b.getAttribute('data-libview');
+      document.querySelectorAll('[data-libview]').forEach(function (x) { x.classList.toggle('active', x === b); });
+      renderLibrary();
+    };
+  });
+  $('groupBy').onchange = renderLibrary;
+
+  ['fType','fSource','fStatus','fPriority','fTag','fTime'].forEach(function (id) {
+    $(id).onchange = function () {
+      filters.type = $('fType').value; filters.source = $('fSource').value; filters.status = $('fStatus').value;
+      filters.priority = $('fPriority').value; filters.tag = $('fTag').value; filters.time = $('fTime').value;
+      renderAll();
+    };
+  });
+  $('searchInput').oninput = function () { filters.q = $('searchInput').value.trim(); renderAll(); };
+  $('clearFilters').onclick = function () {
+    ['fType','fSource','fStatus','fPriority','fTag','fTime'].forEach(function (id) { $(id).value = 'all'; });
+    $('searchInput').value = '';
+    filters = { type:'all', source:'all', status:'all', priority:'all', tag:'all', time:'all', q:'' };
+    renderAll();
+  };
+
+  $('bulkArchiveBtn').onclick = function () {
+    var n = 0;
+    store.items.forEach(function (it) {
+      if (!it.archived && !it.completed && daysSince(it.savedAt) >= 30) { it.archived = true; it.inQueue = false; it.status = 'archived'; n++; }
+    });
+    persist(); renderAll(); toast('Archived ' + n + ' stale item(s)');
+  };
+  $('cleanupBtn').onclick = function () {
+    var n = store.items.filter(function (i) { return i.inQueue; }).length;
+    if (!n) { toast('Queue already clean'); return; }
+    if (!confirm('Remove completed items from queue and keep only high priority?')) return;
+    store.items.forEach(function (it) {
+      if (it.completed) it.inQueue = false;
+      if (it.inQueue && it.priority === 'low' && daysSince(it.savedAt) > 14) it.inQueue = false;
+    });
+    persist(); renderAll(); toast('Queue cleaned');
+  };
+
+  $('editCancel').onclick = closeEdit;
+  $('editSave').onclick = function () {
+    if (!editCtx || typeof editCtx.save !== 'function') return;
+    if (editCtx.save(readFields()) === false) return;
+    closeEdit();
+  };
+  $('editDelete').onclick = function () {
+    if (!editCtx || typeof editCtx.remove !== 'function') return;
+    if (editCtx.remove() === false) return;
+    closeEdit();
+  };
+  $('editModal').addEventListener('click', function (e) { if (e.target === $('editModal')) closeEdit(); });
+  $('editModal').addEventListener('keydown', function (e) { if (e.key === 'Escape') closeEdit(); });
+
+  renderAll();
+})();
+
+  </script>
+</body>
+</html>
