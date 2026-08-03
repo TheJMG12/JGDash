@@ -5,7 +5,7 @@
     { label: 'Index', href: 'index.html' },
     { label: 'Main', href: 'main.html' },
     { label: 'Projects', href: 'projects.html' },
-    { label: 'Fitness', href: 'gym.html' },
+    { label: 'Training', href: 'training.html' },
     { label: 'Health', href: 'health.html' },
     { label: 'Water', href: 'po-water.html' },
     { label: 'Finance', href: 'finance.html' }
