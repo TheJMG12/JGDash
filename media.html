@@ -150,11 +150,11 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
 .view-toggle button{padding:7px 10px;font-size:12px;font-weight:600;color:var(--text-tertiary);border-right:1px solid var(--border)}
 .view-toggle button:last-child{border-right:none}
 .view-toggle button.active{background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent)}
-.media-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-.poster-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.media-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.poster-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
 .poster-card .art{aspect-ratio:2/3;border-radius:12px;border:1px solid var(--border);background:linear-gradient(160deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02));margin-bottom:8px;display:flex;align-items:center;justify-content:center;color:var(--text-tertiary);font-size:12px;overflow:hidden}
 .poster-card .art img{width:100%;height:100%;object-fit:cover}
-.book-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.book-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
 .book-card .cover{aspect-ratio:2/3;border-radius:10px;border:1px solid var(--border);background:linear-gradient(160deg,rgba(167,139,250,0.2),rgba(255,255,255,0.02));margin-bottom:8px;display:flex;align-items:center;justify-content:center;padding:10px;text-align:center;font-size:12px;font-weight:700;color:var(--text-secondary);overflow:hidden}
 .book-card .cover img{width:100%;height:100%;object-fit:cover}
 .progress-bar{height:6px;border-radius:999px;background:rgba(255,255,255,0.06);overflow:hidden;margin-top:8px}
@@ -172,22 +172,25 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
 .lightbox-img img{max-width:100%;max-height:85vh;object-fit:contain}
 .lightbox-meta{overflow-y:auto;padding:16px;border-radius:14px;background:#121214;border:1px solid var(--border)}
 [data-theme="light"] .lightbox-meta{background:#fff}
-@media(max-width:1200px){.kpi-row{grid-template-columns:repeat(3,1fr)}.poster-grid{grid-template-columns:repeat(4,1fr)}.book-grid{grid-template-columns:repeat(3,1fr)}.masonry{column-count:3}}
-@media(max-width:960px){.grid-2,.grid-3{grid-template-columns:1fr}.span-2{grid-column:span 1}.kpi-row{grid-template-columns:repeat(2,1fr)}.media-grid,.poster-grid,.book-grid{grid-template-columns:repeat(2,1fr)}.masonry{column-count:2}.lightbox-inner{grid-template-columns:1fr}}
+@media(max-width:1200px){.kpi-row{grid-template-columns:repeat(3,1fr)}.media-grid{grid-template-columns:repeat(3,1fr)}.poster-grid,.book-grid{grid-template-columns:repeat(5,1fr)}.masonry{column-count:3}}
+@media(max-width:960px){.grid-2,.grid-3{grid-template-columns:1fr}.span-2{grid-column:span 1}.kpi-row{grid-template-columns:repeat(2,1fr)}.media-grid,.poster-grid,.book-grid{grid-template-columns:repeat(3,1fr)}.masonry{column-count:2}.lightbox-inner{grid-template-columns:1fr}}
 @media(max-width:860px){.sidebar{position:fixed;left:0;top:0;bottom:0;z-index:40;transform:translateX(-105%);transition:transform .22s ease;box-shadow:8px 0 32px rgba(0,0,0,0.4)}.sidebar.open{transform:translateX(0)}.sidebar-overlay.open{display:block}.mobile-bar{display:flex}.main{max-height:none}.modal-grid{grid-template-columns:1fr}}
-@media(max-width:560px){.poster-grid,.book-grid,.media-grid{grid-template-columns:1fr}.masonry{column-count:1}.kpi-row{grid-template-columns:1fr 1fr}}
-
+@media(max-width:560px){.poster-grid,.book-grid,.media-grid{grid-template-columns:repeat(2,1fr)}.masonry{column-count:1}.kpi-row{grid-template-columns:1fr 1fr}}
 
 .lib-card{display:block;text-decoration:none;color:inherit;border-radius:14px;border:1px solid var(--border);background:var(--card-bg);overflow:hidden;transition:transform .15s,border-color .15s;cursor:pointer}
 .lib-card:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--accent) 40%,transparent)}
 .lib-card .media{aspect-ratio:16/10;background:linear-gradient(160deg,rgba(167,139,250,0.18),rgba(255,255,255,0.03));display:flex;align-items:center;justify-content:center;overflow:hidden}
 .lib-card .media img{width:100%;height:100%;object-fit:cover}
-.lib-card .body{padding:12px}
-.lib-card .title{font-size:14px;font-weight:650;line-height:1.35;margin-bottom:4px}
-.lib-card .desc{font-size:12px;color:var(--text-tertiary);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.lib-card .foot{display:flex;align-items:center;gap:6px;margin-top:10px;flex-wrap:wrap}
-.lib-actions{display:flex;gap:4px}
-.lib-actions .icon-btn{pointer-events:auto}
+.lib-card .body{padding:10px 12px 12px}
+.lib-card .title{font-size:13px;font-weight:650;line-height:1.3;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.lib-card .desc{font-size:11px;color:var(--text-tertiary);line-height:1.35;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.lib-card .foot{display:flex;align-items:center;gap:4px;margin-top:8px;flex-wrap:wrap}
+.lib-card .foot .badge{font-size:10px;padding:1px 6px}
+.lib-actions{display:flex;gap:4px;margin-left:auto}
+.lib-actions .icon-btn{pointer-events:auto;width:24px;height:24px;font-size:11px}
+.manage-panel{display:none;margin-bottom:12px}
+.manage-panel.open{display:block}
+.manage-panel .list-item .meta{word-break:break-all}
 .capture-preview{display:grid;grid-template-columns:120px 1fr;gap:12px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
 .capture-preview .thumb{width:120px;height:80px;border-radius:10px;border:1px solid var(--border);overflow:hidden;background:var(--input-bg);display:flex;align-items:center;justify-content:center}
 .capture-preview .thumb img{width:100%;height:100%;object-fit:cover}
@@ -304,10 +307,11 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
             <h2 class="section-title">RSS Feeds</h2>
             <span class="section-sub">News · YouTube · Reddit — save items into your library</span>
             <button type="button" class="btn" id="addFeedBtn" style="margin-left:auto">+ Add feed</button>
+            <button type="button" class="btn" id="manageFeedsBtn">Manage</button>
             <button type="button" class="btn primary" id="refreshFeedsBtn">Refresh</button>
           </div>
           <div class="feed-tabs" id="feedTabs"></div>
-          <div id="feedList" class="card" style="margin-bottom:12px"></div>
+          <div id="feedManage" class="manage-panel card" hidden></div>
           <div id="feedItems"></div>
           <div id="feedEmpty" class="empty-state hidden"><strong>No feed items</strong>Enable a feed and hit Refresh. Some feeds need a public CORS/RSS proxy.</div>
         </section>
@@ -519,11 +523,9 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
       '<div class="media">' + img + '</div>' +
       '<div class="body">' +
         '<div class="title">' + esc(it.title || 'Untitled') + '</div>' +
-        '<div class="desc">' + esc(it.description || it.notes || '') + '</div>' +
+        (it.description || it.notes ? '<div class="desc">' + esc(it.description || it.notes || '') + '</div>' : '') +
         '<div class="foot">' + typeBadge(it.type) +
           '<span class="badge">' + esc(it.source || '') + '</span>' +
-          (it.author ? '<span class="badge">' + esc(it.author) + '</span>' : '') +
-          '<span class="card-meta" style="margin:0 0 0 auto">' + esc(it.savedAt || '') + '</span>' +
           actions +
         '</div>' +
       '</div></a>';
@@ -595,24 +597,44 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
   $('inboxMount').addEventListener('click', onCardAction);
   $('libraryMount').addEventListener('click', onCardAction);
 
+  var manageOpen = false;
+
   function renderFeeds() {
     var feeds = store.feeds || [];
-    if (!activeFeedId && feeds.length) activeFeedId = feeds[0].id;
-    $('feedTabs').innerHTML = feeds.map(function (f) {
-      return '<button type="button" class="feed-tab' + (f.id === activeFeedId ? ' active' : '') + '" data-feed="' + esc(f.id) + '">' +
-        esc(f.name) + ' <span class="badge">' + esc(f.type) + '</span></button>';
-    }).join('');
-    $('feedList').innerHTML = '<ul class="list">' + feeds.map(function (f) {
-      return '<li class="list-item">' +
-        '<div><div class="title">' + esc(f.name) + '</div><div class="meta">' + esc(f.type) + ' · ' + esc(f.url) + '</div></div>' +
-        '<div class="item-actions">' +
-          '<button type="button" class="btn" data-toggle-feed="' + esc(f.id) + '">' + (f.enabled ? 'On' : 'Off') + '</button>' +
-          '<button type="button" class="icon-btn danger" data-del-feed="' + esc(f.id) + '">✕</button>' +
-        '</div></li>';
-    }).join('') + '</ul>';
+    var enabled = feeds.filter(function (f) { return f.enabled !== false; });
+    if (!activeFeedId || !enabled.some(function (f) { return f.id === activeFeedId; })) {
+      activeFeedId = enabled[0] && enabled[0].id;
+    }
+    $('feedTabs').innerHTML = enabled.length
+      ? enabled.map(function (f) {
+          return '<button type="button" class="feed-tab' + (f.id === activeFeedId ? ' active' : '') + '" data-feed="' + esc(f.id) + '">' +
+            esc(f.name) + ' <span class="badge">' + esc(f.type) + '</span></button>';
+        }).join('')
+      : '<span class="card-meta">No active feeds — open Manage or Add feed.</span>';
 
-    var cached = feedCache[activeFeedId];
+    var panel = $('feedManage');
+    panel.classList.toggle('open', manageOpen);
+    panel.hidden = !manageOpen;
+    if (manageOpen) {
+      panel.innerHTML = '<div class="section-head" style="margin-bottom:8px"><h3 class="section-title" style="font-size:13px">Manage feeds</h3>' +
+        '<button type="button" class="btn" id="closeManageBtn" style="margin-left:auto">Done</button></div>' +
+        (feeds.length ? '<ul class="list">' + feeds.map(function (f) {
+          return '<li class="list-item">' +
+            '<div><div class="title">' + esc(f.name) + '</div><div class="meta">' + esc(f.type) + ' · ' + esc(f.url) + '</div></div>' +
+            '<div class="item-actions">' +
+              '<button type="button" class="btn" data-toggle-feed="' + esc(f.id) + '">' + (f.enabled !== false ? 'On' : 'Off') + '</button>' +
+              '<button type="button" class="icon-btn danger" data-del-feed="' + esc(f.id) + '" title="Delete">✕</button>' +
+            '</div></li>';
+        }).join('') + '</ul>' : '<div class="empty-state">No feeds yet.</div>');
+    }
+
+    var cached = activeFeedId ? feedCache[activeFeedId] : null;
     var mount = $('feedItems');
+    if (!activeFeedId) {
+      mount.innerHTML = '<div class="empty-state">Add or enable a feed to get started.</div>';
+      $('feedEmpty').classList.add('hidden');
+      return;
+    }
     if (!cached) {
       mount.innerHTML = '<div class="empty-state">Select a feed and press Refresh to load items.</div>';
       $('feedEmpty').classList.add('hidden');
@@ -663,19 +685,36 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
     renderFeeds();
     if (!feedCache[activeFeedId]) refreshActiveFeed();
   });
-  $('feedList').addEventListener('click', function (e) {
-    var t = e.target.closest('[data-toggle-feed]');
+  $('manageFeedsBtn').addEventListener('click', function () {
+    manageOpen = !manageOpen;
+    $('manageFeedsBtn').classList.toggle('primary', manageOpen);
+    renderFeeds();
+  });
+  $('feedManage').addEventListener('click', function (e) {
+    if (e.target.id === 'closeManageBtn' || e.target.closest('#closeManageBtn')) {
+      manageOpen = false;
+      $('manageFeedsBtn').classList.remove('primary');
+      renderFeeds();
+      return;
+    }
+    var tbtn = e.target.closest('[data-toggle-feed]');
     var d = e.target.closest('[data-del-feed]');
-    if (t) {
-      var f = store.feeds.find(function (x) { return x.id === t.getAttribute('data-toggle-feed'); });
-      if (f) { f.enabled = !f.enabled; persist(); renderFeeds(); }
+    if (tbtn) {
+      var f = store.feeds.find(function (x) { return x.id === tbtn.getAttribute('data-toggle-feed'); });
+      if (f) {
+        f.enabled = f.enabled === false;
+        persist();
+        renderFeeds();
+      }
     }
     if (d) {
       var id = d.getAttribute('data-del-feed');
       if (!confirm('Remove this feed?')) return;
       store.feeds = store.feeds.filter(function (x) { return x.id !== id; });
-      if (activeFeedId === id) activeFeedId = store.feeds[0] && store.feeds[0].id;
-      persist(); renderFeeds();
+      delete feedCache[id];
+      if (activeFeedId === id) activeFeedId = null;
+      persist();
+      renderFeeds();
     }
   });
   $('feedItems').addEventListener('click', function (e) {

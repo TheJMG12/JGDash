@@ -150,11 +150,11 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
 .view-toggle button{padding:7px 10px;font-size:12px;font-weight:600;color:var(--text-tertiary);border-right:1px solid var(--border)}
 .view-toggle button:last-child{border-right:none}
 .view-toggle button.active{background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent)}
-.media-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-.poster-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.media-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.poster-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
 .poster-card .art{aspect-ratio:2/3;border-radius:12px;border:1px solid var(--border);background:linear-gradient(160deg,rgba(167,139,250,0.25),rgba(255,255,255,0.02));margin-bottom:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-secondary);font-size:12px;overflow:hidden;text-align:center;padding:10px}
 .poster-card .art img{width:100%;height:100%;object-fit:cover}
-.book-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.book-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
 .book-card .cover{aspect-ratio:2/3;border-radius:10px;border:1px solid var(--border);background:linear-gradient(160deg,rgba(167,139,250,0.28),rgba(125,211,252,0.08));margin-bottom:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px;text-align:center;font-size:12px;font-weight:700;color:var(--text-secondary);overflow:hidden;line-height:1.3}
 .book-card .cover img{width:100%;height:100%;object-fit:cover}
 .progress-bar{height:6px;border-radius:999px;background:rgba(255,255,255,0.06);overflow:hidden;margin-top:8px}
@@ -172,17 +172,18 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
 .lightbox-img img{max-width:100%;max-height:85vh;object-fit:contain}
 .lightbox-meta{overflow-y:auto;padding:16px;border-radius:14px;background:#121214;border:1px solid var(--border)}
 [data-theme="light"] .lightbox-meta{background:#fff}
-@media(max-width:1200px){.kpi-row{grid-template-columns:repeat(3,1fr)}.poster-grid{grid-template-columns:repeat(4,1fr)}.book-grid{grid-template-columns:repeat(3,1fr)}.masonry{column-count:3}}
-@media(max-width:960px){.grid-2,.grid-3{grid-template-columns:1fr}.span-2{grid-column:span 1}.kpi-row{grid-template-columns:repeat(2,1fr)}.media-grid,.poster-grid,.book-grid{grid-template-columns:repeat(2,1fr)}.masonry{column-count:2}.lightbox-inner{grid-template-columns:1fr}}
+@media(max-width:1200px){.kpi-row{grid-template-columns:repeat(3,1fr)}.media-grid{grid-template-columns:repeat(3,1fr)}.poster-grid,.book-grid{grid-template-columns:repeat(5,1fr)}.masonry{column-count:3}}
+@media(max-width:960px){.grid-2,.grid-3{grid-template-columns:1fr}.span-2{grid-column:span 1}.kpi-row{grid-template-columns:repeat(2,1fr)}.media-grid,.poster-grid,.book-grid{grid-template-columns:repeat(3,1fr)}.masonry{column-count:2}.lightbox-inner{grid-template-columns:1fr}}
 @media(max-width:860px){.sidebar{position:fixed;left:0;top:0;bottom:0;z-index:40;transform:translateX(-105%);transition:transform .22s ease;box-shadow:8px 0 32px rgba(0,0,0,0.4)}.sidebar.open{transform:translateX(0)}.sidebar-overlay.open{display:block}.mobile-bar{display:flex}.main{max-height:none}.modal-grid{grid-template-columns:1fr}}
-@media(max-width:560px){.poster-grid,.book-grid,.media-grid{grid-template-columns:1fr}.masonry{column-count:1}.kpi-row{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.poster-grid,.book-grid,.media-grid{grid-template-columns:repeat(2,1fr)}.masonry{column-count:1}.kpi-row{grid-template-columns:1fr 1fr}}
 
 
 .status-rail{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
 .status-pill{padding:6px 12px;border-radius:999px;border:1px solid var(--border);font-size:12px;font-weight:600;color:var(--text-tertiary)}
 .status-pill.active{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 45%,transparent);background:color-mix(in srgb,var(--accent) 14%,transparent)}
 .poster-card{cursor:pointer}
-.poster-card .title{font-size:13px;font-weight:600}
+.poster-card .title{font-size:12px;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.poster-card .meta{font-size:10px!important}
 .helper{padding:12px 14px;border-radius:14px;border:1px dashed var(--border);font-size:12px;color:var(--text-tertiary);line-height:1.5;margin-bottom:14px}
 
   </style>
