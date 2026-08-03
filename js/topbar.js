@@ -64,6 +64,7 @@
         '</div>' +
         '<div class="tb-spacer"></div>' +
         '<div class="tb-actions">' +
+          '<button type="button" class="tb-btn tb-sync" id="tbSync" title="Sync dashboard data to the cloud">Sync</button>' +
           '<button type="button" class="tb-btn tb-theme" id="tbTheme">' + escapeHtml(themeLabel()) + '</button>' +
           '<button type="button" class="tb-btn" id="tbSignOut">Sign out</button>' +
         '</div>' +
@@ -95,6 +96,10 @@
         '#jgdash-topbar .tb-btn{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#FAFAFA;border-radius:999px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:600;}' +
         '#jgdash-topbar .tb-btn:hover{background:rgba(255,255,255,0.08);}' +
         '#jgdash-topbar .tb-btn:focus-visible{outline:2px solid #6BE3A4;outline-offset:2px;}' +
+        '#jgdash-topbar .tb-sync.is-syncing{opacity:0.75;}' +
+        '#jgdash-topbar .tb-sync.is-ok{border-color:rgba(107,227,164,0.45);color:#6BE3A4;}' +
+        '#jgdash-topbar .tb-sync.is-error{border-color:rgba(255,107,107,0.45);color:#FF6B6B;}' +
+        '#jgdash-topbar .tb-sync.is-skipped{opacity:0.85;}' +
         '[data-theme="light"] #jgdash-topbar .tb-brand{color:#5C5A54;}' +
         '[data-theme="light"] #jgdash-topbar .tb-brand:hover{color:#1A1917;}' +
         '[data-theme="light"] #jgdash-topbar .tb-title{color:#1A1917;}' +
@@ -153,6 +158,53 @@
           try { localStorage.setItem('jg_theme', next); } catch (err) { /* ignore */ }
           themeBtn.textContent = next === 'light' ? 'Dark mode' : 'Light mode';
         }
+      });
+    }
+
+    var syncBtn = document.getElementById('tbSync');
+    if (syncBtn) {
+      function paintSync(status) {
+        status = status || (global.JGDash && global.JGDash.sync && global.JGDash.sync.getStatus && global.JGDash.sync.getStatus());
+        syncBtn.classList.remove('is-syncing', 'is-ok', 'is-error', 'is-skipped');
+        if (!status) {
+          syncBtn.textContent = 'Sync';
+          return;
+        }
+        if (status.state === 'syncing') {
+          syncBtn.classList.add('is-syncing');
+          syncBtn.textContent = 'Syncing…';
+        } else if (status.state === 'ok') {
+          syncBtn.classList.add('is-ok');
+          syncBtn.textContent = 'Synced';
+        } else if (status.state === 'error') {
+          syncBtn.classList.add('is-error');
+          syncBtn.textContent = 'Sync error';
+          syncBtn.title = status.message || 'Sync failed';
+        } else if (status.state === 'skipped') {
+          syncBtn.classList.add('is-skipped');
+          syncBtn.textContent = 'Sync';
+          syncBtn.title = status.message || 'Sign in to sync';
+        } else {
+          syncBtn.textContent = 'Sync';
+        }
+      }
+      paintSync();
+      if (global.JGDash && global.JGDash.sync && global.JGDash.sync.onStatus) {
+        global.JGDash.sync.onStatus(paintSync);
+      }
+      global.addEventListener('jg-sync-status', function (e) {
+        paintSync(e.detail);
+      });
+      syncBtn.addEventListener('click', function () {
+        if (!global.JGDash || !global.JGDash.sync) return;
+        syncBtn.textContent = 'Syncing…';
+        syncBtn.classList.add('is-syncing');
+        global.JGDash.sync.syncNow({ skipReload: true }).then(function (res) {
+          paintSync(global.JGDash.sync.getStatus());
+          if (res && res.missingTable) {
+            syncBtn.title = 'Run supabase/migrations/001_user_kv.sql in the Supabase SQL editor';
+          }
+        });
       });
     }
 

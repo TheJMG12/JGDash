@@ -13,6 +13,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/config.js"></script>
   <script src="js/supabase-client.js"></script>
+  <script src="js/sync.js?v=2"></script>
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
   <script src="js/theme.js?v=3"></script>
   <style>
@@ -320,7 +321,13 @@
       }
 
       function redirectNext() {
-        location.href = next;
+        var go = function () { location.href = next; };
+        if (window.JGDash && window.JGDash.sync && window.JGDash.sync.syncNow) {
+          setStatus('Syncing your dashboard…', 'ok');
+          window.JGDash.sync.syncNow({ skipReload: true }).then(go).catch(go);
+        } else {
+          go();
+        }
       }
 
       function stopPolling() {
