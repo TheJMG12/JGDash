@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>JGDash — Reading List</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/lock.js"></script>
+  <script src="js/sync.js"></script>
+  <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
+  <script src="js/theme.js?v=3"></script>
+  <script src="js/topbar.js?v=3"></script>
+  <script src="js/media-store.js"></script>
+  <style>
+
+:root {
+  --text-primary:#FAFAFA; --text-secondary:#B8B6B0; --text-tertiary:#76746E;
+  --success:#6BE3A4; --warning:#F2C063; --danger:#FF6B6B;
+  --bg:#050506; --card-bg:rgba(255,255,255,0.04); --accent:#A78BFA;
+  --border:rgba(255,255,255,0.08); --input-bg:rgba(255,255,255,0.05);
+  --sidebar-w:220px; --video:#F87171; --article:#7DD3FC; --reddit:#FB923C; --link:#6BE3A4;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+[data-theme="light"] {
+  --text-primary:#1A1917; --text-secondary:#5C5A54; --text-tertiary:#8A8780;
+  --bg:#F4F3F0; --card-bg:rgba(255,255,255,0.72); --border:rgba(0,0,0,0.1);
+  --input-bg:rgba(255,255,255,0.9); --success:#1F9D62; --warning:#C4841A;
+  --danger:#D64545; --accent:#6D28D9; --video:#DC2626; --article:#0284C7;
+  --reddit:#EA580C; --link:#1F9D62;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{height:100%}
+body{min-height:100%;font-family:var(--sans);color:var(--text-primary);background:var(--bg);position:relative;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:-20%;z-index:0;pointer-events:none;background:radial-gradient(ellipse 50% 40% at 82% 14%,rgba(167,139,250,0.14),transparent 60%),radial-gradient(ellipse 45% 35% at 18% 90%,rgba(125,211,252,0.07),transparent 55%);filter:blur(40px);animation:wash-drift 36s ease-in-out infinite alternate}
+[data-theme="light"] body::before{background:radial-gradient(ellipse 50% 40% at 82% 14%,rgba(109,40,217,0.08),transparent 60%),radial-gradient(ellipse 45% 35% at 18% 90%,rgba(2,132,199,0.06),transparent 55%)}
+body::after{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background-image:radial-gradient(rgba(255,255,255,0.014) 0.6px,transparent 0.6px);background-size:3px 3px}
+[data-theme="light"] body::after{background-image:radial-gradient(rgba(0,0,0,0.03) 0.6px,transparent 0.6px)}
+@keyframes wash-drift{0%{transform:translate(0,0) scale(1)}100%{transform:translate(-3%,2%) scale(1.04)}}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
+a{color:var(--accent)}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+.app{position:relative;z-index:1;display:flex;min-height:100vh}
+.sidebar{width:var(--sidebar-w);flex-shrink:0;padding:16px 12px;border-right:1px solid var(--border);background:rgba(0,0,0,0.25);backdrop-filter:blur(20px);display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh;overflow-y:auto}
+[data-theme="light"] .sidebar{background:rgba(255,255,255,0.55)}
+.sidebar-brand{font-size:13px;font-weight:700;letter-spacing:0.04em;color:var(--text-secondary);padding:8px 10px 14px;text-transform:uppercase}
+.nav-link{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;font-size:13px;color:var(--text-secondary);text-align:left;width:100%;transition:background .15s,color .15s;text-decoration:none}
+.nav-link:hover{background:rgba(255,255,255,0.05);color:var(--text-primary)}
+.nav-link.active{background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent);font-weight:600}
+.sidebar-section{margin-top:16px;padding:0 10px 6px;font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-tertiary)}
+.sidebar-back{margin-top:auto;padding:12px 10px 4px;font-size:12px}
+.mobile-bar{display:none;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);background:rgba(0,0,0,0.35);backdrop-filter:blur(16px);position:sticky;top:0;z-index:20}
+.hamburger{width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--input-bg);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--text-primary)}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:30}
+.main{flex:1;min-width:0;display:flex;flex-direction:column;max-height:100vh;overflow:hidden}
+.main-scroll{flex:1;overflow-y:auto;padding:16px 20px 48px}
+.page-header{display:flex;flex-wrap:wrap;align-items:flex-start;gap:10px;margin-bottom:12px}
+.page-title-block{margin-right:auto;min-width:200px}
+.page-title{font-size:20px;font-weight:700;letter-spacing:-0.02em}
+.page-sub{font-size:12px;color:var(--text-tertiary);margin-top:4px;max-width:480px;line-height:1.4}
+.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.search-input{min-width:180px;padding:7px 12px;border-radius:10px;border:1px solid var(--border);background:var(--input-bg);font-size:13px;color:var(--text-primary)}
+.search-input::placeholder{color:var(--text-tertiary)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:10px;font-size:13px;font-weight:600;border:1px solid var(--border);background:var(--input-bg);color:var(--text-secondary);transition:background .15s,border-color .15s,color .15s}
+.btn:hover{color:var(--text-primary)}
+.btn.primary{background:color-mix(in srgb,var(--accent) 22%,transparent);border-color:color-mix(in srgb,var(--accent) 45%,transparent);color:var(--accent)}
+.btn.danger{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 35%,transparent)}
+.select,.field input,.field textarea,.field select{padding:7px 10px;border-radius:10px;border:1px solid var(--border);background:var(--input-bg);font-size:13px;color:var(--text-primary);width:100%}
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.field label{font-size:11px;font-weight:600;color:var(--text-tertiary)}
+.field textarea{min-height:72px;resize:vertical}
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;align-items:center}
+.filters .select{width:auto;min-width:120px}
+.card{background:var(--card-bg);border-radius:16px;padding:14px;backdrop-filter:blur(24px) saturate(1.2);box-shadow:0 12px 40px rgba(0,0,0,0.45);border:1px solid var(--border)}
+[data-theme="light"] .card{box-shadow:0 8px 28px rgba(0,0,0,0.08)}
+.card h3{font-size:13px;font-weight:700;margin-bottom:8px}
+.card-meta{font-size:11px;color:var(--text-tertiary);margin-bottom:8px}
+.section{margin-bottom:26px;scroll-margin-top:16px}
+.section-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:12px}
+.section-title{font-size:15px;font-weight:700;letter-spacing:-0.01em}
+.section-sub{font-size:12px;color:var(--text-tertiary)}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;border:1px solid var(--border);color:var(--text-tertiary)}
+.badge.ok{color:var(--success);border-color:color-mix(in srgb,var(--success) 40%,transparent)}
+.badge.warn{color:var(--warning);border-color:color-mix(in srgb,var(--warning) 40%,transparent)}
+.badge.video{color:var(--video);border-color:color-mix(in srgb,var(--video) 40%,transparent)}
+.badge.article{color:var(--article);border-color:color-mix(in srgb,var(--article) 40%,transparent)}
+.badge.reddit{color:var(--reddit);border-color:color-mix(in srgb,var(--reddit) 40%,transparent)}
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px}
+.kpi{padding:12px;border-radius:14px;border:1px solid var(--border);background:color-mix(in srgb,var(--card-bg) 80%,transparent);min-height:78px;display:flex;flex-direction:column;gap:4px}
+.kpi-label{font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-tertiary)}
+.kpi-value{font-size:22px;font-weight:700;font-family:var(--mono);letter-spacing:-0.03em}
+.kpi-sub{font-size:11px;color:var(--text-tertiary)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.span-2{grid-column:span 2}
+.span-full{grid-column:1/-1}
+.list{list-style:none;display:flex;flex-direction:column;gap:8px}
+.list-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:var(--input-bg)}
+.list-item .title{font-size:13px;font-weight:600}
+.list-item .meta{font-size:11px;color:var(--text-tertiary);margin-top:2px}
+.list-item .right{margin-left:auto;text-align:right;font-size:11px;color:var(--text-tertiary);white-space:nowrap}
+.item-actions{display:flex;gap:4px;margin-left:8px;flex-shrink:0}
+.icon-btn{width:28px;height:28px;border-radius:8px;border:1px solid var(--border);background:var(--input-bg);color:var(--text-tertiary);font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
+.icon-btn:hover{color:var(--text-primary)}
+.icon-btn.danger:hover{color:var(--danger)}
+.card-head{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px}
+.card-head h3{margin:0;flex:1}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag-pill{padding:3px 8px;border-radius:999px;font-size:11px;border:1px solid var(--border);color:var(--text-secondary);background:var(--input-bg)}
+.thumb{width:44px;height:44px;border-radius:10px;border:1px solid var(--border);background:linear-gradient(135deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02));display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text-tertiary);flex-shrink:0;overflow:hidden}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.queue-item{cursor:grab}
+.queue-item.drag-over{outline:1px dashed var(--accent)}
+.empty-state{text-align:center;padding:24px 12px;color:var(--text-tertiary);font-size:13px;line-height:1.5}
+.empty-state strong{display:block;color:var(--text-secondary);margin-bottom:6px}
+.split{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.mini-stat{font-family:var(--mono);font-size:18px;font-weight:700}
+.hidden{display:none!important}
+.table-wrap{overflow-x:auto}
+table.t{width:100%;border-collapse:collapse;font-size:13px}
+table.t th{text-align:left;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-tertiary);padding:8px 10px;border-bottom:1px solid var(--border)}
+table.t td{padding:10px;border-bottom:1px solid var(--border);vertical-align:top}
+table.t tr:hover td{background:rgba(255,255,255,0.02)}
+.modal-backdrop{display:none;position:fixed;inset:0;z-index:50;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;padding:20px}
+.modal-backdrop.open{display:flex}
+.modal{width:100%;max-width:560px;max-height:90vh;overflow-y:auto;padding:20px;border-radius:16px;background:#121214;border:1px solid var(--border);box-shadow:0 24px 60px rgba(0,0,0,0.55)}
+[data-theme="light"] .modal{background:#fff}
+.modal.wide{max-width:720px}
+.modal h2{font-size:18px;font-weight:700;margin-bottom:10px}
+.modal-lead{font-size:13px;color:var(--text-secondary);margin-bottom:14px;line-height:1.45}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.modal-grid .full{grid-column:1/-1}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;align-items:center}
+.modal-actions .spacer{flex:1}
+.toast{position:fixed;bottom:20px;right:20px;z-index:60;padding:10px 14px;border-radius:10px;background:#121214;border:1px solid var(--border);font-size:13px;color:var(--text-primary);box-shadow:0 12px 32px rgba(0,0,0,0.4);opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;pointer-events:none}
+[data-theme="light"] .toast{background:#fff}
+.toast.show{opacity:1;transform:translateY(0)}
+.capture-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.capture-bar .search-input{flex:1;min-width:220px}
+.view-toggle{display:inline-flex;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.view-toggle button{padding:7px 10px;font-size:12px;font-weight:600;color:var(--text-tertiary);border-right:1px solid var(--border)}
+.view-toggle button:last-child{border-right:none}
+.view-toggle button.active{background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent)}
+.media-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.poster-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.poster-card .art{aspect-ratio:2/3;border-radius:12px;border:1px solid var(--border);background:linear-gradient(160deg,rgba(167,139,250,0.25),rgba(255,255,255,0.02));margin-bottom:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-secondary);font-size:12px;overflow:hidden;text-align:center;padding:10px}
+.poster-card .art img{width:100%;height:100%;object-fit:cover}
+.book-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.book-card .cover{aspect-ratio:2/3;border-radius:10px;border:1px solid var(--border);background:linear-gradient(160deg,rgba(167,139,250,0.28),rgba(125,211,252,0.08));margin-bottom:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px;text-align:center;font-size:12px;font-weight:700;color:var(--text-secondary);overflow:hidden;line-height:1.3}
+.book-card .cover img{width:100%;height:100%;object-fit:cover}
+.progress-bar{height:6px;border-radius:999px;background:rgba(255,255,255,0.06);overflow:hidden;margin-top:8px}
+[data-theme="light"] .progress-bar{background:rgba(0,0,0,0.08)}
+.progress-bar>span{display:block;height:100%;border-radius:999px;background:var(--accent)}
+.masonry{column-count:4;column-gap:12px}
+.masonry .vcard{break-inside:avoid;margin-bottom:12px;border-radius:14px;border:1px solid var(--border);background:var(--card-bg);overflow:hidden;cursor:pointer;transition:transform .15s,border-color .15s}
+.masonry .vcard:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--accent) 40%,transparent)}
+.masonry .vcard img{width:100%;display:block;background:#111}
+.masonry .vcard .body{padding:10px 12px 12px}
+.lightbox{display:none;position:fixed;inset:0;z-index:55;background:rgba(0,0,0,0.82);padding:24px;align-items:center;justify-content:center}
+.lightbox.open{display:flex}
+.lightbox-inner{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;width:min(1100px,100%);max-height:90vh}
+.lightbox-img{border-radius:14px;overflow:hidden;background:#000;display:flex;align-items:center;justify-content:center}
+.lightbox-img img{max-width:100%;max-height:85vh;object-fit:contain}
+.lightbox-meta{overflow-y:auto;padding:16px;border-radius:14px;background:#121214;border:1px solid var(--border)}
+[data-theme="light"] .lightbox-meta{background:#fff}
+@media(max-width:1200px){.kpi-row{grid-template-columns:repeat(3,1fr)}.poster-grid{grid-template-columns:repeat(4,1fr)}.book-grid{grid-template-columns:repeat(3,1fr)}.masonry{column-count:3}}
+@media(max-width:960px){.grid-2,.grid-3{grid-template-columns:1fr}.span-2{grid-column:span 1}.kpi-row{grid-template-columns:repeat(2,1fr)}.media-grid,.poster-grid,.book-grid{grid-template-columns:repeat(2,1fr)}.masonry{column-count:2}.lightbox-inner{grid-template-columns:1fr}}
+@media(max-width:860px){.sidebar{position:fixed;left:0;top:0;bottom:0;z-index:40;transform:translateX(-105%);transition:transform .22s ease;box-shadow:8px 0 32px rgba(0,0,0,0.4)}.sidebar.open{transform:translateX(0)}.sidebar-overlay.open{display:block}.mobile-bar{display:flex}.main{max-height:none}.modal-grid{grid-template-columns:1fr}}
+@media(max-width:560px){.poster-grid,.book-grid,.media-grid{grid-template-columns:1fr}.masonry{column-count:1}.kpi-row{grid-template-columns:1fr 1fr}}
+
+
+.shelf-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.shelf-tab{padding:6px 12px;border-radius:999px;border:1px solid var(--border);font-size:12px;font-weight:600;color:var(--text-tertiary)}
+.shelf-tab.active{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 45%,transparent);background:color-mix(in srgb,var(--accent) 14%,transparent)}
+.book-card{cursor:pointer}
+.goal-card{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+
+  </style>
+</head>
+
+<body data-page-title="Reading List">
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">Media</div>
+      <a class="nav-link" href="media.html">Media Hub</a>
+      <a class="nav-link" href="visual-bookmarks.html">Visual Bookmarks</a>
+      <a class="nav-link" href="watchlist.html">Watchlist</a>
+      <a class="nav-link active" href="reading-list.html">Reading List</a>
+      <div class="sidebar-section">Actions</div>
+      <button type="button" class="nav-link" id="navAdd">+ Add book</button>
+      <button type="button" class="nav-link" id="navPick">Next book</button>
+      <div class="sidebar-back"><a href="index.html">← Dashboard</a></div>
+    </aside>
+    <div class="main">
+      <div class="mobile-bar">
+        <button type="button" class="hamburger" id="hamburger" aria-label="Open menu">☰</button>
+        <strong style="font-size:15px">Reading List</strong>
+      </div>
+      <div class="main-scroll" id="mainScroll">
+        <div class="page-header">
+          <div class="page-title-block">
+            <h1 class="page-title">Reading List</h1>
+            <p class="page-sub">Want, reading, finished, and reference shelves — with progress and takeaways.</p>
+          </div>
+          <div class="toolbar">
+            <input type="search" class="search-input" id="searchInput" placeholder="Search books, authors, tags…" />
+            <button type="button" class="btn" id="pickBtn">Random next</button>
+            <button type="button" class="btn primary" id="addBtn">+ Add book</button>
+          </div>
+        </div>
+
+        <div class="card goal-card section" id="goalCard"></div>
+        <div class="helper" style="padding:12px 14px;border-radius:14px;border:1px dashed var(--border);font-size:12px;color:var(--text-tertiary);line-height:1.5;margin-bottom:14px">
+          Book metadata search (Open Library / Google Books) is a placeholder. Add manually; covers optional via URL.
+        </div>
+
+        <div class="filters">
+          <select class="select" id="fGenre"><option value="all">Topic: All</option></select>
+          <select class="select" id="fAuthor"><option value="all">Author: All</option></select>
+          <select class="select" id="fFormat"><option value="all">Format: All</option><option>physical</option><option>ebook</option><option>audiobook</option></select>
+          <select class="select" id="fPriority"><option value="all">Priority: All</option><option>high</option><option>medium</option><option>low</option></select>
+          <select class="select" id="fSort"><option value="added">Date added</option><option value="progress">Progress</option><option value="title">Title</option><option value="author">Author</option></select>
+          <button type="button" class="btn" id="clearFilters">Clear</button>
+        </div>
+
+        <div class="shelf-tabs" id="shelfTabs"></div>
+        <div id="shelves"></div>
+        <div id="empty" class="empty-state hidden"><strong>No books saved</strong>Add a title to start your shelves.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="modal">
+    <div class="modal wide" role="dialog" aria-modal="true">
+      <h2 id="modalTitle">Add book</h2>
+      <p class="modal-lead">Track progress, quotes, and why you want to read it.</p>
+      <div class="modal-grid">
+        <div class="field full"><label>Title</label><input id="bTitle" /></div>
+        <div class="field"><label>Author</label><input id="bAuthor" /></div>
+        <div class="field"><label>Status</label><select id="bStatus"><option>Want to Read</option><option>Reading</option><option>Finished</option><option>Paused</option><option>Dropped</option><option>Reference</option></select></div>
+        <div class="field"><label>Genre / topic</label><input id="bGenre" /></div>
+        <div class="field"><label>Format</label><select id="bFormat"><option>physical</option><option>ebook</option><option>audiobook</option></select></div>
+        <div class="field"><label>Pages</label><input id="bPages" type="number" /></div>
+        <div class="field"><label>Progress %</label><input id="bProgress" type="number" min="0" max="100" /></div>
+        <div class="field"><label>Priority</label><select id="bPriority"><option>high</option><option selected>medium</option><option>low</option></select></div>
+        <div class="field"><label>Rating</label><input id="bRating" type="number" min="0" max="5" /></div>
+        <div class="field"><label>Start date</label><input id="bStart" type="date" /></div>
+        <div class="field"><label>Finish date</label><input id="bFinish" type="date" /></div>
+        <div class="field"><label>Tags</label><input id="bTags" /></div>
+        <div class="field full"><label>Why read</label><input id="bWhy" /></div>
+        <div class="field full"><label>Notes / takeaways</label><textarea id="bNotes"></textarea></div>
+        <div class="field full"><label>Favorite quote</label><textarea id="bQuote" placeholder="One quote per save (appended)"></textarea></div>
+        <div class="field full"><label>Cover URL (optional)</label><input id="bCover" type="url" /></div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn danger hidden" id="modalDelete">Delete</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn" id="modalCancel">Cancel</button>
+        <button type="button" class="btn primary" id="modalSave">Save</button>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+  <script>
+
+  function toast(msg) {
+    var el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { el.classList.remove('show'); }, 2200);
+  }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+    });
+  }
+  function openSidebar(open) {
+    document.getElementById('sidebar').classList.toggle('open', open);
+    document.getElementById('sidebarOverlay').classList.toggle('open', open);
+  }
+  document.getElementById('hamburger').addEventListener('click', function () { openSidebar(true); });
+  document.getElementById('sidebarOverlay').addEventListener('click', function () { openSidebar(false); });
+
+  var store = JGMedia.load();
+  var editId = null;
+  var focusShelf = 'all';
+  var SHELVES = ['Want to Read','Reading','Finished','Paused','Dropped','Reference'];
+  var PRI = { high: 0, medium: 1, low: 2 };
+
+  function persist() { JGMedia.save(store); }
+  function books() { return (store.books || []).slice(); }
+
+  function fillMeta() {
+    var genres = {}, authors = {};
+    books().forEach(function (b) {
+      if (b.genre) genres[b.genre] = 1;
+      if (b.author) authors[b.author] = 1;
+    });
+    function fill(id, map, label) {
+      var el = document.getElementById(id); var cur = el.value;
+      el.innerHTML = '<option value="all">' + label + ': All</option>' + Object.keys(map).sort().map(function (k) {
+        return '<option value="' + esc(k) + '">' + esc(k) + '</option>';
+      }).join('');
+      if (![].some.call(el.options, function (o) { return o.value === cur; })) el.value = 'all';
+      else el.value = cur;
+    }
+    fill('fGenre', genres, 'Topic');
+    fill('fAuthor', authors, 'Author');
+  }
+
+  function filtered() {
+    var q = document.getElementById('searchInput').value.trim().toLowerCase();
+    var genre = document.getElementById('fGenre').value;
+    var author = document.getElementById('fAuthor').value;
+    var format = document.getElementById('fFormat').value;
+    var pri = document.getElementById('fPriority').value;
+    var sort = document.getElementById('fSort').value;
+    var list = books().filter(function (b) {
+      if (focusShelf !== 'all' && b.status !== focusShelf) return false;
+      if (genre !== 'all' && b.genre !== genre) return false;
+      if (author !== 'all' && b.author !== author) return false;
+      if (format !== 'all' && b.format !== format) return false;
+      if (pri !== 'all' && b.priority !== pri) return false;
+      if (q) {
+        var blob = [b.title, b.author, b.tags, b.notes, b.why, b.genre].join(' ').toLowerCase();
+        if (blob.indexOf(q) === -1) return false;
+      }
+      return true;
+    });
+    list.sort(function (a, b) {
+      if (sort === 'title') return (a.title || '').localeCompare(b.title || '');
+      if (sort === 'author') return (a.author || '').localeCompare(b.author || '');
+      if (sort === 'progress') return (b.progressPct || 0) - (a.progressPct || 0);
+      return (b.addedAt || '').localeCompare(a.addedAt || '');
+    });
+    return list;
+  }
+
+  function renderGoal() {
+    var g = store.readingGoal || { year: 2026, target: 24, completed: 0 };
+    var finished = books().filter(function (b) { return b.status === 'Finished'; }).length;
+    g.completed = finished;
+    var pct = Math.min(100, Math.round((finished / (g.target || 1)) * 100));
+    document.getElementById('goalCard').innerHTML =
+      '<div><div class="kpi-label">' + esc(String(g.year)) + ' reading goal</div>' +
+      '<div class="kpi-value" style="font-size:28px">' + finished + ' <span style="font-size:14px;color:var(--text-tertiary)">/ ' + g.target + '</span></div></div>' +
+      '<div style="flex:1;min-width:180px"><div class="progress-bar"><span style="width:' + pct + '%"></span></div>' +
+      '<div class="card-meta" style="margin-top:6px">' + pct + '% of yearly target</div></div>' +
+      '<div class="field" style="margin:0;min-width:100px"><label>Target</label><input id="goalTarget" type="number" value="' + g.target + '" style="width:100px" /></div>';
+  }
+
+  function cover(b) {
+    if (b.cover) return '<img src="' + esc(b.cover) + '" alt="" onerror="this.parentNode.textContent=this.alt" />';
+    return esc((b.title || '?').split(' ').slice(0, 3).join(' '));
+  }
+
+  function render() {
+    fillMeta();
+    renderGoal();
+    var all = books();
+    var counts = {};
+    SHELVES.forEach(function (s) { counts[s] = all.filter(function (b) { return b.status === s; }).length; });
+    document.getElementById('shelfTabs').innerHTML =
+      '<button type="button" class="shelf-tab' + (focusShelf==='all'?' active':'') + '" data-sh="all">All (' + all.length + ')</button>' +
+      SHELVES.map(function (s) {
+        return '<button type="button" class="shelf-tab' + (focusShelf===s?' active':'') + '" data-sh="' + esc(s) + '">' + esc(s) + ' (' + counts[s] + ')</button>';
+      }).join('');
+
+    var list = filtered();
+    document.getElementById('empty').classList.toggle('hidden', list.length > 0);
+    var by = {};
+    SHELVES.forEach(function (s) { by[s] = []; });
+    list.forEach(function (b) { (by[b.status] || (by[b.status]=[])).push(b); });
+    var html = '';
+    SHELVES.forEach(function (s) {
+      if (focusShelf !== 'all' && focusShelf !== s) return;
+      var group = by[s] || [];
+      if (!group.length && focusShelf === 'all') return;
+      html += '<section class="section"><div class="section-head"><h2 class="section-title">' + esc(s) + '</h2><span class="section-sub">' + group.length + ' books</span></div>';
+      if (!group.length) html += '<div class="empty-state">Empty shelf.</div>';
+      else {
+        html += '<div class="book-grid">' + group.map(function (b) {
+          return '<article class="book-card" data-id="' + esc(b.id) + '">' +
+            '<div class="cover" aria-hidden="true">' + cover(b) + '</div>' +
+            '<div style="font-size:13px;font-weight:600">' + esc(b.title) + '</div>' +
+            '<div style="font-size:11px;color:var(--text-tertiary);margin-top:2px">' + esc(b.author) + '</div>' +
+            '<div class="split" style="margin-top:6px"><span class="badge">' + esc(b.format) + '</span><span class="badge">' + esc(b.priority) + '</span></div>' +
+            '<div class="progress-bar"><span style="width:' + (b.progressPct || 0) + '%"></span></div>' +
+            '<div class="card-meta" style="margin-top:4px">' + (b.progressPct || 0) + '%' + (b.rating ? ' · ' + b.rating + '★' : '') + '</div>' +
+            '</article>';
+        }).join('') + '</div>';
+      }
+      html += '</section>';
+    });
+    document.getElementById('shelves').innerHTML = html || '<div class="empty-state">No matches.</div>';
+  }
+
+  function openModal(id) {
+    editId = id || null;
+    var b = id ? books().find(function (x) { return x.id === id; }) : null;
+    document.getElementById('modalTitle').textContent = b ? 'Edit book' : 'Add book';
+    document.getElementById('modalDelete').classList.toggle('hidden', !b);
+    document.getElementById('bTitle').value = b ? b.title : '';
+    document.getElementById('bAuthor').value = b ? b.author : '';
+    document.getElementById('bStatus').value = b ? b.status : 'Want to Read';
+    document.getElementById('bGenre').value = b ? b.genre : '';
+    document.getElementById('bFormat').value = b ? b.format : 'physical';
+    document.getElementById('bPages').value = b ? (b.pages || '') : '';
+    document.getElementById('bProgress').value = b ? (b.progressPct || 0) : 0;
+    document.getElementById('bPriority').value = b ? b.priority : 'medium';
+    document.getElementById('bRating').value = b ? (b.rating || 0) : 0;
+    document.getElementById('bStart').value = b ? (b.startDate || '') : '';
+    document.getElementById('bFinish').value = b ? (b.finishDate || '') : '';
+    document.getElementById('bTags').value = b ? b.tags : '';
+    document.getElementById('bWhy').value = b ? (b.why || '') : '';
+    document.getElementById('bNotes').value = b ? (b.notes || '') : '';
+    document.getElementById('bQuote').value = '';
+    document.getElementById('bCover').value = b ? (b.cover || '') : '';
+    document.getElementById('modal').classList.add('open');
+  }
+  function closeModal() { document.getElementById('modal').classList.remove('open'); editId = null; }
+
+  function saveBook() {
+    var title = document.getElementById('bTitle').value.trim();
+    if (!title) { toast('Title required'); return; }
+    var quote = document.getElementById('bQuote').value.trim();
+    var payload = {
+      title: title,
+      author: document.getElementById('bAuthor').value.trim(),
+      status: document.getElementById('bStatus').value,
+      genre: document.getElementById('bGenre').value.trim(),
+      format: document.getElementById('bFormat').value,
+      pages: parseInt(document.getElementById('bPages').value, 10) || 0,
+      progressPct: Math.max(0, Math.min(100, parseInt(document.getElementById('bProgress').value, 10) || 0)),
+      priority: document.getElementById('bPriority').value,
+      rating: parseInt(document.getElementById('bRating').value, 10) || 0,
+      startDate: document.getElementById('bStart').value,
+      finishDate: document.getElementById('bFinish').value,
+      tags: document.getElementById('bTags').value.trim(),
+      why: document.getElementById('bWhy').value.trim(),
+      notes: document.getElementById('bNotes').value.trim(),
+      cover: document.getElementById('bCover').value.trim()
+    };
+    if (payload.status === 'Finished' && !payload.finishDate) payload.finishDate = JGMedia.today();
+    if (payload.status === 'Finished') payload.progressPct = 100;
+    if (editId) {
+      var b = store.books.find(function (x) { return x.id === editId; });
+      Object.assign(b, payload);
+      if (quote) { b.quotes = (b.quotes || []).concat([quote]); }
+      toast('Updated');
+    } else {
+      payload.id = JGMedia.uid();
+      payload.addedAt = JGMedia.today();
+      payload.quotes = quote ? [quote] : [];
+      store.books.unshift(payload);
+      toast('Added to reading list');
+    }
+    persist(); closeModal(); render();
+  }
+
+  function pickNext() {
+    var pool = books().filter(function (b) { return b.status === 'Want to Read' || b.status === 'Paused'; });
+    if (!pool.length) { toast('No want-to-read books'); return; }
+    var high = pool.filter(function (b) { return b.priority === 'high'; });
+    var pick = (high.length ? high : pool)[Math.floor(Math.random() * (high.length ? high.length : pool.length))];
+    toast('Next up: ' + pick.title);
+    openModal(pick.id);
+  }
+
+  document.getElementById('shelves').addEventListener('click', function (e) {
+    var card = e.target.closest('[data-id]');
+    if (card) openModal(card.getAttribute('data-id'));
+  });
+  document.getElementById('shelfTabs').addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-sh]');
+    if (!btn) return;
+    focusShelf = btn.getAttribute('data-sh');
+    render();
+  });
+  document.getElementById('goalCard').addEventListener('change', function (e) {
+    if (e.target.id === 'goalTarget') {
+      store.readingGoal = store.readingGoal || { year: 2026, target: 24, completed: 0 };
+      store.readingGoal.target = parseInt(e.target.value, 10) || 24;
+      persist(); render();
+    }
+  });
+  ['searchInput','fGenre','fAuthor','fFormat','fPriority','fSort'].forEach(function (id) {
+    document.getElementById(id).addEventListener('input', render);
+    document.getElementById(id).addEventListener('change', render);
+  });
+  document.getElementById('clearFilters').addEventListener('click', function () {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('fGenre').value = 'all';
+    document.getElementById('fAuthor').value = 'all';
+    document.getElementById('fFormat').value = 'all';
+    document.getElementById('fPriority').value = 'all';
+    document.getElementById('fSort').value = 'added';
+    focusShelf = 'all';
+    render();
+  });
+  document.getElementById('addBtn').addEventListener('click', function () { openModal(null); });
+  document.getElementById('navAdd').addEventListener('click', function () { openModal(null); });
+  document.getElementById('pickBtn').addEventListener('click', pickNext);
+  document.getElementById('navPick').addEventListener('click', pickNext);
+  document.getElementById('modalCancel').addEventListener('click', closeModal);
+  document.getElementById('modalSave').addEventListener('click', saveBook);
+  document.getElementById('modalDelete').addEventListener('click', function () {
+    if (!editId || !confirm('Delete this book?')) return;
+    store.books = store.books.filter(function (x) { return x.id !== editId; });
+    persist(); closeModal(); render(); toast('Deleted');
+  });
+  document.getElementById('modal').addEventListener('click', function (e) { if (e.target.id === 'modal') closeModal(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeModal(); });
+  render();
+  </script>
+</body>
+</html>
