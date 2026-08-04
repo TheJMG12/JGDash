@@ -209,10 +209,19 @@
             meta.lastSyncAt = nowIso();
             meta.lastError = null;
             writeMeta(meta);
-            setStatus('ok', applied.length
-              ? ('Updated ' + applied.length + ' from cloud')
-              : 'Up to date');
-            return { ok: true, applied: applied, pushed: [] };
+            var localCount = listLocalKeys().length;
+            var msg;
+            if (applied.length) {
+              msg = 'Updated ' + applied.length + ' from cloud';
+            } else if (!localCount && !remoteRows.length) {
+              msg = 'Signed in — open a hub page and save something, then Sync again';
+            } else if (!localCount) {
+              msg = 'Cloud has data but this device is empty — try Sync again or reload';
+            } else {
+              msg = 'Up to date (' + localCount + ' keys)';
+            }
+            setStatus('ok', msg, { localCount: localCount, remoteCount: remoteRows.length });
+            return { ok: true, applied: applied, pushed: [], localCount: localCount, remoteCount: remoteRows.length };
           }
 
           return client
