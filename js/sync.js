@@ -1,10 +1,16 @@
-/* JGDash cloud sync — mirrors allowlisted localStorage keys to Supabase user_kv */
+/* JGDash cloud sync — mirrors allowlisted localStorage keys to Supabase user_kv.
+ *
+ * Whole-key last-write-wins used to drop Media items when two devices edited
+ * the same blob. We now merge array collections by item id, auto-sync every
+ * minute while signed in, and never invent "now" mtimes for untouched keys.
+ */
 (function (global) {
   'use strict';
 
   var META_KEY = 'jg_sync_meta_v1';
   var TABLE = 'user_kv';
   var DEBOUNCE_MS = 900;
+  var INTERVAL_MS = 60 * 1000;
   var EXACT_KEYS = [
     'goal_streak_v1',
     'habits_v1',
@@ -15,9 +21,22 @@
     'jg_media_data_v1'
   ];
 
+  // Top-level array fields merged by item `id` (not whole-blob LWW).
+  var MERGE_ARRAY_FIELDS = {
+    jg_media_data_v1: ['items', 'visuals', 'watch', 'reading', 'feeds'],
+    jg_finance_data_v1: ['transactions', 'budgets', 'goals', 'holdings'],
+    jg_training_data_v1: ['sessions', 'exercises', 'drills', 'notes', 'videos', 'prs', 'milestones']
+  };
+
+  // Nested object stores (health) — recursive id-aware merge.
+  var DEEP_MERGE_KEYS = {
+    jg_health_data_v1: true
+  };
+
   var applyingRemote = false;
   var installed = false;
   var debounceTimer = null;
+  var intervalTimer = null;
   var syncing = null;
   var lastStatus = { state: 'idle', message: 'Not synced yet' };
   var listeners = [];
@@ -71,6 +90,186 @@
       return String(value.__jg_raw);
     }
     return JSON.stringify(value);
+  }
+
+  function stableStringify(value) {
+    try {
+      return JSON.stringify(value);
+    } catch (e) {
+      return String(value);
+    }
+  }
+
+  function valuesEqual(a, b) {
+    return stableStringify(a) === stableStringify(b);
+  }
+
+  function itemTime(it) {
+    if (!it || typeof it !== 'object') return 0;
+    var candidates = [it.updatedAt, it.savedAt, it.createdAt, it.addedAt, it.date, it.ts];
+    var best = 0;
+    for (var i = 0; i < candidates.length; i++) {
+      var c = candidates[i];
+      if (c == null || c === '') continue;
+      if (typeof c === 'number' && isFinite(c)) {
+        best = Math.max(best, c < 1e12 ? c * 1000 : c);
+        continue;
+      }
+      var n = Date.parse(String(c));
+      if (!isNaN(n)) best = Math.max(best, n);
+    }
+    return best;
+  }
+
+  function mergeArrayById(localArr, remoteArr) {
+    var map = {};
+    var orphans = [];
+
+    function ingest(list) {
+      (list || []).forEach(function (it) {
+        if (!it || typeof it !== 'object') {
+          orphans.push(it);
+          return;
+        }
+        if (it.id == null || it.id === '') {
+          orphans.push(it);
+          return;
+        }
+        var id = String(it.id);
+        var prev = map[id];
+        if (!prev) {
+          map[id] = it;
+          return;
+        }
+        var lt = itemTime(it);
+        var rt = itemTime(prev);
+        if (lt > rt) map[id] = it;
+        else if (lt === rt) {
+          // Deterministic tie-break: prefer lexicographically larger JSON
+          if (stableStringify(it) > stableStringify(prev)) map[id] = it;
+        }
+      });
+    }
+
+    ingest(remoteArr);
+    ingest(localArr);
+
+    var out = Object.keys(map).map(function (id) { return map[id]; });
+    // Keep unique orphan rows (no id) from both sides
+    var seen = {};
+    orphans.forEach(function (it) {
+      var sig = stableStringify(it);
+      if (seen[sig]) return;
+      seen[sig] = true;
+      out.push(it);
+    });
+    return out;
+  }
+
+  function mergeStringList(localArr, remoteArr) {
+    var seen = {};
+    var out = [];
+    (remoteArr || []).concat(localArr || []).forEach(function (v) {
+      var s = String(v);
+      if (seen[s]) return;
+      seen[s] = true;
+      out.push(v);
+    });
+    return out;
+  }
+
+  function mergeObjectByIdArrays(localVal, remoteVal, arrayFields) {
+    var localObj = localVal && typeof localVal === 'object' && !Array.isArray(localVal) ? localVal : {};
+    var remoteObj = remoteVal && typeof remoteVal === 'object' && !Array.isArray(remoteVal) ? remoteVal : {};
+    var out = {};
+    var keys = {};
+    Object.keys(remoteObj).forEach(function (k) { keys[k] = true; });
+    Object.keys(localObj).forEach(function (k) { keys[k] = true; });
+    Object.keys(keys).forEach(function (k) {
+      var lv = localObj[k];
+      var rv = remoteObj[k];
+      if (arrayFields.indexOf(k) !== -1) {
+        out[k] = mergeArrayById(Array.isArray(lv) ? lv : [], Array.isArray(rv) ? rv : []);
+        return;
+      }
+      if (k === 'collections' && (Array.isArray(lv) || Array.isArray(rv))) {
+        out[k] = mergeStringList(Array.isArray(lv) ? lv : [], Array.isArray(rv) ? rv : []);
+        return;
+      }
+      if (lv === undefined) out[k] = rv;
+      else if (rv === undefined) out[k] = lv;
+      else if (valuesEqual(lv, rv)) out[k] = lv;
+      else {
+        // Scalar / nested object: prefer side with newer item-ish timestamps when possible,
+        // otherwise prefer local (device that just edited).
+        out[k] = lv;
+      }
+    });
+    return out;
+  }
+
+  function deepMergeIdAware(localVal, remoteVal) {
+    if (remoteVal === undefined) return localVal;
+    if (localVal === undefined) return remoteVal;
+    if (Array.isArray(localVal) || Array.isArray(remoteVal)) {
+      return mergeArrayById(Array.isArray(localVal) ? localVal : [], Array.isArray(remoteVal) ? remoteVal : []);
+    }
+    if (localVal && remoteVal && typeof localVal === 'object' && typeof remoteVal === 'object') {
+      var out = {};
+      var keys = {};
+      Object.keys(remoteVal).forEach(function (k) { keys[k] = true; });
+      Object.keys(localVal).forEach(function (k) { keys[k] = true; });
+      Object.keys(keys).forEach(function (k) {
+        if (!(k in localVal)) out[k] = remoteVal[k];
+        else if (!(k in remoteVal)) out[k] = localVal[k];
+        else out[k] = deepMergeIdAware(localVal[k], remoteVal[k]);
+      });
+      return out;
+    }
+    // Prefer local scalar when both exist (this device just edited).
+    return localVal;
+  }
+
+  function mergeKey(key, localVal, remoteVal) {
+    if (remoteVal == null) return localVal;
+    if (localVal == null) return remoteVal;
+
+    if (key === 'habits_v1' || key === 'projects_v1') {
+      if (Array.isArray(localVal) || Array.isArray(remoteVal)) {
+        return mergeArrayById(Array.isArray(localVal) ? localVal : [], Array.isArray(remoteVal) ? remoteVal : []);
+      }
+    }
+
+    if (DEEP_MERGE_KEYS[key]) {
+      return deepMergeIdAware(localVal, remoteVal);
+    }
+
+    if (MERGE_ARRAY_FIELDS[key]) {
+      return mergeObjectByIdArrays(localVal, remoteVal, MERGE_ARRAY_FIELDS[key]);
+    }
+
+    // goals:YYYY-MM-DD and goal_streak_v1 — shallow merge objects, arrays by id when present
+    if (key.indexOf('goals:') === 0 || key === 'goal_streak_v1') {
+      if (typeof localVal === 'object' && typeof remoteVal === 'object' && localVal && remoteVal &&
+          !Array.isArray(localVal) && !Array.isArray(remoteVal)) {
+        var out = {};
+        var all = {};
+        Object.keys(remoteVal).forEach(function (k) { all[k] = true; });
+        Object.keys(localVal).forEach(function (k) { all[k] = true; });
+        Object.keys(all).forEach(function (k) {
+          var lv = localVal[k];
+          var rv = remoteVal[k];
+          if (Array.isArray(lv) || Array.isArray(rv)) {
+            out[k] = mergeArrayById(Array.isArray(lv) ? lv : [], Array.isArray(rv) ? rv : []);
+          } else if (lv === undefined) out[k] = rv;
+          else if (rv === undefined) out[k] = lv;
+          else out[k] = lv; // prefer local on conflict for day goals
+        });
+        return out;
+      }
+    }
+
+    return localVal;
   }
 
   function listLocalKeys() {
@@ -127,14 +326,20 @@
     opts = opts || {};
     if (syncing) return syncing;
 
-    setStatus('syncing', 'Syncing…');
+    var quiet = !!opts.quiet;
+    if (!quiet) setStatus('syncing', 'Syncing…');
+    else if (lastStatus.state !== 'ok') setStatus('syncing', 'Syncing…');
+
     syncing = getClientAndUser().then(function (ctx) {
       if (ctx.skipped) {
         var msg = ctx.reason === 'signed_out'
-          ? 'Sign in to sync across devices'
+          ? 'Sign in once — then sync runs automatically'
           : 'Cloud sync unavailable';
-        setStatus('skipped', msg, { reason: ctx.reason });
-        return { ok: true, skipped: true, reason: ctx.reason, applied: [], pushed: [] };
+        // Auto/interval sync stays quiet when signed out (no nagging).
+        if (!quiet || ctx.reason !== 'signed_out') {
+          setStatus('skipped', msg, { reason: ctx.reason });
+        }
+        return { ok: true, skipped: true, reason: ctx.reason, applied: [], pushed: [], merged: [] };
       }
 
       var client = ctx.client;
@@ -157,7 +362,8 @@
               error: err,
               missingTable: missing,
               applied: [],
-              pushed: []
+              pushed: [],
+              merged: []
             };
           }
 
@@ -165,44 +371,90 @@
           var remoteMap = {};
           remoteRows.forEach(function (row) { remoteMap[row.key] = row; });
 
-          var applied = [];
+          var keySet = {};
+          listLocalKeys().forEach(function (k) { keySet[k] = true; });
           remoteRows.forEach(function (row) {
-            if (!isSyncKey(row.key)) return;
-            var localRaw = null;
-            try { localRaw = localStorage.getItem(row.key); } catch (e) { localRaw = null; }
-            var localMtime = meta.mtimes[row.key] || null;
-            var remoteTime = row.updated_at ? new Date(row.updated_at).getTime() : 0;
-            var localTime = localMtime ? new Date(localMtime).getTime() : 0;
-
-            // Remote wins if newer than local mtime, or local key missing
-            if (localRaw == null || remoteTime > localTime) {
-              applyRemoteRow(row.key, row.value, row.updated_at);
-              applied.push(row.key);
-            }
+            if (isSyncKey(row.key)) keySet[row.key] = true;
           });
 
-          // Refresh meta after applies
-          meta = readMeta();
-
+          var applied = [];
+          var mergedKeys = [];
           var toPush = [];
-          listLocalKeys().forEach(function (key) {
-            var localMtime = meta.mtimes[key] || nowIso();
-            if (!meta.mtimes[key]) {
-              meta.mtimes[key] = localMtime;
-            }
+          var pushIso = nowIso();
+
+          Object.keys(keySet).forEach(function (key) {
             var remote = remoteMap[key];
-            var localTime = new Date(localMtime).getTime();
+            var localRaw = null;
+            try { localRaw = localStorage.getItem(key); } catch (e) { localRaw = null; }
+            var localVal = localRaw == null ? null : parseValue(localRaw);
+            var remoteVal = remote ? remote.value : null;
+            var localMtime = meta.mtimes[key] || null;
+            // Missing mtime ⇒ treat as unknown/old so we do not clobber cloud with stale sample data.
+            var localTime = localMtime ? new Date(localMtime).getTime() : 0;
             var remoteTime = remote && remote.updated_at ? new Date(remote.updated_at).getTime() : 0;
-            if (!remote || localTime >= remoteTime) {
-              var raw = localStorage.getItem(key);
+
+            var canMerge = !!(MERGE_ARRAY_FIELDS[key] || DEEP_MERGE_KEYS[key] || key === 'habits_v1' ||
+              key === 'projects_v1' || key.indexOf('goals:') === 0 || key === 'goal_streak_v1');
+
+            var finalVal;
+            var localChanged = false;
+            var shouldPush = false;
+
+            if (remoteVal == null && localVal != null) {
+              finalVal = localVal;
+              shouldPush = true;
+              if (!localMtime) {
+                meta.mtimes[key] = pushIso;
+                localMtime = pushIso;
+              }
+            } else if (localVal == null && remoteVal != null) {
+              finalVal = remoteVal;
+              applyRemoteRow(key, finalVal, remote.updated_at);
+              applied.push(key);
+              meta = readMeta();
+            } else if (localVal != null && remoteVal != null && canMerge) {
+              finalVal = mergeKey(key, localVal, remoteVal);
+              if (!valuesEqual(finalVal, localVal)) {
+                applyRemoteRow(key, finalVal, pushIso);
+                applied.push(key);
+                localChanged = true;
+                mergedKeys.push(key);
+                meta = readMeta();
+              } else {
+                finalVal = localVal;
+              }
+              if (!valuesEqual(finalVal, remoteVal) || localChanged || localTime >= remoteTime) {
+                shouldPush = true;
+              }
+            } else if (localVal != null && remoteVal != null) {
+              // Non-merge keys: classic LWW by mtime (missing local mtime loses to remote)
+              if (remoteTime > localTime) {
+                finalVal = remoteVal;
+                applyRemoteRow(key, finalVal, remote.updated_at);
+                applied.push(key);
+                meta = readMeta();
+              } else {
+                finalVal = localVal;
+                shouldPush = localTime >= remoteTime;
+              }
+            } else {
+              return;
+            }
+
+            if (shouldPush && finalVal != null) {
+              var stamp = localChanged ? pushIso : (localMtime || (remote && remote.updated_at) || pushIso);
+              if (localChanged || !meta.mtimes[key]) {
+                meta.mtimes[key] = stamp;
+              }
               toPush.push({
                 user_id: userId,
                 key: key,
-                value: parseValue(raw),
-                updated_at: localMtime
+                value: finalVal,
+                updated_at: meta.mtimes[key]
               });
             }
           });
+
           writeMeta(meta);
 
           if (!toPush.length) {
@@ -211,17 +463,22 @@
             writeMeta(meta);
             var localCount = listLocalKeys().length;
             var msg;
-            if (applied.length) {
-              msg = 'Updated ' + applied.length + ' from cloud';
+            if (applied.length || mergedKeys.length) {
+              msg = 'Updated ' + (applied.length || mergedKeys.length) + ' from cloud';
             } else if (!localCount && !remoteRows.length) {
-              msg = 'Signed in — open a hub page and save something, then Sync again';
-            } else if (!localCount) {
-              msg = 'Cloud has data but this device is empty — try Sync again or reload';
+              msg = 'Signed in — open a hub page and save something';
             } else {
               msg = 'Up to date (' + localCount + ' keys)';
             }
             setStatus('ok', msg, { localCount: localCount, remoteCount: remoteRows.length });
-            return { ok: true, applied: applied, pushed: [], localCount: localCount, remoteCount: remoteRows.length };
+            return {
+              ok: true,
+              applied: applied,
+              pushed: [],
+              merged: mergedKeys,
+              localCount: localCount,
+              remoteCount: remoteRows.length
+            };
           }
 
           return client
@@ -237,29 +494,31 @@
                   ok: false,
                   error: pushRes.error,
                   applied: applied,
-                  pushed: []
+                  pushed: [],
+                  merged: mergedKeys
                 };
               }
               meta.lastSyncAt = nowIso();
               meta.lastError = null;
               writeMeta(meta);
               var pushedKeys = toPush.map(function (r) { return r.key; });
-              setStatus('ok', 'Synced ' + pushedKeys.length + ' item' + (pushedKeys.length === 1 ? '' : 's') +
-                (applied.length ? (' · pulled ' + applied.length) : ''));
-              return { ok: true, applied: applied, pushed: pushedKeys };
+              setStatus('ok', 'Synced ' + pushedKeys.length + ' key' + (pushedKeys.length === 1 ? '' : 's') +
+                (mergedKeys.length ? (' · merged ' + mergedKeys.length) : '') +
+                (applied.length && !mergedKeys.length ? (' · pulled ' + applied.length) : ''));
+              return { ok: true, applied: applied, pushed: pushedKeys, merged: mergedKeys };
             });
         });
     }).catch(function (err) {
       var message = (err && err.message) || 'Sync failed';
       setStatus('error', message);
-      return { ok: false, error: err, applied: [], pushed: [] };
+      return { ok: false, error: err, applied: [], pushed: [], merged: [] };
     }).then(function (result) {
       syncing = null;
       try {
         global.dispatchEvent(new CustomEvent('jg-sync-complete', { detail: result }));
       } catch (e) { /* ignore */ }
 
-      // If cloud data landed before page scripts finished, reload once so UIs pick it up.
+      // Reload once when cloud/merge changed local data so UIs refresh.
       if (result && result.applied && result.applied.length && !opts.skipReload) {
         try {
           if (!sessionStorage.getItem('jg_sync_boot_reload')) {
@@ -282,7 +541,7 @@
     if (applyingRemote) return;
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(function () {
-      syncNow({ skipReload: true });
+      syncNow({ skipReload: true, quiet: true });
     }, DEBOUNCE_MS);
   }
 
@@ -316,20 +575,18 @@
     store.__jgSyncPatched = true;
   }
 
+  function startIntervalSync() {
+    if (intervalTimer) return;
+    intervalTimer = global.setInterval(function () {
+      syncNow({ skipReload: true, quiet: true });
+    }, INTERVAL_MS);
+  }
+
   function boot() {
     installHooks();
-    // Seed mtimes for existing keys so first push has timestamps
-    var meta = readMeta();
-    var changed = false;
-    listLocalKeys().forEach(function (key) {
-      if (!meta.mtimes[key]) {
-        meta.mtimes[key] = nowIso();
-        changed = true;
-      }
-    });
-    if (changed) writeMeta(meta);
-
-    syncNow().catch(function () { /* status already set */ });
+    // Do NOT stamp existing keys with "now" — that made stale local data overwrite cloud.
+    syncNow({ skipReload: false }).catch(function () { /* status already set */ });
+    startIntervalSync();
   }
 
   function onStatus(fn) {
@@ -345,10 +602,12 @@
     scheduleSync: scheduleSync,
     installHooks: installHooks,
     isSyncKey: isSyncKey,
+    mergeKey: mergeKey,
     getStatus: function () { return lastStatus; },
     onStatus: onStatus,
     META_KEY: META_KEY,
-    EXACT_KEYS: EXACT_KEYS.slice()
+    EXACT_KEYS: EXACT_KEYS.slice(),
+    INTERVAL_MS: INTERVAL_MS
   };
 
   installHooks();
@@ -359,9 +618,9 @@
     } else {
       setTimeout(boot, 0);
     }
-    global.addEventListener('online', function () { syncNow({ skipReload: true }); });
+    global.addEventListener('online', function () { syncNow({ skipReload: true, quiet: true }); });
     document.addEventListener('visibilitychange', function () {
-      if (document.visibilityState === 'visible') syncNow({ skipReload: true });
+      if (document.visibilityState === 'visible') syncNow({ skipReload: true, quiet: true });
     });
   }
 })(window);
