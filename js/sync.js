@@ -166,6 +166,59 @@
     return out;
   }
 
+  /** Main-page daily goals are arrays of {text, done, queued} — often without id. */
+  function goalIdentity(it) {
+    if (!it || typeof it !== 'object') return null;
+    if (it.id != null && it.id !== '') return 'id:' + String(it.id);
+    var text = String(it.text || '').trim().toLowerCase();
+    if (!text) return null;
+    return 'text:' + text;
+  }
+
+  function mergeGoalsArray(localArr, remoteArr) {
+    var map = {};
+    var order = [];
+
+    function ingest(list) {
+      (list || []).forEach(function (it) {
+        if (!it || typeof it !== 'object') return;
+        var key = goalIdentity(it);
+        if (!key) return;
+        var prev = map[key];
+        if (!prev) {
+          map[key] = {
+            id: it.id || undefined,
+            text: it.text,
+            done: !!it.done,
+            queued: !!it.queued
+          };
+          order.push(key);
+          return;
+        }
+        // Union flags; keep non-empty text; keep id if either has one
+        map[key] = {
+          id: prev.id || it.id || undefined,
+          text: (it.text && String(it.text).trim()) ? it.text : prev.text,
+          done: !!(prev.done || it.done),
+          queued: !!(prev.queued || it.queued)
+        };
+      });
+    }
+
+    // Remote first so local edits (done/queued) still win via OR, and local-only tasks append.
+    ingest(remoteArr);
+    ingest(localArr);
+
+    return order.map(function (key) {
+      var g = map[key];
+      if (!g.id) {
+        // Stable-ish id from text so future merges use id path
+        g.id = 'g_' + key.replace(/^text:/, '').replace(/[^a-z0-9]+/g, '_').slice(0, 40);
+      }
+      return g;
+    });
+  }
+
   function mergeStringList(localArr, remoteArr) {
     var seen = {};
     var out = [];
@@ -234,6 +287,13 @@
     if (remoteVal == null) return localVal;
     if (localVal == null) return remoteVal;
 
+    // Daily goals are TOP-LEVEL arrays (not objects). Empty local must not wipe remote.
+    if (key.indexOf('goals:') === 0) {
+      if (Array.isArray(localVal) || Array.isArray(remoteVal)) {
+        return mergeGoalsArray(Array.isArray(localVal) ? localVal : [], Array.isArray(remoteVal) ? remoteVal : []);
+      }
+    }
+
     if (key === 'habits_v1' || key === 'projects_v1') {
       if (Array.isArray(localVal) || Array.isArray(remoteVal)) {
         return mergeArrayById(Array.isArray(localVal) ? localVal : [], Array.isArray(remoteVal) ? remoteVal : []);
@@ -248,8 +308,8 @@
       return mergeObjectByIdArrays(localVal, remoteVal, MERGE_ARRAY_FIELDS[key]);
     }
 
-    // goals:YYYY-MM-DD and goal_streak_v1 — shallow merge objects, arrays by id when present
-    if (key.indexOf('goals:') === 0 || key === 'goal_streak_v1') {
+    // goal_streak_v1 — shallow object merge
+    if (key === 'goal_streak_v1') {
       if (typeof localVal === 'object' && typeof remoteVal === 'object' && localVal && remoteVal &&
           !Array.isArray(localVal) && !Array.isArray(remoteVal)) {
         var out = {};
@@ -259,11 +319,10 @@
         Object.keys(all).forEach(function (k) {
           var lv = localVal[k];
           var rv = remoteVal[k];
-          if (Array.isArray(lv) || Array.isArray(rv)) {
-            out[k] = mergeArrayById(Array.isArray(lv) ? lv : [], Array.isArray(rv) ? rv : []);
-          } else if (lv === undefined) out[k] = rv;
+          if (lv === undefined) out[k] = rv;
           else if (rv === undefined) out[k] = lv;
-          else out[k] = lv; // prefer local on conflict for day goals
+          else if (k === 'count') out[k] = Math.max(Number(lv) || 0, Number(rv) || 0);
+          else out[k] = lv;
         });
         return out;
       }
@@ -414,6 +473,11 @@
               meta = readMeta();
             } else if (localVal != null && remoteVal != null && canMerge) {
               finalVal = mergeKey(key, localVal, remoteVal);
+              // Goals safety: empty local must adopt remote tasks, never the reverse.
+              if (key.indexOf('goals:') === 0 && Array.isArray(remoteVal) && remoteVal.length > 0 &&
+                  Array.isArray(finalVal) && finalVal.length === 0) {
+                finalVal = mergeGoalsArray(Array.isArray(localVal) ? localVal : [], remoteVal);
+              }
               if (!valuesEqual(finalVal, localVal)) {
                 applyRemoteRow(key, finalVal, pushIso);
                 applied.push(key);
@@ -423,7 +487,9 @@
               } else {
                 finalVal = localVal;
               }
-              if (!valuesEqual(finalVal, remoteVal) || localChanged || localTime >= remoteTime) {
+              // Push only when content changed — not merely because local mtime is newer.
+              // (Newer empty local mtimes were wiping phone tasks on the Main page.)
+              if (localChanged || !valuesEqual(finalVal, remoteVal)) {
                 shouldPush = true;
               }
             } else if (localVal != null && remoteVal != null) {
@@ -439,6 +505,28 @@
               }
             } else {
               return;
+            }
+
+            if (shouldPush && finalVal != null) {
+              // Never push an empty goals day over a non-empty cloud day.
+              if (key.indexOf('goals:') === 0 && Array.isArray(finalVal) && finalVal.length === 0 &&
+                  remoteVal && Array.isArray(remoteVal) && remoteVal.length > 0) {
+                shouldPush = false;
+                if (!localChanged) {
+                  applyRemoteRow(key, remoteVal, remote.updated_at);
+                  applied.push(key);
+                  finalVal = remoteVal;
+                  meta = readMeta();
+                }
+              }
+            }
+
+            if (shouldPush && finalVal != null) {
+              // Also block shrinking a goals day to empty / fewer items when local had nothing.
+              if (key.indexOf('goals:') === 0 && Array.isArray(finalVal) && Array.isArray(remoteVal) &&
+                  Array.isArray(localVal) && localVal.length === 0 && finalVal.length < remoteVal.length) {
+                shouldPush = false;
+              }
             }
 
             if (shouldPush && finalVal != null) {
