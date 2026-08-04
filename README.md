@@ -7,7 +7,8 @@ Personal dashboard: goals, day ring, and a bento hub. Passkey sign-in via Supaba
 Dashboard pages store data in `localStorage`. When you are signed in, `js/sync.js` keeps those keys in sync via Supabase so phone and desktop stay aligned.
 
 1. In the Supabase SQL editor, run `supabase/migrations/001_user_kv.sql`.
-2. Sign in on each device (passkey or magic link).
+2. Sign in on each device with the **same account** (email + password is most reliable; passkey/magic link need the production URL).
 3. Use the topbar **Sync** button anytime, or just keep using the app — saves sync automatically.
+4. If Sync says “Sign in…”, you are not authenticated on that device yet.
 
 Synced: goals, habits, projects, finance, training, health, media. Not synced yet: uploaded video/image blobs in IndexedDB, theme preference, health PIN.

@@ -218,6 +218,7 @@
           return client
             .from(TABLE)
             .upsert(toPush, { onConflict: 'user_id,key' })
+            .select('key')
             .then(function (pushRes) {
               if (pushRes.error) {
                 meta.lastError = pushRes.error.message || 'Push failed';
@@ -234,7 +235,8 @@
               meta.lastError = null;
               writeMeta(meta);
               var pushedKeys = toPush.map(function (r) { return r.key; });
-              setStatus('ok', 'Synced ' + pushedKeys.length + ' item' + (pushedKeys.length === 1 ? '' : 's'));
+              setStatus('ok', 'Synced ' + pushedKeys.length + ' item' + (pushedKeys.length === 1 ? '' : 's') +
+                (applied.length ? (' · pulled ' + applied.length) : ''));
               return { ok: true, applied: applied, pushed: pushedKeys };
             });
         });

@@ -13,7 +13,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/config.js"></script>
   <script src="js/supabase-client.js"></script>
-  <script src="js/sync.js?v=2"></script>
+  <script src="js/sync.js?v=3"></script>
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
   <script src="js/theme.js?v=3"></script>
   <style>
@@ -225,19 +225,27 @@
   <div class="card">
     <h1 class="dash-title">Sign in</h1>
     <p class="sub">
-      Returning users: passkey.<br />
-      First time: open the <strong>sign-in link</strong> from email (creates a session), then register a passkey.
+      Best for sync: <strong>email + password</strong> (works on phone, web, and Desktop).<br />
+      Passkey / magic link also work on <code>jg-dash-nine.vercel.app</code> (not localhost).
     </p>
 
     <div class="session-pill" id="sessionPill">Signed in</div>
+    <div class="status is-error" id="localWarn" style="display:none;margin-bottom:12px"></div>
 
-    <button type="button" class="btn btn-primary" id="passkeyBtn">🔑 Sign in with Passkey</button>
-
-    <div class="divider" id="enrollDivider">First time enroll</div>
-
-    <div class="panel is-active" id="panelEmail">
+    <div class="panel is-active" id="panelPassword">
       <label for="email">Email</label>
-      <input type="email" id="email" placeholder="you@example.com" autocomplete="username webauthn" />
+      <input type="email" id="email" placeholder="you@example.com" autocomplete="username" />
+      <label for="password" style="margin-top:10px">Password</label>
+      <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" />
+      <button type="button" class="btn btn-primary" id="passwordSignInBtn" style="margin-top:14px">Sign in with password</button>
+      <button type="button" class="btn btn-glass" id="passwordSignUpBtn">Create account</button>
+    </div>
+
+    <div class="divider" id="enrollDivider">Or passkey / email link</div>
+
+    <button type="button" class="btn btn-glass" id="passkeyBtn">🔑 Sign in with Passkey</button>
+
+    <div class="panel is-active" id="panelEmail" style="margin-top:12px">
       <button type="button" class="btn btn-glass" id="sendLinkBtn">Email me a sign-in link</button>
     </div>
 
@@ -281,6 +289,7 @@
       var statusEl = document.getElementById('status');
       var sessionPill = document.getElementById('sessionPill');
       var panels = {
+        password: document.getElementById('panelPassword'),
         email: document.getElementById('panelEmail'),
         waiting: document.getElementById('panelWaiting'),
         otp: document.getElementById('panelOtp'),
@@ -301,9 +310,16 @@
 
       function showPanel(name) {
         Object.keys(panels).forEach(function (k) {
-          panels[k].classList.toggle('is-active', k === name);
+          // password + email stay visible together except when enrolled/waiting/otp
+          if (k === 'password' || k === 'email') {
+            var showAuth = (name === 'password' || name === 'email');
+            panels[k].classList.toggle('is-active', showAuth);
+          } else {
+            panels[k].classList.toggle('is-active', k === name);
+          }
         });
         enrollDivider.style.display = name === 'enrolled' ? 'none' : '';
+        document.getElementById('passkeyBtn').style.display = name === 'enrolled' ? 'none' : '';
       }
 
       function setSignedInUI(session) {
@@ -391,6 +407,57 @@
         if (document.visibilityState === 'visible') refreshSessionUI(true);
       });
 
+      // Localhost / Desktop: magic links + passkeys target production SITE_URL / RP ID.
+      (function warnLocalOrigin() {
+        try {
+          var host = location.hostname;
+          var isLocal = host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0';
+          if (!isLocal) return;
+          var el = document.getElementById('localWarn');
+          el.style.display = 'block';
+          el.innerHTML = 'You are on <code>' + location.origin + '</code>. Passkeys/magic links only work on production. ' +
+            'Use <strong>email + password</strong> here, or open ' +
+            '<a href="https://jg-dash-nine.vercel.app/signin.html" style="color:#6BE3A4">jg-dash-nine.vercel.app/signin.html</a>.';
+        } catch (e) { /* ignore */ }
+      })();
+
+      async function passwordAuth(mode) {
+        var email = document.getElementById('email').value.trim();
+        var password = document.getElementById('password').value;
+        if (!email || !password) {
+          setStatus('Enter email and password.', 'error');
+          return;
+        }
+        if (password.length < 6) {
+          setStatus('Password must be at least 6 characters.', 'error');
+          return;
+        }
+        setStatus(mode === 'signup' ? 'Creating account…' : 'Signing in…');
+        try {
+          var res = mode === 'signup'
+            ? await sb.auth.signUp({ email: email, password: password })
+            : await sb.auth.signInWithPassword({ email: email, password: password });
+          if (res.error) throw res.error;
+          var session = res.data && res.data.session;
+          if (!session && mode === 'signup') {
+            setStatus('Account created. If email confirmation is required, open the confirm link, then sign in with password.', 'ok');
+            return;
+          }
+          if (!session) throw new Error('No session returned. Check email/password or confirm your email first.');
+          setSignedInUI(session);
+          setStatus('Signed in. Syncing…', 'ok');
+          redirectNext();
+        } catch (err) {
+          setStatus((err && err.message) || 'Password sign-in failed.', 'error');
+        }
+      }
+
+      document.getElementById('passwordSignInBtn').addEventListener('click', function () { passwordAuth('signin'); });
+      document.getElementById('passwordSignUpBtn').addEventListener('click', function () { passwordAuth('signup'); });
+      document.getElementById('password').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') passwordAuth('signin');
+      });
+
       document.getElementById('passkeyBtn').addEventListener('click', async function () {
         setStatus('Waiting for passkey…');
         try {
@@ -399,7 +466,7 @@
           setStatus('Signed in with passkey.', 'ok');
           redirectNext();
         } catch (err) {
-          setStatus((err && err.message) || 'Passkey sign-in failed. Enroll with the email link below first.', 'error');
+          setStatus((err && err.message) || 'Passkey sign-in failed. Use email + password, or enroll via magic link on production.', 'error');
         }
       });
 
