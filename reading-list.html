@@ -13,11 +13,11 @@
   <script src="js/config.js?v=2"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/lock.js"></script>
-  <script src="js/sync.js?v=7"></script>
+  <script src="js/sync.js?v=8"></script>
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
   <script src="js/theme.js?v=3"></script>
   <script src="js/topbar.js?v=7"></script>
-  <script src="js/media-store.js"></script>
+  <script src="js/media-store.js?v=2"></script>
   <style>
 
 :root {
@@ -519,12 +519,23 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
   document.getElementById('modalSave').addEventListener('click', saveBook);
   document.getElementById('modalDelete').addEventListener('click', function () {
     if (!editId || !confirm('Delete this book?')) return;
-    store.books = store.books.filter(function (x) { return x.id !== editId; });
+    if (window.JGMedia && typeof JGMedia.removeById === 'function') {
+      JGMedia.removeById(store, editId, 'books');
+    } else {
+      store.books = store.books.filter(function (x) { return x.id !== editId; });
+    }
     persist(); closeModal(); render(); toast('Deleted');
   });
   document.getElementById('modal').addEventListener('click', function (e) { if (e.target.id === 'modal') closeModal(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeModal(); });
   render();
+  window.addEventListener('jg-sync-complete', function (e) {
+    var detail = (e && e.detail) || {};
+    var keys = [].concat(detail.applied || [], detail.merged || []);
+    if (!keys.some(function (k) { return k === 'jg_media_data_v1'; })) return;
+    store = JGMedia.load();
+    render();
+  });
   </script>
 </body>
 </html>
