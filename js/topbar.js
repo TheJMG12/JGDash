@@ -195,6 +195,7 @@
       global.addEventListener('jg-sync-status', function (e) {
         paintSync(e.detail);
       });
+      syncBtn.title = 'Sync now (also runs automatically every minute while signed in)';
       syncBtn.addEventListener('click', function () {
         if (!global.JGDash || !global.JGDash.sync) return;
         syncBtn.textContent = 'Syncing…';
@@ -203,8 +204,8 @@
           var status = global.JGDash.sync.getStatus();
           paintSync(status);
           if (res && res.skipped && res.reason === 'signed_out') {
-            syncBtn.title = 'Sign in required for cloud sync';
-            if (confirm('Sign in is required for cloud sync. Go to sign-in page?')) {
+            syncBtn.title = 'Sign in once — sync then runs automatically every minute';
+            if (confirm('Sign in once to enable automatic cloud sync. Go to sign-in?')) {
               location.href = 'signin.html?next=' + encodeURIComponent(location.pathname.split('/').pop() || 'index.html');
             }
             return;
@@ -221,13 +222,9 @@
             return;
           }
           if (res && res.ok && !res.skipped) {
-            var nPush = (res.pushed && res.pushed.length) || 0;
-            var nPull = (res.applied && res.applied.length) || 0;
-            var detail = status.message || ('Pushed ' + nPush + ', pulled ' + nPull);
-            syncBtn.title = detail;
-            if (!nPush && !nPull) {
-              alert(detail);
-            }
+            var detail = status.message || 'Synced';
+            syncBtn.title = detail + ' · auto every minute';
+            // No alert when healthy — auto sync should feel quiet.
           }
         }).catch(function (err) {
           paintSync({ state: 'error', message: (err && err.message) || 'Sync failed' });
