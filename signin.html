@@ -11,9 +11,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>JGDash — Sign in</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/config.js"></script>
+  <script src="js/config.js?v=2"></script>
   <script src="js/supabase-client.js"></script>
-  <script src="js/sync.js?v=3"></script>
+  <script src="js/sync.js?v=4"></script>
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
   <script src="js/theme.js?v=3"></script>
   <style>
@@ -440,7 +440,7 @@
           if (res.error) throw res.error;
           var session = res.data && res.data.session;
           if (!session && mode === 'signup') {
-            setStatus('Account created. If email confirmation is required, open the confirm link, then sign in with password.', 'ok');
+            setStatus('Account created, but email confirmation is ON in Supabase. Open the confirm link in your inbox, then Sign in with password. (Or disable Confirm email in Authentication → Providers → Email.)', 'ok');
             return;
           }
           if (!session) throw new Error('No session returned. Check email/password or confirm your email first.');
