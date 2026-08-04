@@ -13,11 +13,11 @@
   <script src="js/config.js?v=2"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/lock.js"></script>
-  <script src="js/sync.js?v=7"></script>
+  <script src="js/sync.js?v=8"></script>
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
   <script src="js/theme.js?v=3"></script>
   <script src="js/topbar.js?v=7"></script>
-  <script src="js/media-store.js"></script>
+  <script src="js/media-store.js?v=2"></script>
   <style>
 
 :root {
@@ -584,7 +584,11 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
       if (!it) return;
       if (act === 'del') {
         if (!confirm('Remove from Media?')) return;
-        store.items = store.items.filter(function (x) { return x.id !== id; });
+        if (window.JGMedia && typeof JGMedia.removeById === 'function') {
+          JGMedia.removeById(store, id, 'items');
+        } else {
+          store.items = store.items.filter(function (x) { return x.id !== id; });
+        }
         persist(); render(); toast('Removed');
       } else if (act === 'to-lib') {
         it.inbox = false; it.status = 'library';
@@ -710,7 +714,11 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
     if (d) {
       var id = d.getAttribute('data-del-feed');
       if (!confirm('Remove this feed?')) return;
-      store.feeds = store.feeds.filter(function (x) { return x.id !== id; });
+      if (window.JGMedia && typeof JGMedia.removeById === 'function') {
+        JGMedia.removeById(store, id, 'feeds');
+      } else {
+        store.feeds = store.feeds.filter(function (x) { return x.id !== id; });
+      }
       delete feedCache[id];
       if (activeFeedId === id) activeFeedId = null;
       persist();
@@ -788,6 +796,14 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
   }
 
   render();
+
+  window.addEventListener('jg-sync-complete', function (e) {
+    var detail = (e && e.detail) || {};
+    var keys = [].concat(detail.applied || [], detail.merged || []);
+    if (!keys.some(function (k) { return k === 'jg_media_data_v1'; })) return;
+    store = JGMedia.load();
+    render();
+  });
 })();
   </script>
 </body>

@@ -23,7 +23,7 @@
 
   // Top-level array fields merged by item `id` (not whole-blob LWW).
   var MERGE_ARRAY_FIELDS = {
-    jg_media_data_v1: ['items', 'visuals', 'watch', 'reading', 'feeds'],
+    jg_media_data_v1: ['items', 'visuals', 'watchlist', 'books', 'feeds'],
     jg_finance_data_v1: ['transactions', 'budgets', 'goals', 'holdings'],
     jg_training_data_v1: ['sessions', 'exercises', 'drills', 'notes', 'videos', 'prs', 'milestones']
   };
@@ -249,6 +249,10 @@
         out[k] = mergeStringList(Array.isArray(lv) ? lv : [], Array.isArray(rv) ? rv : []);
         return;
       }
+      if (k === 'tombstones') {
+        out[k] = mergeTombstones(lv, rv);
+        return;
+      }
       if (lv === undefined) out[k] = rv;
       else if (rv === undefined) out[k] = lv;
       else if (valuesEqual(lv, rv)) out[k] = lv;
@@ -259,6 +263,38 @@
       }
     });
     return out;
+  }
+
+  function mergeTombstones(localTombs, remoteTombs) {
+    var out = {};
+    var localObj = localTombs && typeof localTombs === 'object' && !Array.isArray(localTombs) ? localTombs : {};
+    var remoteObj = remoteTombs && typeof remoteTombs === 'object' && !Array.isArray(remoteTombs) ? remoteTombs : {};
+    var ids = {};
+    Object.keys(localObj).forEach(function (id) { ids[id] = true; });
+    Object.keys(remoteObj).forEach(function (id) { ids[id] = true; });
+    Object.keys(ids).forEach(function (id) {
+      var lt = localObj[id];
+      var rt = remoteObj[id];
+      if (lt == null) out[id] = rt;
+      else if (rt == null) out[id] = lt;
+      else {
+        var ln = Date.parse(String(lt)) || 0;
+        var rn = Date.parse(String(rt)) || 0;
+        out[id] = rn >= ln ? rt : lt;
+      }
+    });
+    return out;
+  }
+
+  function stripTombstoned(obj, arrayFields, tombstones) {
+    if (!obj || !tombstones) return obj;
+    arrayFields.forEach(function (field) {
+      if (!Array.isArray(obj[field])) return;
+      obj[field] = obj[field].filter(function (it) {
+        return !(it && it.id != null && tombstones[String(it.id)]);
+      });
+    });
+    return obj;
   }
 
   function deepMergeIdAware(localVal, remoteVal) {
@@ -305,7 +341,12 @@
     }
 
     if (MERGE_ARRAY_FIELDS[key]) {
-      return mergeObjectByIdArrays(localVal, remoteVal, MERGE_ARRAY_FIELDS[key]);
+      var mergedObj = mergeObjectByIdArrays(localVal, remoteVal, MERGE_ARRAY_FIELDS[key]);
+      if (key === 'jg_media_data_v1') {
+        if (!mergedObj.tombstones || typeof mergedObj.tombstones !== 'object') mergedObj.tombstones = {};
+        stripTombstoned(mergedObj, MERGE_ARRAY_FIELDS[key], mergedObj.tombstones);
+      }
+      return mergedObj;
     }
 
     // goal_streak_v1 — shallow object merge

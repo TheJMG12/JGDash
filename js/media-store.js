@@ -159,7 +159,9 @@
       ],
       collections: ['Soccer', 'Security', 'Finance', 'History', 'Recipes', 'Dashboard Inspiration', 'UI Ideas', 'Travel', 'Fashion', 'Interiors', 'Design', 'Memes'],
       readingGoal: { year: 2026, target: 24, completed: 1 },
-      feeds: defaultFeeds()
+      feeds: defaultFeeds(),
+      // Sync delete ledger: { [id]: ISO timestamp }. Merge keeps tombstones so removals stick across devices.
+      tombstones: {}
     };
   }
 
@@ -172,12 +174,20 @@
       Object.keys(parsed).forEach(function (k) { base[k] = parsed[k]; });
       if (!Array.isArray(base.feeds) || !base.feeds.length) base.feeds = defaultFeeds();
       if (!Array.isArray(base.items)) base.items = [];
+      if (!base.tombstones || typeof base.tombstones !== 'object') base.tombstones = {};
       base.items.forEach(function (it) {
         if (it.inbox == null) it.inbox = it.status === 'inbox';
         if (!it.status) it.status = it.inbox ? 'inbox' : 'library';
         if (it.description == null) it.description = '';
         if (it.image == null) it.image = '';
         if (it.notes == null) it.notes = '';
+      });
+      // Drop any locally lingering rows that are already tombstoned
+      ['items', 'visuals', 'watchlist', 'books', 'feeds'].forEach(function (field) {
+        if (!Array.isArray(base[field])) return;
+        base[field] = base[field].filter(function (it) {
+          return !(it && it.id != null && base.tombstones[String(it.id)]);
+        });
       });
       return base;
     } catch (e) {
@@ -189,6 +199,19 @@
     try {
       localStorage.setItem(DATA_KEY, JSON.stringify(store));
     } catch (e) { /* ignore quota */ }
+  }
+
+  /** Record a cross-device delete and remove the row from the given collection(s). */
+  function removeById(store, id, fields) {
+    if (!store || id == null || id === '') return store;
+    if (!store.tombstones || typeof store.tombstones !== 'object') store.tombstones = {};
+    store.tombstones[String(id)] = new Date().toISOString();
+    var list = Array.isArray(fields) ? fields : [fields || 'items'];
+    list.forEach(function (field) {
+      if (!Array.isArray(store[field])) return;
+      store[field] = store[field].filter(function (x) { return !x || String(x.id) !== String(id); });
+    });
+    return store;
   }
 
   function openDb() {
@@ -430,6 +453,7 @@
     defaultFeeds: defaultFeeds,
     load: load,
     save: save,
+    removeById: removeById,
     idbPut: idbPut,
     idbGet: idbGet,
     detectType: detectType,
