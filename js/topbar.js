@@ -201,8 +201,23 @@
         syncBtn.classList.add('is-syncing');
         global.JGDash.sync.syncNow({ skipReload: true }).then(function (res) {
           paintSync(global.JGDash.sync.getStatus());
+          if (res && res.skipped && res.reason === 'signed_out') {
+            syncBtn.title = 'Sign in required for cloud sync';
+            if (confirm('Sign in is required for cloud sync. Go to sign-in page?')) {
+              location.href = 'signin.html?next=' + encodeURIComponent(location.pathname.split('/').pop() || 'index.html');
+            }
+            return;
+          }
           if (res && res.missingTable) {
             syncBtn.title = 'Run supabase/migrations/001_user_kv.sql in the Supabase SQL editor';
+          }
+          if (res && res.ok && !res.skipped) {
+            var nPush = (res.pushed && res.pushed.length) || 0;
+            var nPull = (res.applied && res.applied.length) || 0;
+            syncBtn.title = 'Pushed ' + nPush + ', pulled ' + nPull + ' — ' + (global.JGDash.sync.getStatus().message || '');
+          }
+          if (res && res.error) {
+            syncBtn.title = (res.error && res.error.message) || 'Sync failed';
           }
         });
       });
