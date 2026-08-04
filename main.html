@@ -1370,6 +1370,21 @@
       return keys.sort();
     }
 
+    function goalUid() {
+      return 'g_' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
+    }
+
+    function ensureGoalIds(goals) {
+      let changed = false;
+      const out = (Array.isArray(goals) ? goals : []).map(function (g) {
+        if (!g || typeof g !== 'object') return g;
+        if (g.id) return g;
+        changed = true;
+        return Object.assign({}, g, { id: goalUid() });
+      });
+      return { goals: out, changed: changed };
+    }
+
     /* —— Dates —— */
     function pad2(n) { return n < 10 ? '0' + n : '' + n; }
 
@@ -1417,7 +1432,15 @@
     }
 
     function setGoals(key, goals) {
-      storeSet(key, goals);
+      const normalized = ensureGoalIds(goals);
+      storeSet(key, normalized.goals);
+    }
+
+    function normalizeStoredGoalIds() {
+      storeListKeys('goals:').forEach(function (key) {
+        const n = ensureGoalIds(getGoals(key));
+        if (n.changed) storeSet(key, n.goals);
+      });
     }
 
     /* —— Rollover —— */
@@ -1433,7 +1456,7 @@
         const undone = old.filter(function (g) { return !g.done; });
         undone.forEach(function (g) {
           if (!todayGoals.some(function (t) { return t.text === g.text; })) {
-            todayGoals.push({ text: g.text, done: false, queued: !!g.queued });
+            todayGoals.push({ id: g.id || goalUid(), text: g.text, done: false, queued: !!g.queued });
           }
         });
         storeDelete(key);
@@ -1971,7 +1994,7 @@
         if (!t) return;
         const key = typeof keyFn === 'function' ? keyFn() : keyFn;
         const goals = getGoals(key);
-        goals.push({ text: t, done: false });
+        goals.push({ id: goalUid(), text: t, done: false });
         setGoals(key, goals);
         input.value = '';
         reload();
@@ -2018,7 +2041,7 @@
       const remaining = today.filter(function (g) { return !g.done; });
       remaining.forEach(function (g) {
         if (!tomorrow.some(function (t) { return t.text === g.text; })) {
-          tomorrow.push({ text: g.text, done: false, queued: !!g.queued });
+          tomorrow.push({ id: g.id || goalUid(), text: g.text, done: false, queued: !!g.queued });
         }
       });
       const kept = today.filter(function (g) { return g.done; });
@@ -2329,6 +2352,7 @@
 
     /* —— Init —— */
     runRollover();
+    normalizeStoredGoalIds();
     runStreakCheck();
     makeAddHandlers(
       document.getElementById('goalInput'),
@@ -2353,6 +2377,22 @@
     updateDayBar();
     setInterval(updateDayBar, 60 * 1000);
     initHabits();
+
+    // When quiet auto-sync merges goals/habits, refresh Main UI without a full reload.
+    window.addEventListener('jg-sync-complete', function (e) {
+      var detail = (e && e.detail) || {};
+      var keys = [].concat(detail.applied || [], detail.merged || []);
+      var touchGoals = keys.some(function (k) {
+        return k && (String(k).indexOf('goals:') === 0 || k === 'goal_streak_v1' || k === 'habits_v1');
+      });
+      if (!touchGoals) return;
+      normalizeStoredGoalIds();
+      loadToday();
+      loadTomorrow();
+      renderStreak();
+      if (typeof renderHabits === 'function') renderHabits();
+      try { ticker.start(); } catch (err) { /* ignore */ }
+    });
 
     /*
       Habit Tracker notes
