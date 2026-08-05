@@ -877,7 +877,50 @@
       background: rgba(255,255,255,0.06);
       color: var(--text-tertiary);
       margin: 2px 2px 0 0;
+      text-transform: lowercase;
     }
+
+    .tag.tag-cyber {
+      background: color-mix(in srgb, #3b82f6 22%, transparent);
+      color: #93c5fd;
+    }
+    .tag.tag-soccer {
+      background: color-mix(in srgb, #22c55e 22%, transparent);
+      color: #86efac;
+    }
+    .tag.tag-personal {
+      background: color-mix(in srgb, #f59e0b 22%, transparent);
+      color: #fcd34d;
+    }
+
+    [data-theme="light"] .tag.tag-cyber { color: #1d4ed8; }
+    [data-theme="light"] .tag.tag-soccer { color: #15803d; }
+    [data-theme="light"] .tag.tag-personal { color: #b45309; }
+
+    .tag-checks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .tag-check {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--input-bg);
+      font-size: 13px;
+      color: var(--text-primary);
+      cursor: pointer;
+      text-transform: none;
+      letter-spacing: 0;
+      margin: 0;
+      font-weight: 500;
+    }
+
+    .tag-check input { width: auto; margin: 0; accent-color: var(--accent); }
 
     .section-label {
       font-size: 12px;
@@ -1188,9 +1231,13 @@
             <label for="pfCompletion">Completion %</label>
             <input type="number" id="pfCompletion" min="0" max="100" value="0" />
           </div>
-          <div class="field">
-            <label for="pfTags">Tags (comma-separated)</label>
-            <input type="text" id="pfTags" placeholder="infra, security" />
+          <div class="field full">
+            <label>Tags</label>
+            <div class="tag-checks" id="pfTags">
+              <label class="tag-check"><input type="checkbox" name="pfTag" value="cyber" /> cyber</label>
+              <label class="tag-check"><input type="checkbox" name="pfTag" value="soccer" /> soccer</label>
+              <label class="tag-check"><input type="checkbox" name="pfTag" value="personal" /> personal</label>
+            </div>
           </div>
           <div class="field full">
             <label for="pfNotes">Notes</label>
@@ -1220,6 +1267,7 @@
   var PRIORITIES = ['Low', 'Medium', 'High', 'Critical'];
   var RISKS = ['Low', 'Medium', 'High'];
   var OWNERS = ['Justin', 'Alex', 'Sam', 'Riley'];
+  var PROJECT_TAGS = ['cyber', 'soccer', 'personal'];
   var PRIORITY_RANK = { Critical: 0, High: 1, Medium: 2, Low: 3 };
 
   var state = {
@@ -1329,7 +1377,7 @@
         updatedAt: daysAgo(1) + 'T14:00:00.000Z',
         createdAt: daysAgo(30) + 'T09:00:00.000Z',
         completion: 62,
-        tags: ['infra', 'migration', 'prod'],
+        tags: ['cyber'],
         milestones: [{ id: 'm1', title: 'Staging validation', done: true }, { id: 'm2', title: 'Cutover window', done: false }],
         tasksTotal: 24, tasksDone: 15, tasksOverdue: 2,
         risk: 'High', notes: 'Need DB replica lag under 200ms before cutover.',
@@ -1348,7 +1396,7 @@
         updatedAt: daysAgo(8) + 'T11:00:00.000Z',
         createdAt: daysAgo(45) + 'T10:00:00.000Z',
         completion: 40,
-        tags: ['security', 'compliance'],
+        tags: ['cyber'],
         milestones: [{ id: 'm1', title: 'Scope freeze', done: true }, { id: 'm2', title: 'Remediation', done: false }],
         tasksTotal: 18, tasksDone: 7, tasksOverdue: 4,
         risk: 'High', notes: 'Waiting on vendor report delivery.',
@@ -1367,7 +1415,7 @@
         updatedAt: daysAgo(2) + 'T16:30:00.000Z',
         createdAt: daysAgo(20) + 'T08:00:00.000Z',
         completion: 48,
-        tags: ['network', 'security'],
+        tags: ['cyber'],
         milestones: [{ id: 'm1', title: 'ACL audit', done: true }, { id: 'm2', title: 'VLAN cutover', done: false }],
         tasksTotal: 16, tasksDone: 8, tasksOverdue: 0,
         risk: 'Medium', notes: 'Coordinate with facilities for camera subnet.',
@@ -1386,7 +1434,7 @@
         updatedAt: daysAgo(3) + 'T09:00:00.000Z',
         createdAt: daysAgo(10) + 'T12:00:00.000Z',
         completion: 15,
-        tags: ['backup', 'automation'],
+        tags: ['cyber', 'personal'],
         milestones: [{ id: 'm1', title: 'Target selection', done: false }],
         tasksTotal: 12, tasksDone: 2, tasksOverdue: 0,
         risk: 'Low', notes: 'Pilot on NAS first.',
@@ -1405,7 +1453,7 @@
         updatedAt: daysAgo(20) + 'T10:00:00.000Z',
         createdAt: daysAgo(70) + 'T09:00:00.000Z',
         completion: 25,
-        tags: ['docs', 'ops'],
+        tags: ['personal'],
         milestones: [{ id: 'm1', title: 'Inventory', done: true }],
         tasksTotal: 20, tasksDone: 5, tasksOverdue: 1,
         risk: 'Low', notes: 'Paused until template decision.',
@@ -1424,7 +1472,7 @@
         updatedAt: daysAgo(0) + 'T08:00:00.000Z',
         createdAt: daysAgo(25) + 'T11:00:00.000Z',
         completion: 70,
-        tags: ['cloud', 'cost'],
+        tags: ['cyber'],
         milestones: [{ id: 'm1', title: 'Inventory scan', done: true }, { id: 'm2', title: 'Deletion window', done: false }],
         tasksTotal: 14, tasksDone: 10, tasksOverdue: 0,
         risk: 'Medium', notes: 'Confirm with finance before deleting reserved volumes.',
@@ -1443,7 +1491,7 @@
         updatedAt: daysAgo(6) + 'T15:00:00.000Z',
         createdAt: daysAgo(7) + 'T09:00:00.000Z',
         completion: 0,
-        tags: ['monitoring', 'observability'],
+        tags: ['cyber'],
         milestones: [],
         tasksTotal: 22, tasksDone: 0, tasksOverdue: 0,
         risk: 'Medium', notes: 'Depends on network hardening for scrape targets.',
@@ -1462,7 +1510,7 @@
         updatedAt: daysAgo(4) + 'T13:00:00.000Z',
         createdAt: daysAgo(35) + 'T10:00:00.000Z',
         completion: 55,
-        tags: ['vpn', 'security'],
+        tags: ['cyber'],
         milestones: [{ id: 'm1', title: 'MFA pilot', done: true }],
         tasksTotal: 10, tasksDone: 5, tasksOverdue: 3,
         risk: 'High', notes: 'Blocked on IdP group mapping.',
@@ -1481,7 +1529,7 @@
         updatedAt: daysAgo(9) + 'T17:00:00.000Z',
         createdAt: daysAgo(55) + 'T09:00:00.000Z',
         completion: 100,
-        tags: ['inventory', 'ops'],
+        tags: ['personal'],
         milestones: [{ id: 'm1', title: 'Physical audit', done: true }, { id: 'm2', title: 'DB sync', done: true }],
         tasksTotal: 15, tasksDone: 15, tasksOverdue: 0,
         risk: 'Low', notes: 'Closed after spot-check passed.',
@@ -1500,12 +1548,50 @@
         updatedAt: daysAgo(16) + 'T12:00:00.000Z',
         createdAt: daysAgo(15) + 'T08:00:00.000Z',
         completion: 35,
-        tags: ['certs', 'security', 'tls'],
+        tags: ['cyber'],
         milestones: [{ id: 'm1', title: 'Public renewals', done: false }],
         tasksTotal: 8, tasksDone: 3, tasksOverdue: 1,
         risk: 'High', notes: 'Wildcard expires soon — prioritize edge.',
         links: [], effortEst: 12, effortActual: 5, budget: 400,
         pinned: false, blockedReason: '', dependsOn: [], reminder: 'edge certs'
+      },
+      {
+        id: 'p_soccer_season',
+        name: 'Spring Soccer Season Prep',
+        description: 'Gear inventory, practice schedule, and travel logistics for the spring season.',
+        status: 'In Progress',
+        priority: 'High',
+        owner: 'Justin',
+        dueDate: daysFromNow(14),
+        startDate: daysAgo(10),
+        updatedAt: daysAgo(1) + 'T10:00:00.000Z',
+        createdAt: daysAgo(12) + 'T09:00:00.000Z',
+        completion: 45,
+        tags: ['soccer'],
+        milestones: [{ id: 'm1', title: 'Roster locked', done: true }, { id: 'm2', title: 'Travel booked', done: false }],
+        tasksTotal: 12, tasksDone: 5, tasksOverdue: 0,
+        risk: 'Low', notes: 'Confirm hotel block by Friday.',
+        links: [], effortEst: 20, effortActual: 9, budget: 800,
+        pinned: true, blockedReason: '', dependsOn: [], reminder: ''
+      },
+      {
+        id: 'p_home_lab',
+        name: 'Home Lab Rebuild',
+        description: 'Rebuild personal lab rack, label cables, and document VLAN layout.',
+        status: 'Planning',
+        priority: 'Medium',
+        owner: 'Justin',
+        dueDate: daysFromNow(28),
+        startDate: daysAgo(2),
+        updatedAt: daysAgo(0) + 'T18:00:00.000Z',
+        createdAt: daysAgo(3) + 'T12:00:00.000Z',
+        completion: 10,
+        tags: ['personal', 'cyber'],
+        milestones: [{ id: 'm1', title: 'Cable audit', done: false }],
+        tasksTotal: 9, tasksDone: 1, tasksOverdue: 0,
+        risk: 'Low', notes: 'Order patch cables first.',
+        links: [], effortEst: 16, effortActual: 2, budget: 250,
+        pinned: false, blockedReason: '', dependsOn: [], reminder: ''
       }
     ];
   }
@@ -1544,11 +1630,25 @@
   }
 
   function allTags() {
-    var set = {};
-    state.projects.forEach(function (p) {
-      (p.tags || []).forEach(function (t) { set[t] = true; });
+    return PROJECT_TAGS.slice();
+  }
+
+  function readFormTags() {
+    return Array.prototype.slice.call(document.querySelectorAll('input[name="pfTag"]:checked'))
+      .map(function (el) { return el.value; })
+      .filter(function (t) { return PROJECT_TAGS.indexOf(t) !== -1; });
+  }
+
+  function setFormTags(tags) {
+    var selected = {};
+    (tags || []).forEach(function (t) { selected[t] = true; });
+    document.querySelectorAll('input[name="pfTag"]').forEach(function (el) {
+      el.checked = !!selected[el.value];
     });
-    return Object.keys(set).sort();
+  }
+
+  function tagClass(t) {
+    return PROJECT_TAGS.indexOf(t) !== -1 ? ' tag-' + t : '';
   }
 
   function matchesPreset(p, preset) {
@@ -1927,18 +2027,20 @@
       }).join('') +
       '</svg></div>';
 
-    // Workload by owner
-    var ownerCounts = {};
-    OWNERS.forEach(function (o) { ownerCounts[o] = 0; });
-    all.filter(function (p) { return p.status !== 'Completed'; }).forEach(function (p) {
-      ownerCounts[p.owner] = (ownerCounts[p.owner] || 0) + 1;
+    // Projects by tag
+    var tagCounts = {};
+    PROJECT_TAGS.forEach(function (t) { tagCounts[t] = 0; });
+    all.forEach(function (p) {
+      (p.tags || []).forEach(function (t) {
+        if (Object.prototype.hasOwnProperty.call(tagCounts, t)) tagCounts[t] += 1;
+      });
     });
-    var maxO = Math.max(1, Math.max.apply(null, Object.values(ownerCounts)));
-    var bars = OWNERS.map(function (o) {
-      var n = ownerCounts[o] || 0;
-      return '<div class="bar-row"><span>' + esc(o) + '</span><div class="bar-track"><span style="width:' + (n / maxO * 100) + '%"></span></div><span class="progress-pct">' + n + '</span></div>';
+    var maxT = Math.max(1, Math.max.apply(null, Object.values(tagCounts)));
+    var tagBars = PROJECT_TAGS.map(function (t) {
+      var n = tagCounts[t] || 0;
+      return '<div class="bar-row"><span class="tag' + tagClass(t) + '">' + esc(t) + '</span><div class="bar-track"><span style="width:' + (n / maxT * 100) + '%"></span></div><span class="progress-pct">' + n + '</span></div>';
     }).join('');
-    var workload = '<div class="card"><h3>Workload by owner</h3>' + bars + '</div>';
+    var byTag = '<div class="card"><h3>Projects by tag</h3>' + tagBars + '</div>';
 
     var staleList = all.filter(isStale).slice(0, 5).map(function (p) {
       return '<li><span>' + esc(p.name) + '</span><span>' + esc((p.updatedAt || '').slice(0, 10) || '—') + '</span></li>';
@@ -1960,7 +2062,7 @@
       '<div class="card"><h3>Upcoming deadlines</h3><ul class="mini-list">' + upcoming + '</ul></div>' +
       '<div class="card"><h3>Recent activity</h3><ul class="mini-list">' + act + '</ul></div>';
 
-    document.getElementById('analyticsRow').innerHTML = donut + trend + workload + lists;
+    document.getElementById('analyticsRow').innerHTML = donut + trend + byTag + lists;
   }
 
   function renderDetails(list) {
@@ -1970,7 +2072,7 @@
       return;
     }
     el.innerHTML = list.map(function (p) {
-      var tags = (p.tags || []).map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join('');
+      var tags = (p.tags || []).map(function (t) { return '<span class="tag' + tagClass(t) + '">' + esc(t) + '</span>'; }).join('');
       return '<div class="card detail-card' + (isAtRisk(p) ? ' at-risk' : '') + '">' +
         '<h4><input type="checkbox" class="row-check" data-id="' + esc(p.id) + '"' + (state.selected.has(p.id) ? ' checked' : '') + ' aria-label="Select" /> ' +
         '<button type="button" class="pin-btn' + (p.pinned ? ' pinned' : '') + '" data-pin="' + esc(p.id) + '">' + (p.pinned ? '★' : '☆') + '</button> ' +
@@ -2173,7 +2275,7 @@
     document.getElementById('pfStart').value = isEdit ? (project.startDate || '') : todayISO();
     document.getElementById('pfDue').value = isEdit ? (project.dueDate || '') : '';
     document.getElementById('pfCompletion').value = isEdit ? (project.completion || 0) : 0;
-    document.getElementById('pfTags').value = isEdit ? (project.tags || []).join(', ') : '';
+    setFormTags(isEdit ? (project.tags || []) : []);
     document.getElementById('pfNotes').value = isEdit ? (project.notes || '') : '';
     document.getElementById('pfBlocked').value = isEdit ? (project.blockedReason || '') : '';
     document.getElementById('formError').classList.remove('show');
@@ -2343,7 +2445,7 @@
         return;
       }
       err.classList.remove('show');
-      var tags = document.getElementById('pfTags').value.split(',').map(function (t) { return t.trim(); }).filter(Boolean);
+      var tags = readFormTags();
       var id = document.getElementById('pfId').value;
       var payload = {
         name: name,
