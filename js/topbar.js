@@ -133,7 +133,7 @@
           '#jgdash-topbar .tb-inner{gap:8px;row-gap:8px;}' +
           '#jgdash-topbar .tb-title{display:none;}' +
           '#jgdash-topbar .tb-spacer{display:none;}' +
-          '#jgdash-topbar .tb-actions{flex:1 1 100%;width:100%;justify-content:flex-end;gap:6px;}' +
+          '#jgdash-topbar .tb-actions{flex:0 0 100%;width:100%;max-width:100%;justify-content:flex-end;gap:6px;}' +
           '#jgdash-topbar .tb-btn,#jgdash-topbar .tb-hubs-btn{padding:6px 10px;}' +
           '#jgdash-topbar .tb-label-full{display:none;}' +
           '#jgdash-topbar .tb-label-short{display:inline;}' +
