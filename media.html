@@ -53,14 +53,14 @@ a{color:var(--accent)}
 .sidebar{width:var(--sidebar-w);flex-shrink:0;padding:16px 12px;border-right:1px solid var(--border);background:rgba(0,0,0,0.25);backdrop-filter:blur(20px);display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh;overflow-y:auto}
 [data-theme="light"] .sidebar{background:rgba(255,255,255,0.55)}
 .sidebar-brand{font-size:13px;font-weight:700;letter-spacing:0.04em;color:var(--text-secondary);padding:8px 10px 14px;text-transform:uppercase}
-.nav-link{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;font-size:13px;color:var(--text-secondary);text-align:left;width:100%;transition:background .15s,color .15s;text-decoration:none}
+.nav-link{touch-action:manipulation;-webkit-tap-highlight-color:transparent;display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;font-size:13px;color:var(--text-secondary);text-align:left;width:100%;transition:background .15s,color .15s;text-decoration:none}
 .nav-link:hover{background:rgba(255,255,255,0.05);color:var(--text-primary)}
 .nav-link.active{background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent);font-weight:600}
 .sidebar-section{margin-top:16px;padding:0 10px 6px;font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-tertiary)}
 .sidebar-back{margin-top:auto;padding:12px 10px 4px;font-size:12px}
 .mobile-bar{display:none;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);background:rgba(0,0,0,0.35);backdrop-filter:blur(16px);position:sticky;top:0;z-index:20}
 .hamburger{width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--input-bg);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--text-primary)}
-.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:30}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:40}
 .main{flex:1;min-width:0;display:flex;flex-direction:column;max-height:100vh;overflow:hidden}
 .main-scroll{flex:1;overflow-y:auto;padding:16px 20px 48px}
 .page-header{display:flex;flex-wrap:wrap;align-items:flex-start;gap:10px;margin-bottom:12px}
@@ -174,7 +174,7 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
 [data-theme="light"] .lightbox-meta{background:#fff}
 @media(max-width:1200px){.kpi-row{grid-template-columns:repeat(3,1fr)}.media-grid{grid-template-columns:repeat(3,1fr)}.poster-grid,.book-grid{grid-template-columns:repeat(5,1fr)}.masonry{column-count:3}}
 @media(max-width:960px){.grid-2,.grid-3{grid-template-columns:1fr}.span-2{grid-column:span 1}.kpi-row{grid-template-columns:repeat(2,1fr)}.media-grid,.poster-grid,.book-grid{grid-template-columns:repeat(3,1fr)}.masonry{column-count:2}.lightbox-inner{grid-template-columns:1fr}}
-@media(max-width:860px){.sidebar{position:fixed;left:0;top:0;bottom:0;z-index:40;transform:translateX(-105%);transition:transform .22s ease;box-shadow:8px 0 32px rgba(0,0,0,0.4)}.sidebar.open{transform:translateX(0)}.sidebar-overlay.open{display:block}.mobile-bar{display:flex}.main{max-height:none}.modal-grid{grid-template-columns:1fr}}
+@media(max-width:860px){.sidebar{position:fixed;left:0;top:0;bottom:0;z-index:50;transform:translateX(-105%);transition:transform .22s ease;box-shadow:8px 0 32px rgba(0,0,0,0.4)}.sidebar.open{transform:translateX(0)}.sidebar-overlay.open{display:block}.mobile-bar{display:flex}.main{max-height:none}.modal-grid{grid-template-columns:1fr}}
 @media(max-width:560px){.poster-grid,.book-grid,.media-grid{grid-template-columns:repeat(2,1fr)}.masonry{column-count:1}.kpi-row{grid-template-columns:1fr 1fr}}
 
 .lib-card{display:block;text-decoration:none;color:inherit;border-radius:14px;border:1px solid var(--border);background:var(--card-bg);overflow:hidden;transition:transform .15s,border-color .15s;cursor:pointer}
@@ -209,8 +209,8 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
   </style>
 </head>
 <body data-page-title="Media">
-  <div class="sidebar-overlay" id="sidebarOverlay"></div>
-  <div class="app">
+<div class="app">
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-brand">Media</div>
       <button type="button" class="nav-link active" data-section="capture">Capture / Inbox</button>
