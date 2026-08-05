@@ -537,6 +537,23 @@
       gap: 6px;
     }
 
+    .proj-name-btn {
+      background: none;
+      border: none;
+      padding: 0;
+      margin: 0;
+      font: inherit;
+      font-weight: 600;
+      color: var(--text-primary);
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .proj-name-btn:hover {
+      color: var(--accent);
+      text-decoration: underline;
+    }
+
     .pin-btn {
       color: var(--text-tertiary);
       font-size: 14px;
@@ -901,6 +918,7 @@
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
+      margin-bottom: 8px;
     }
 
     .tag-check {
@@ -921,6 +939,59 @@
     }
 
     .tag-check input { width: auto; margin: 0; accent-color: var(--accent); }
+
+    .tag-check.on {
+      border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+      background: color-mix(in srgb, var(--accent) 12%, var(--input-bg));
+    }
+
+    .tag-add-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .tag-add-row input {
+      flex: 1;
+      min-width: 0;
+      padding: 7px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--input-bg);
+      font-size: 13px;
+      color: var(--text-primary);
+    }
+
+    .tag-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 8px;
+      min-height: 0;
+    }
+
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: rgba(255,255,255,0.08);
+      color: var(--text-secondary);
+    }
+
+    .tag-chip button {
+      border: none;
+      background: transparent;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      padding: 0 2px;
+    }
+
+    .tag-chip button:hover { color: var(--danger, #FF6B6B); }
 
     .section-label {
       font-size: 12px;
@@ -1233,10 +1304,11 @@
           </div>
           <div class="field full">
             <label>Tags</label>
-            <div class="tag-checks" id="pfTags">
-              <label class="tag-check"><input type="checkbox" name="pfTag" value="cyber" /> cyber</label>
-              <label class="tag-check"><input type="checkbox" name="pfTag" value="soccer" /> soccer</label>
-              <label class="tag-check"><input type="checkbox" name="pfTag" value="personal" /> personal</label>
+            <div class="tag-checks" id="pfTagPresets"></div>
+            <div class="tag-chips" id="pfTagChips" aria-live="polite"></div>
+            <div class="tag-add-row">
+              <input type="text" id="pfTagInput" placeholder="Add a tag…" maxlength="32" autocomplete="off" />
+              <button type="button" class="btn" id="pfTagAddBtn">Add</button>
             </div>
           </div>
           <div class="field full">
@@ -1268,7 +1340,14 @@
   var RISKS = ['Low', 'Medium', 'High'];
   var OWNERS = ['Justin', 'Alex', 'Sam', 'Riley'];
   var PROJECT_TAGS = ['cyber', 'soccer', 'personal'];
+  var TAG_COLORS = {
+    cyber: '#3b82f6',
+    soccer: '#22c55e',
+    personal: '#f59e0b'
+  };
+  var TAG_COLOR_FALLBACK = ['#a78bfa', '#f472b6', '#38bdf8', '#fb7185', '#34d399', '#c084fc', '#fbbf24', '#94a3b8'];
   var PRIORITY_RANK = { Critical: 0, High: 1, Medium: 2, Low: 3 };
+  var formTags = [];
 
   var state = {
     projects: [],
@@ -1629,22 +1708,100 @@
     el.innerHTML = html;
   }
 
+  function normalizeTag(raw) {
+    return String(raw == null ? '' : raw).trim().toLowerCase().replace(/\s+/g, '-').slice(0, 32);
+  }
+
   function allTags() {
-    return PROJECT_TAGS.slice();
+    var set = {};
+    PROJECT_TAGS.forEach(function (t) { set[t] = true; });
+    state.projects.forEach(function (p) {
+      (p.tags || []).forEach(function (t) {
+        var n = normalizeTag(t);
+        if (n) set[n] = true;
+      });
+    });
+    return Object.keys(set).sort(function (a, b) {
+      var ia = PROJECT_TAGS.indexOf(a);
+      var ib = PROJECT_TAGS.indexOf(b);
+      if (ia !== -1 || ib !== -1) {
+        if (ia === -1) return 1;
+        if (ib === -1) return -1;
+        return ia - ib;
+      }
+      return a.localeCompare(b);
+    });
+  }
+
+  function tagColor(t) {
+    if (TAG_COLORS[t]) return TAG_COLORS[t];
+    var idx = 0;
+    for (var i = 0; i < t.length; i++) idx = (idx + t.charCodeAt(i) * (i + 1)) % TAG_COLOR_FALLBACK.length;
+    return TAG_COLOR_FALLBACK[idx];
   }
 
   function readFormTags() {
-    return Array.prototype.slice.call(document.querySelectorAll('input[name="pfTag"]:checked'))
-      .map(function (el) { return el.value; })
-      .filter(function (t) { return PROJECT_TAGS.indexOf(t) !== -1; });
+    return formTags.slice();
+  }
+
+  function renderFormTags() {
+    var presets = document.getElementById('pfTagPresets');
+    var chips = document.getElementById('pfTagChips');
+    if (!presets || !chips) return;
+
+    presets.innerHTML = PROJECT_TAGS.map(function (t) {
+      var on = formTags.indexOf(t) !== -1;
+      return '<label class="tag-check' + (on ? ' on' : '') + '">' +
+        '<input type="checkbox" name="pfTagPreset" value="' + esc(t) + '"' + (on ? ' checked' : '') + ' /> ' +
+        esc(t) + '</label>';
+    }).join('');
+
+    var custom = formTags.filter(function (t) { return PROJECT_TAGS.indexOf(t) === -1; });
+    chips.innerHTML = custom.map(function (t) {
+      return '<span class="tag-chip' + tagClass(t) + '">' + esc(t) +
+        '<button type="button" data-remove-tag="' + esc(t) + '" aria-label="Remove ' + esc(t) + '">&times;</button></span>';
+    }).join('');
+
+    presets.querySelectorAll('input[name="pfTagPreset"]').forEach(function (el) {
+      el.addEventListener('change', function () {
+        var t = el.value;
+        var idx = formTags.indexOf(t);
+        if (el.checked && idx === -1) formTags.push(t);
+        if (!el.checked && idx !== -1) formTags.splice(idx, 1);
+        renderFormTags();
+      });
+    });
+
+    chips.querySelectorAll('[data-remove-tag]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var t = btn.getAttribute('data-remove-tag');
+        formTags = formTags.filter(function (x) { return x !== t; });
+        renderFormTags();
+      });
+    });
   }
 
   function setFormTags(tags) {
-    var selected = {};
-    (tags || []).forEach(function (t) { selected[t] = true; });
-    document.querySelectorAll('input[name="pfTag"]').forEach(function (el) {
-      el.checked = !!selected[el.value];
+    var seen = {};
+    formTags = [];
+    (tags || []).forEach(function (raw) {
+      var t = normalizeTag(raw);
+      if (!t || seen[t]) return;
+      seen[t] = true;
+      formTags.push(t);
     });
+    renderFormTags();
+  }
+
+  function addFormTagFromInput() {
+    var input = document.getElementById('pfTagInput');
+    if (!input) return;
+    var t = normalizeTag(input.value);
+    if (!t) return;
+    if (formTags.indexOf(t) === -1) formTags.push(t);
+    input.value = '';
+    renderFormTags();
+    input.focus();
   }
 
   function tagClass(t) {
@@ -1856,7 +2013,7 @@
           '<td><input type="checkbox" class="row-check" data-id="' + esc(p.id) + '"' + (state.selected.has(p.id) ? ' checked' : '') + ' aria-label="Select ' + esc(p.name) + '" /></td>' +
           '<td><div class="proj-name">' +
           '<button type="button" class="pin-btn' + (p.pinned ? ' pinned' : '') + '" data-pin="' + esc(p.id) + '" aria-label="Pin">' + (p.pinned ? '★' : '☆') + '</button>' +
-          esc(p.name) +
+          '<button type="button" class="proj-name-btn" data-action="edit" data-id="' + esc(p.id) + '">' + esc(p.name) + '</button>' +
           '</div></td>' +
           '<td>' + statusSelectHTML(p) + '</td>' +
           '<td>' + priorityBadge(p.priority) + '</td>' +
@@ -1937,7 +2094,7 @@
       months[m].forEach(function (p) {
         html += '<div class="timeline-item">' +
           '<div class="timeline-date' + (isOverdue(p) ? ' overdue' : '') + '">' + esc(p.dueDate) + '</div>' +
-          '<div style="flex:1"><strong style="font-size:13px">' + esc(p.name) + '</strong>' +
+          '<div style="flex:1"><button type="button" class="proj-name-btn" data-action="edit" data-id="' + esc(p.id) + '">' + esc(p.name) + '</button>' +
           '<div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">' +
           statusBadge(p.status) + priorityBadge(p.priority) + ownerHTML(p.owner) +
           '</div></div></div>';
@@ -1947,7 +2104,7 @@
     if (noDue.length) {
       html += '<div class="timeline-month card"><h3>No due date</h3>';
       noDue.forEach(function (p) {
-        html += '<div class="timeline-item"><div class="timeline-date">—</div><div><strong style="font-size:13px">' + esc(p.name) + '</strong></div></div>';
+        html += '<div class="timeline-item"><div class="timeline-date">—</div><div><button type="button" class="proj-name-btn" data-action="edit" data-id="' + esc(p.id) + '">' + esc(p.name) + '</button></div></div>';
       });
       html += '</div>';
     }
@@ -2027,20 +2184,51 @@
       }).join('') +
       '</svg></div>';
 
-    // Projects by tag
+    // Projects by tag (pie)
     var tagCounts = {};
     PROJECT_TAGS.forEach(function (t) { tagCounts[t] = 0; });
     all.forEach(function (p) {
-      (p.tags || []).forEach(function (t) {
-        if (Object.prototype.hasOwnProperty.call(tagCounts, t)) tagCounts[t] += 1;
+      (p.tags || []).forEach(function (raw) {
+        var t = normalizeTag(raw);
+        if (!t) return;
+        tagCounts[t] = (tagCounts[t] || 0) + 1;
       });
     });
-    var maxT = Math.max(1, Math.max.apply(null, Object.values(tagCounts)));
-    var tagBars = PROJECT_TAGS.map(function (t) {
-      var n = tagCounts[t] || 0;
-      return '<div class="bar-row"><span class="tag' + tagClass(t) + '">' + esc(t) + '</span><div class="bar-track"><span style="width:' + (n / maxT * 100) + '%"></span></div><span class="progress-pct">' + n + '</span></div>';
-    }).join('');
-    var byTag = '<div class="card"><h3>Projects by tag</h3>' + tagBars + '</div>';
+    var tagEntries = allTags().map(function (t) {
+      return { key: t, n: tagCounts[t] || 0, color: tagColor(t) };
+    }).filter(function (e) { return e.n > 0; });
+    var tagTotal = tagEntries.reduce(function (s, e) { return s + e.n; }, 0);
+    var tagPaths = '';
+    var tagLegend = '';
+    var tagAngle = -Math.PI / 2;
+    var tcx = 48;
+    var tcy = 48;
+    var tr = 40;
+    if (!tagTotal) {
+      tagPaths = '<circle cx="' + tcx + '" cy="' + tcy + '" r="' + tr + '" fill="rgba(255,255,255,0.08)" />';
+      tagLegend = '<span>No tagged projects</span>';
+    } else {
+      tagEntries.forEach(function (e) {
+        var slice = (e.n / tagTotal) * Math.PI * 2;
+        var x1 = tcx + tr * Math.cos(tagAngle);
+        var y1 = tcy + tr * Math.sin(tagAngle);
+        var x2 = tcx + tr * Math.cos(tagAngle + slice);
+        var y2 = tcy + tr * Math.sin(tagAngle + slice);
+        var large = slice > Math.PI ? 1 : 0;
+        if (tagEntries.length === 1) {
+          tagPaths += '<circle cx="' + tcx + '" cy="' + tcy + '" r="' + tr + '" fill="' + e.color + '" />';
+        } else {
+          tagPaths += '<path d="M ' + tcx + ' ' + tcy + ' L ' + x1 + ' ' + y1 +
+            ' A ' + tr + ' ' + tr + ' 0 ' + large + ' 1 ' + x2 + ' ' + y2 +
+            ' Z" fill="' + e.color + '" />';
+        }
+        tagLegend += '<span><i class="dot" style="background:' + e.color + '"></i>' + esc(e.key) + ' (' + e.n + ')</span>';
+        tagAngle += slice;
+      });
+    }
+    var byTag = '<div class="card"><h3>Projects by tag</h3><div class="chart-wrap">' +
+      '<svg width="96" height="96" viewBox="0 0 96 96" aria-label="Projects by tag pie">' + tagPaths + '</svg>' +
+      '<div class="legend">' + tagLegend + '</div></div></div>';
 
     var staleList = all.filter(isStale).slice(0, 5).map(function (p) {
       return '<li><span>' + esc(p.name) + '</span><span>' + esc((p.updatedAt || '').slice(0, 10) || '—') + '</span></li>';
@@ -2076,7 +2264,7 @@
       return '<div class="card detail-card' + (isAtRisk(p) ? ' at-risk' : '') + '">' +
         '<h4><input type="checkbox" class="row-check" data-id="' + esc(p.id) + '"' + (state.selected.has(p.id) ? ' checked' : '') + ' aria-label="Select" /> ' +
         '<button type="button" class="pin-btn' + (p.pinned ? ' pinned' : '') + '" data-pin="' + esc(p.id) + '">' + (p.pinned ? '★' : '☆') + '</button> ' +
-        esc(p.name) + '</h4>' +
+        '<button type="button" class="proj-name-btn" data-action="edit" data-id="' + esc(p.id) + '">' + esc(p.name) + '</button></h4>' +
         '<p class="detail-desc">' + esc(p.description || '') + '</p>' +
         '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px">' +
         statusBadge(p.status) + priorityBadge(p.priority) +
@@ -2424,6 +2612,13 @@
 
     document.getElementById('newProjectBtn').addEventListener('click', function () { openModal(null); });
     document.getElementById('modalCancel').addEventListener('click', closeModal);
+    document.getElementById('pfTagAddBtn').addEventListener('click', addFormTagFromInput);
+    document.getElementById('pfTagInput').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addFormTagFromInput();
+      }
+    });
     document.getElementById('modalBackdrop').addEventListener('click', function (e) {
       if (e.target === document.getElementById('modalBackdrop')) closeModal();
     });
