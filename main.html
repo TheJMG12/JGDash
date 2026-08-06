@@ -2055,6 +2055,13 @@
     const HABITS_KEY = 'habits_v1';
     const HABIT_GRID_DAYS = 35; // 5 weeks × 7 days
     const HABIT_COLORS = ['#6BE3A4', '#7DD3FC', '#F2C063', '#F472B6', '#A78BFA', '#FB923C', '#34D399'];
+    // Old sample habits that used to re-seed on empty; strip + tombstone so they stay gone.
+    const SEEDED_DEFAULT_HABIT_NAMES = [
+      'morning stretch',
+      'read 20 min',
+      'lift / train',
+      'no late caffeine'
+    ];
 
     function isoDate(d) {
       return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
@@ -2086,63 +2093,84 @@
       return 'h_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
     }
 
-    function seedHabitCompletions(rate, days) {
-      const dates = lastNDays(days);
-      return dates.filter(function () { return Math.random() < rate; });
+    function emptyHabitsStore() {
+      return { items: [], tombstones: {} };
     }
 
-    function defaultHabits() {
+    function normalizeHabitsStore(data) {
+      if (Array.isArray(data)) {
+        return { items: data.slice(), tombstones: {} };
+      }
+      if (data && typeof data === 'object') {
+        const tombs = data.tombstones && typeof data.tombstones === 'object' && !Array.isArray(data.tombstones)
+          ? Object.assign({}, data.tombstones)
+          : {};
+        return {
+          items: Array.isArray(data.items) ? data.items.slice() : [],
+          tombstones: tombs
+        };
+      }
+      return emptyHabitsStore();
+    }
+
+    function purgeSeededDefaultHabits(store) {
       const now = new Date().toISOString();
-      return [
-        {
-          id: uid(),
-          name: 'Morning stretch',
-          icon: '🧘',
-          color: '#6BE3A4',
-          frequency: 'Daily',
-          completions: seedHabitCompletions(0.72, HABIT_GRID_DAYS),
-          createdAt: now
-        },
-        {
-          id: uid(),
-          name: 'Read 20 min',
-          icon: '📖',
-          color: '#7DD3FC',
-          frequency: 'Daily',
-          completions: seedHabitCompletions(0.55, HABIT_GRID_DAYS),
-          createdAt: now
-        },
-        {
-          id: uid(),
-          name: 'Lift / train',
-          icon: '💪',
-          color: '#F2C063',
-          frequency: '3x week',
-          completions: seedHabitCompletions(0.4, HABIT_GRID_DAYS),
-          createdAt: now
-        },
-        {
-          id: uid(),
-          name: 'No late caffeine',
-          icon: '☕️',
-          color: '#A78BFA',
-          frequency: 'Daily',
-          completions: seedHabitCompletions(0.65, HABIT_GRID_DAYS),
-          createdAt: now
+      let changed = false;
+      store.items = store.items.filter(function (h) {
+        const name = String((h && h.name) || '').trim().toLowerCase();
+        if (SEEDED_DEFAULT_HABIT_NAMES.indexOf(name) !== -1) {
+          if (h && h.id != null) store.tombstones[String(h.id)] = now;
+          changed = true;
+          return false;
         }
-      ];
+        return true;
+      });
+      return changed;
+    }
+
+    function loadHabitsStore() {
+      const raw = localStorage.getItem(HABITS_KEY);
+      let store;
+      let dirty = false;
+      if (raw == null) {
+        store = emptyHabitsStore();
+        dirty = true;
+      } else {
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) dirty = true; // migrate bare array → object
+          store = normalizeHabitsStore(parsed);
+        } catch (e) {
+          store = emptyHabitsStore();
+          dirty = true;
+        }
+      }
+
+      // Drop tombstoned rows
+      const beforeTombs = store.items.length;
+      store.items = store.items.filter(function (h) {
+        return !(h && h.id != null && store.tombstones[String(h.id)]);
+      });
+      if (store.items.length !== beforeTombs) dirty = true;
+
+      if (purgeSeededDefaultHabits(store)) dirty = true;
+
+      if (dirty) storeSet(HABITS_KEY, store);
+      return store;
     }
 
     function loadHabits() {
-      const data = storeGet(HABITS_KEY);
-      if (Array.isArray(data) && data.length) return data;
-      const seeded = defaultHabits();
-      storeSet(HABITS_KEY, seeded);
-      return seeded;
+      return loadHabitsStore().items;
     }
 
     function saveHabits(habits) {
-      storeSet(HABITS_KEY, habits);
+      const store = loadHabitsStore();
+      store.items = Array.isArray(habits) ? habits : [];
+      // Ensure newly saved rows aren't ones we already tombstoned
+      store.items = store.items.filter(function (h) {
+        return !(h && h.id != null && store.tombstones[String(h.id)]);
+      });
+      storeSet(HABITS_KEY, store);
     }
 
     function isCompletedOn(habit, iso) {
@@ -2194,8 +2222,11 @@
 
     function deleteHabit(habitId) {
       if (!confirm('Delete this habit?')) return;
-      const habits = loadHabits().filter(function (h) { return h.id !== habitId; });
-      saveHabits(habits);
+      const store = loadHabitsStore();
+      const id = String(habitId);
+      store.tombstones[id] = new Date().toISOString();
+      store.items = store.items.filter(function (h) { return !(h && String(h.id) === id); });
+      storeSet(HABITS_KEY, store);
       renderHabits();
     }
 
@@ -2397,7 +2428,7 @@
     /*
       Habit Tracker notes
       - Structure: section #habitTrackerSection → cards via buildHabitCard / buildHabitGrid → modal #habitModal
-      - Persistence: localStorage key habits_v1 (same storeGet/storeSet helpers). Swap saveHabits/loadHabits for an API later.
+      - Persistence: localStorage key habits_v1 as { items, tombstones }. No sample habits are seeded; deletes write tombstones so sync cannot resurrect them.
       - Tile range: HABIT_GRID_DAYS (default 35 = 5×7). Consistency label uses a 30-day window.
     */
   </script>
@@ -2405,7 +2436,7 @@
   <script src="js/config.js?v=2"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/lock.js"></script>
-  <script src="js/sync.js?v=8"></script>
+  <script src="js/sync.js?v=9"></script>
   <script src="js/theme.js?v=3"></script>
   <script src="js/topbar.js?v=10"></script>
   <script>
