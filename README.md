@@ -15,3 +15,13 @@ Media items (and other list data) are **merged by id**, so adding different arti
 5. If Sync says “Sign in…”, you are not authenticated on that device yet.
 
 Synced: goals, habits, projects, finance, training, health, media (including Visual Bookmarks / Watchlist / Reading List). Training `.mp4` blobs sync via Supabase Storage bucket `training-videos` (run `supabase/migrations/002_training_videos_storage.sql`). Not synced: uploaded Media image blobs in IndexedDB, theme preference, health PIN.
+
+## WHOOP (Health)
+
+Vercel serverless routes under `api/`:
+
+- `/api/whoop-callback` — OAuth code → tokens, redirects to `health.html#…`
+- `/api/whoop-refresh` — refresh access token
+- `/api/whoop-data` — Bearer proxy to WHOOP developer API (`/cycle` → v1, else v2)
+
+Set these **Vercel** env vars (Production + Preview): `WHOOP_CLIENT_ID`, `WHOOP_CLIENT_SECRET`, `WHOOP_REDIRECT_URI` (`https://jg-dash-nine.vercel.app/api/whoop-callback`). The Client ID may also live in `js/config.js`; the Client Secret must **never** be committed.
