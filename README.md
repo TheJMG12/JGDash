@@ -25,3 +25,5 @@ Vercel serverless routes under `api/`:
 - `/api/whoop-data` — Bearer proxy to WHOOP developer API (`/cycle` → v1, else v2)
 
 Set these **Vercel** env vars (Production + Preview): `WHOOP_CLIENT_ID`, `WHOOP_CLIENT_SECRET`, `WHOOP_REDIRECT_URI` (`https://jg-dash-nine.vercel.app/api/whoop-callback`). The Client ID may also live in `js/config.js`; the Client Secret must **never** be committed.
+
+Health → **Connect WHOOP** starts OAuth; `js/whoop.js` syncs live recovery/sleep/strain/HRV (≈4 calls/sync, 15‑minute cache, client buffers 80/min · 8000/day under WHOOP’s 100/min · 10000/day limits).
