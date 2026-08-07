@@ -23,6 +23,7 @@
 
   // Top-level array fields merged by item `id` (not whole-blob LWW).
   var MERGE_ARRAY_FIELDS = {
+    habits_v1: ['items'],
     jg_media_data_v1: ['items', 'visuals', 'watchlist', 'books', 'feeds'],
     jg_finance_data_v1: ['transactions', 'budgets', 'goals', 'holdings'],
     jg_training_data_v1: ['sessions', 'exercises', 'drills', 'notes', 'videos', 'prs', 'milestones']
@@ -319,7 +320,35 @@
     return localVal;
   }
 
+  function normalizeHabitsStore(val) {
+    if (Array.isArray(val)) {
+      return { items: val.slice(), tombstones: {} };
+    }
+    if (val && typeof val === 'object') {
+      return {
+        items: Array.isArray(val.items) ? val.items : [],
+        tombstones: (val.tombstones && typeof val.tombstones === 'object' && !Array.isArray(val.tombstones))
+          ? val.tombstones
+          : {}
+      };
+    }
+    return { items: [], tombstones: {} };
+  }
+
   function mergeKey(key, localVal, remoteVal) {
+    // Habits: normalize legacy bare arrays even when one side is missing.
+    if (key === 'habits_v1') {
+      if (remoteVal == null && localVal == null) return { items: [], tombstones: {} };
+      if (remoteVal == null) return normalizeHabitsStore(localVal);
+      if (localVal == null) return normalizeHabitsStore(remoteVal);
+      var localHabits = normalizeHabitsStore(localVal);
+      var remoteHabits = normalizeHabitsStore(remoteVal);
+      var mergedHabits = mergeObjectByIdArrays(localHabits, remoteHabits, ['items']);
+      if (!mergedHabits.tombstones || typeof mergedHabits.tombstones !== 'object') mergedHabits.tombstones = {};
+      stripTombstoned(mergedHabits, ['items'], mergedHabits.tombstones);
+      return mergedHabits;
+    }
+
     if (remoteVal == null) return localVal;
     if (localVal == null) return remoteVal;
 
@@ -330,7 +359,7 @@
       }
     }
 
-    if (key === 'habits_v1' || key === 'projects_v1') {
+    if (key === 'projects_v1') {
       if (Array.isArray(localVal) || Array.isArray(remoteVal)) {
         return mergeArrayById(Array.isArray(localVal) ? localVal : [], Array.isArray(remoteVal) ? remoteVal : []);
       }
