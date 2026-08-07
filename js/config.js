@@ -8,5 +8,8 @@ window.JGDASH_CONFIG = {
   SITE_URL: 'https://jg-dash-nine.vercel.app',
   // Optional Finnhub key for live quotes / stock analyzer on finance.html (leave empty for sample mode).
   FINNHUB_API_KEY: '',
-  MARKET_DATA_PROVIDER: 'finnhub'
+  MARKET_DATA_PROVIDER: 'finnhub',
+  // WHOOP OAuth — Client ID only in the frontend. Client Secret stays in Vercel env vars.
+  WHOOP_CLIENT_ID: '94892a88-8e3e-43b1-82b4-d27a7576c004',
+  WHOOP_REDIRECT_URI: 'https://jg-dash-nine.vercel.app/api/whoop-callback'
 };
