@@ -14,6 +14,7 @@
   <script src="js/supabase-client.js"></script>
   <script src="js/lock.js"></script>
   <script src="js/sync.js?v=10"></script>
+  <script src="js/training-blobs.js?v=1"></script>
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
   <script src="js/theme.js?v=3"></script>
   <script src="js/topbar.js?v=10"></script>
@@ -546,7 +547,7 @@
           <div class="card" style="margin-bottom:12px">
             <div class="dropzone" id="dropzone">
               <strong>Drop .mp4 files here</strong>
-              or click Upload — stored locally (IndexedDB) for offline playback; ready for backend media later.
+              or click Upload — stored on this device and synced to your account when signed in (play on phone + laptop).
             </div>
           </div>
           <div class="video-grid" id="videoGrid"></div>
@@ -877,6 +878,59 @@
         tx.onerror = function () { reject(tx.error); };
       });
     });
+  }
+
+  /** Resolve a playable blob: local IndexedDB first, then cloud Storage (cache locally). */
+  function resolveVideoBlob(id) {
+    return idbGet(id).then(function (local) {
+      if (local) return local;
+      var api = window.JGTrainingBlobs;
+      if (!api || typeof api.download !== 'function') return null;
+      return api.download(id).then(function (remote) {
+        if (!remote) return null;
+        return idbPut(id, remote).then(function () { return remote; }).catch(function () { return remote; });
+      });
+    });
+  }
+
+  function cloudUploadVideo(id, blob) {
+    var api = window.JGTrainingBlobs;
+    if (!api || typeof api.upload !== 'function') return Promise.resolve({ ok: false, reason: 'no_api' });
+    return api.upload(id, blob).then(function (res) {
+      if (res && res.ok) {
+        var meta = store.videos.find(function (v) { return v.id === id; });
+        if (meta) {
+          meta.cloud = true;
+          meta.hasBlob = true;
+          saveData();
+        }
+      }
+      return res || { ok: false };
+    });
+  }
+
+  function cloudRemoveVideo(id) {
+    var api = window.JGTrainingBlobs;
+    if (!api || typeof api.remove !== 'function') return Promise.resolve();
+    return api.remove(id);
+  }
+
+  /** Push any local-only uploads to Storage so other devices can play them. */
+  function backfillCloudVideos() {
+    var api = window.JGTrainingBlobs;
+    if (!api || typeof api.upload !== 'function') return;
+    var pending = (store.videos || []).filter(function (v) { return v && v.hasBlob && !v.cloud; });
+    if (!pending.length) return;
+    var chain = Promise.resolve();
+    pending.forEach(function (v) {
+      chain = chain.then(function () {
+        return idbGet(v.id).then(function (blob) {
+          if (!blob) return;
+          return cloudUploadVideo(v.id, blob);
+        });
+      });
+    });
+    chain.catch(function () { /* ignore backfill errors */ });
   }
 
   function sessionMatches(s) {
@@ -1514,7 +1568,7 @@
     }
     $('videoGrid').innerHTML = list.map(function (v) {
       return '<div class="card video-card" data-id="' + esc(v.id) + '">' +
-        '<div class="thumb" data-thumb="' + esc(v.id) + '">' + (v.hasBlob ? '▶ Ready' : 'Placeholder · upload .mp4') + '</div>' +
+        '<div class="thumb" data-thumb="' + esc(v.id) + '">Checking…</div>' +
         '<div class="card-head"><h3 style="font-size:13px">' + esc(v.title) + '</h3>' +
           '<div class="card-actions">' + iconBtn('play', '▶') + iconBtn('edit', '✎') + iconBtn('del', '✕', ' danger') + '</div></div>' +
         '<p class="card-meta"><span class="badge ' + (v.domain === 'fitness' ? 'fit' : 'soc') + '">' + esc(v.domain) + '</span> · ' +
@@ -1530,17 +1584,26 @@
       card.querySelector('[data-act="del"]').onclick = function () {
         if (!confirm('Delete video?')) return;
         idbDel(id).catch(function () {});
+        cloudRemoveVideo(id);
         removeTrainingById(store, id, ['videos']);
         saveData(); renderVideos(); toast('Video removed');
       };
-      if (v.hasBlob) {
-        idbGet(id).then(function (blob) {
-          if (!blob) return;
-          var thumb = card.querySelector('[data-thumb]');
+      var thumb = card.querySelector('[data-thumb]');
+      idbGet(id).then(function (blob) {
+        if (blob) {
           var url = URL.createObjectURL(blob);
           thumb.innerHTML = '<video muted preload="metadata" src="' + url + '#t=0.5"></video>';
-        });
-      }
+          return;
+        }
+        if (v && (v.cloud || v.hasBlob)) {
+          thumb.textContent = '☁ Cloud · tap ▶ to load';
+          thumb.style.fontSize = '12px';
+        } else {
+          thumb.textContent = 'Placeholder · upload .mp4';
+        }
+      }).catch(function () {
+        thumb.textContent = (v && v.hasBlob) ? '☁ Cloud · tap ▶ to load' : 'Placeholder · upload .mp4';
+      });
     });
   }
 
@@ -1557,14 +1620,23 @@
           store.videos.unshift({
             id: id, title: file.name.replace(/\.mp4$/i, ''),
             domain: 'soccer', linkedType: 'drill', linkedName: '',
-            duration: '—', tags: 'upload', uploadedAt: todayIso(), hasBlob: true
+            duration: '—', tags: 'upload', uploadedAt: todayIso(), hasBlob: true, cloud: false
+          });
+          saveData();
+          return cloudUploadVideo(id, file).then(function (res) {
+            if (res && res.ok) return;
+            if (res && res.reason === 'not_signed_in') {
+              toast('Saved on this device — sign in to play on your phone');
+            } else if (res && res.reason) {
+              // Bucket may not exist yet — local play still works on this device.
+              console.warn('Training video cloud upload:', res.reason);
+            }
           });
         });
       });
     });
     chain.then(function () {
-      saveData(); renderVideos(); toast(files.length + ' video(s) uploaded');
-      // prompt meta for first
+      renderVideos(); toast(files.length + ' video(s) uploaded');
       if (store.videos[0]) editVideoMeta(store.videos[0]);
     }).catch(function () { toast('Upload failed'); });
   }
@@ -1583,6 +1655,7 @@
       remove: function () {
         if (!confirm('Delete video?')) return false;
         idbDel(v.id).catch(function () {});
+        cloudRemoveVideo(v.id);
         removeTrainingById(store, v.id, ['videos']);
         saveData(); renderVideos(); toast('Deleted'); return true;
       }
@@ -1590,13 +1663,9 @@
   }
 
   function playVideo(id) {
-    playerList = store.videos.filter(function (v) { return v.hasBlob; }).map(function (v) { return v.id; });
-    if (!playerList.length) {
-      // allow placeholders message
-      var meta = store.videos.find(function (v) { return v.id === id; });
-      toast(meta && meta.hasBlob ? 'Could not load video' : 'No playable upload — upload an .mp4 first');
-      if (!meta || !meta.hasBlob) return;
-    }
+    var meta = store.videos.find(function (v) { return v.id === id; });
+    if (!meta) { toast('Video not found'); return; }
+    playerList = store.videos.map(function (v) { return v.id; });
     playerIndex = Math.max(0, playerList.indexOf(id));
     if (playerIndex < 0) playerIndex = 0;
     loadPlayer();
@@ -1607,14 +1676,30 @@
     if (!id) return;
     var meta = store.videos.find(function (v) { return v.id === id; });
     $('playerTitle').textContent = meta ? meta.title : 'Video';
-    idbGet(id).then(function (blob) {
-      if (!blob) { toast('Video blob missing'); return; }
-      var video = $('playerVideo');
+    $('playerModal').classList.add('open');
+    var video = $('playerVideo');
+    video.removeAttribute('src');
+    video.load();
+    toast('Loading video…');
+    resolveVideoBlob(id).then(function (blob) {
+      if (!blob) {
+        toast(meta && meta.hasBlob
+          ? 'Video file not on this device yet — open Training on the upload device while signed in, or re-upload here'
+          : 'No playable upload — upload an .mp4 first');
+        return;
+      }
       if (video.src) URL.revokeObjectURL(video.src);
       video.src = URL.createObjectURL(blob);
       video.playbackRate = Number($('playerSpeed').value) || 1;
-      $('playerModal').classList.add('open');
       video.play().catch(function () {});
+      // Mark local availability after a successful cloud fetch
+      if (meta && !meta.hasBlob) {
+        meta.hasBlob = true;
+        saveData();
+      }
+      renderVideos();
+    }).catch(function () {
+      toast('Could not load video');
     });
   }
 
@@ -1981,6 +2066,11 @@
 
   paintTimer();
   renderAll();
+  // After laptop uploads sync metadata, push local bytes to Storage so phones can play.
+  setTimeout(backfillCloudVideos, 800);
+  window.addEventListener('jg-sync-complete', function () {
+    setTimeout(backfillCloudVideos, 400);
+  });
 })();
 
   </script>
