@@ -9,11 +9,12 @@
   var TOKEN_KEY = 'jg_whoop_tokens_v1';
   var METRICS_KEY = 'jg_whoop_metrics_v1';
   var RATE_KEY = 'jg_whoop_rate_v1';
+  var STATE_KEY = 'jg_whoop_oauth_state_v1';
   var CACHE_MS = 15 * 60 * 1000;
   var MIN_SYNC_GAP_MS = 5 * 60 * 1000;
   var MINUTE_CAP = 80;   // buffer under 100
   var DAY_CAP = 8000;    // buffer under 10000
-  var SCOPES = 'read:recovery read:cycles read:sleep read:workout offline';
+  var SCOPES = 'read:recovery read:cycles read:sleep read:workout read:profile offline';
 
   function cfg() {
     return global.JGDASH_CONFIG || {};
@@ -35,6 +36,39 @@
     }
     var site = (cfg().SITE_URL || '').replace(/\/$/, '');
     return site || '';
+  }
+
+  function randomState() {
+    var bytes = new Uint8Array(16);
+    if (global.crypto && global.crypto.getRandomValues) {
+      global.crypto.getRandomValues(bytes);
+    } else {
+      for (var i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+    }
+    var out = '';
+    for (var j = 0; j < bytes.length; j++) {
+      out += (bytes[j] < 16 ? '0' : '') + bytes[j].toString(16);
+    }
+    return out;
+  }
+
+  function saveOAuthState(state) {
+    try { sessionStorage.setItem(STATE_KEY, state); } catch (e) {
+      try { localStorage.setItem(STATE_KEY, state); } catch (e2) { /* ignore */ }
+    }
+  }
+
+  function readOAuthState() {
+    try {
+      return sessionStorage.getItem(STATE_KEY) || localStorage.getItem(STATE_KEY) || '';
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function clearOAuthState() {
+    try { sessionStorage.removeItem(STATE_KEY); } catch (e) { /* ignore */ }
+    try { localStorage.removeItem(STATE_KEY); } catch (e2) { /* ignore */ }
   }
 
   function readJson(key, fallback) {
@@ -148,17 +182,22 @@
     var id = clientId();
     if (!id) throw new Error('WHOOP_CLIENT_ID missing in js/config.js');
     var redirect = redirectUri();
+    // WHOOP requires a non-empty `state` — missing/empty yields error=invalid_state.
+    var state = randomState();
+    saveOAuthState(state);
     var url = 'https://api.prod.whoop.com/oauth/oauth2/auth'
       + '?client_id=' + encodeURIComponent(id)
       + '&redirect_uri=' + encodeURIComponent(redirect)
       + '&response_type=code'
-      + '&scope=' + encodeURIComponent(SCOPES);
+      + '&scope=' + encodeURIComponent(SCOPES)
+      + '&state=' + encodeURIComponent(state);
     global.location.href = url;
   }
 
   function disconnect() {
     clearTokens();
     clearCachedMetrics();
+    clearOAuthState();
   }
 
   /** Capture tokens from /health.html#whoop_access=… after OAuth callback. */
@@ -169,6 +208,13 @@
     var access = q.get('whoop_access');
     var refresh = q.get('whoop_refresh');
     var expires = q.get('whoop_expires');
+    var returnedState = q.get('whoop_state') || '';
+    var expected = readOAuthState();
+    if (expected && returnedState && expected !== returnedState) {
+      clearOAuthState();
+      throw new Error('WHOOP OAuth state mismatch — try Connect again');
+    }
+    clearOAuthState();
     if (!access) return false;
     setTokens({
       access: access,

@@ -1,5 +1,6 @@
 export default async function handler(req, res) {
   const code = req.query && req.query.code;
+  const state = (req.query && req.query.state) || '';
   if (req.query && req.query.error) return res.status(400).send('WHOOP auth error: ' + req.query.error);
   if (!code) return res.status(400).send('Missing code parameter.');
   const clientId     = process.env.WHOOP_CLIENT_ID;
@@ -28,6 +29,7 @@ export default async function handler(req, res) {
     const hash = new URLSearchParams({
       whoop_access: access, whoop_refresh: refresh,
       whoop_expires: String(Date.now() + expiresIn * 1000),
+      whoop_state: String(state || ''),
     }).toString();
     res.writeHead(302, { Location: '/health.html#' + hash });
     res.end();
