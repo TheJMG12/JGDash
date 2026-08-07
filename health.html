@@ -14,6 +14,7 @@
   <script src="js/supabase-client.js"></script>
   <script src="js/lock.js"></script>
   <script src="js/sync.js?v=10"></script>
+  <script src="js/whoop.js?v=1"></script>
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
   <script src="js/theme.js?v=3"></script>
   <script src="js/topbar.js?v=10"></script>
@@ -592,27 +593,27 @@
         <section class="section" id="sec-whoop" aria-labelledby="h-whoop">
           <div class="section-head">
             <h2 class="section-title" id="h-whoop">WHOOP</h2>
-            <span class="section-sub">Wearable metrics · backend integration pending</span>
+            <span class="section-sub">Live wearable metrics · rate-limited sync</span>
             <span class="badge whoop" id="whoopFreshness">No sync</span>
           </div>
 
           <div class="status-banner" id="whoopBanner">
             <strong style="color:var(--warning)">Not connected yet</strong>
-            <span>Recovery, strain, sleep, HRV, and resting heart rate will appear after WHOOP API setup.</span>
+            <span>Connect WHOOP to pull recovery, strain, sleep, HRV, and resting heart rate.</span>
             <button type="button" class="btn primary" id="connectWhoopBtn" style="margin-left:auto">Connect WHOOP</button>
           </div>
 
           <div class="grid-3" id="whoopPanel">
             <div class="card">
               <h3>API connection</h3>
-              <p class="card-meta">Abstraction layer ready · no credentials stored here</p>
+              <p class="card-meta" id="whoopRateMeta">Tokens in this browser · Client Secret stays on Vercel</p>
               <div class="field"><label>Status</label><input id="whoopStatus" value="Disconnected" readonly /></div>
               <div class="field"><label>Last sync</label><input id="lastSync" value="—" readonly /></div>
               <div class="field"><label>Data freshness</label><input id="whoopFreshField" value="Awaiting WHOOP sync" readonly /></div>
               <div class="split">
                 <button type="button" class="btn primary" id="connectWhoopBtn2">Connect WHOOP</button>
-                <button type="button" class="btn" id="simLoadBtn">Preview loading</button>
-                <button type="button" class="btn" id="simErrorBtn">Preview error</button>
+                <button type="button" class="btn" id="whoopSyncBtn" hidden>Sync now</button>
+                <button type="button" class="btn" id="disconnectWhoopBtn" hidden>Disconnect</button>
               </div>
             </div>
 
@@ -648,25 +649,25 @@
             </div>
             <div class="card">
               <h3>Sleep duration / need</h3>
-              <p class="card-meta">Placeholder · connected data later</p>
-              <div class="empty-state" style="padding:16px 8px">
+              <p class="card-meta" id="whoopSleepMeta">From latest scored sleep</p>
+              <div id="whoopSleepDetail" class="empty-state" style="padding:16px 8px">
                 <strong>Sleep debt unavailable</strong>
-                Duration and sleep need will sync from WHOOP after backend setup.
+                Connect WHOOP to sync duration and sleep need.
               </div>
             </div>
             <div class="card">
               <h3>Recent workouts</h3>
-              <p class="card-meta">Activity feed · empty until sync</p>
-              <div class="empty-state" style="padding:16px 8px">
+              <p class="card-meta">Last activities from WHOOP</p>
+              <div id="whoopWorkouts" class="empty-state" style="padding:16px 8px">
                 <strong>No workouts yet</strong>
-                Strain events and sports will appear here.
+                Strain events and sports will appear here after sync.
               </div>
             </div>
             <div class="card span-full">
               <h3>Weekly trend</h3>
-              <p class="card-meta">Mock chart · not live WHOOP data</p>
+              <p class="card-meta" id="whoopTrendMeta">Recovery % · last 7 scored days</p>
               <div class="chart-mock" id="whoopTrend" aria-hidden="true"></div>
-              <p style="font-size:11px;color:var(--text-tertiary);margin-top:8px">Bars are illustrative placeholders for recovery trend once connected.</p>
+              <p style="font-size:11px;color:var(--text-tertiary);margin-top:8px">Bars show live recovery when connected (cached ~15 min · max ~4 API calls per sync).</p>
             </div>
           </div>
         </section>
@@ -1176,6 +1177,8 @@
     var RECIPES = store.nutrition.recipes;
 
     var WHOOP_STATE = 'disconnected'; // disconnected | loading | connected | error
+    var WHOOP_METRICS = null;
+    var WHOOP_ERROR = '';
     var groceryScope = 'week';
     var waterFilled = 3; // of 6 cups = 1.5L of 3L
     var dragKey = null;
@@ -1190,12 +1193,13 @@
     }
 
     function renderTodayMetrics() {
+      var m = WHOOP_METRICS;
       var items = [
         { label: 'Recovery', value: 'Not connected yet', sub: 'WHOOP', kind: 'whoop', ph: true },
         { label: 'Sleep', value: 'Awaiting sync', sub: 'WHOOP', kind: 'whoop', ph: true },
         { label: 'Day strain', value: 'No data', sub: 'WHOOP', kind: 'whoop', ph: true },
-        { label: 'Steps', value: '—', sub: 'WHOOP · placeholder', kind: 'whoop', ph: true },
-        { label: 'Calories burned', value: '—', sub: 'WHOOP · placeholder', kind: 'whoop', ph: true },
+        { label: 'Steps', value: '—', sub: 'Not in WHOOP API', kind: 'whoop', ph: true },
+        { label: 'Calories burned', value: '—', sub: 'WHOOP cycle', kind: 'whoop', ph: true },
         { label: 'Resting HR', value: 'Awaiting sync', sub: 'WHOOP', kind: 'whoop', ph: true },
         { label: 'HRV', value: 'Not connected yet', sub: 'WHOOP', kind: 'whoop', ph: true },
         { label: 'Stress / readiness', value: 'Manual OK', sub: 'Check-in · 3/5', kind: 'manual', ph: false, zone: 'y' },
@@ -1210,15 +1214,15 @@
         return;
       }
 
-      if (WHOOP_STATE === 'connected') {
+      if (WHOOP_STATE === 'connected' && m) {
         items = [
-          { label: 'Recovery', value: '67%', sub: 'Yellow zone · sample', kind: 'whoop', ph: false, zone: 'y' },
-          { label: 'Sleep', value: '84%', sub: '7h 12m · sample', kind: 'whoop', ph: false, zone: 'g' },
-          { label: 'Day strain', value: '10.4', sub: 'Moderate · sample', kind: 'whoop', ph: false, zone: 'y' },
-          { label: 'Steps', value: '8,420', sub: 'Sample placeholder', kind: 'whoop', ph: false },
-          { label: 'Calories burned', value: '2,610', sub: 'Sample placeholder', kind: 'whoop', ph: false },
-          { label: 'Resting HR', value: '54', sub: 'bpm · sample', kind: 'whoop', ph: false, zone: 'g' },
-          { label: 'HRV', value: '68', sub: 'ms · sample', kind: 'whoop', ph: false, zone: 'g' },
+          { label: 'Recovery', value: m.recovery.value, sub: m.recovery.sub, kind: 'whoop', ph: false, zone: m.recovery.zone },
+          { label: 'Sleep', value: m.sleep.value, sub: m.sleep.sub, kind: 'whoop', ph: false, zone: m.sleep.zone },
+          { label: 'Day strain', value: m.strain.value, sub: m.strain.sub, kind: 'whoop', ph: false, zone: m.strain.zone },
+          { label: 'Steps', value: m.steps.value, sub: m.steps.sub, kind: 'whoop', ph: true },
+          { label: 'Calories burned', value: m.calories.value, sub: m.calories.sub, kind: 'whoop', ph: m.calories.value === '—' },
+          { label: 'Resting HR', value: m.rhr.value, sub: m.rhr.sub, kind: 'whoop', ph: false, zone: m.rhr.zone },
+          { label: 'HRV', value: m.hrv.value, sub: m.hrv.sub, kind: 'whoop', ph: false, zone: m.hrv.zone },
           { label: 'Stress / readiness', value: 'Manual OK', sub: 'Check-in · 3/5', kind: 'manual', ph: false, zone: 'y' },
           { label: 'Water', value: (waterFilled * 0.5).toFixed(1) + ' L', sub: 'of 3.0 L goal', kind: 'manual', ph: false, zone: 'y' },
           { label: 'Mood / energy', value: 'Good', sub: 'Logged this morning', kind: 'manual', ph: false, zone: 'g' }
@@ -1247,20 +1251,82 @@
     }
 
     function renderWhoopTrend() {
-      var heights = WHOOP_STATE === 'connected' ? [55, 62, 48, 70, 66, 58, 67] : [20, 18, 22, 16, 19, 21, 17];
+      var heights;
+      if (WHOOP_STATE === 'connected' && WHOOP_METRICS && WHOOP_METRICS.trend && WHOOP_METRICS.trend.length) {
+        heights = WHOOP_METRICS.trend.map(function (v) {
+          if (v == null || isNaN(v)) return 12;
+          return Math.max(8, Math.min(100, Number(v)));
+        });
+        while (heights.length < 7) heights.unshift(12);
+        heights = heights.slice(-7);
+      } else {
+        heights = [20, 18, 22, 16, 19, 21, 17];
+      }
       $('whoopTrend').innerHTML = heights.map(function (h, i) {
         return '<div class="chart-bar' + (WHOOP_STATE !== 'connected' ? ' muted' : '') + '" style="height:' + h + '%"><span class="tip">' + DAYS[i] + '</span></div>';
       }).join('');
+    }
+
+    function fmtSyncTime(ts) {
+      if (!ts) return '—';
+      try {
+        return new Date(ts).toLocaleString();
+      } catch (e) { return '—'; }
+    }
+
+    function paintWhoopExtras() {
+      var m = WHOOP_METRICS;
+      var sleepEl = $('whoopSleepDetail');
+      var workoutsEl = $('whoopWorkouts');
+      var rateMeta = $('whoopRateMeta');
+      if (rateMeta && window.JGWhoop) {
+        var rs = JGWhoop.getRateStatus();
+        rateMeta.textContent = 'API budget · ' + rs.minuteUsed + '/' + rs.minuteCap + ' per min · ' +
+          rs.dayUsed + '/' + rs.dayCap + ' today (buffers under WHOOP caps)';
+      }
+      if (!sleepEl || !workoutsEl) return;
+      if (WHOOP_STATE === 'connected' && m && m.sleepDetail) {
+        sleepEl.className = '';
+        sleepEl.style.padding = '8px 0';
+        sleepEl.innerHTML =
+          '<div class="mini-stat" style="margin-bottom:8px">' + esc(m.sleepDetail.duration) +
+          ' <span style="font-size:12px;color:var(--text-tertiary)">asleep / in bed</span></div>' +
+          '<p class="card-meta">Need ' + esc(m.sleepDetail.need) + ' · efficiency ' + esc(m.sleepDetail.efficiency) + '</p>';
+      } else {
+        sleepEl.className = 'empty-state';
+        sleepEl.style.padding = '16px 8px';
+        sleepEl.innerHTML = '<strong>Sleep debt unavailable</strong>Connect WHOOP to sync duration and sleep need.';
+      }
+      if (WHOOP_STATE === 'connected' && m && m.workouts && m.workouts.length) {
+        workoutsEl.className = '';
+        workoutsEl.style.padding = '0';
+        workoutsEl.innerHTML = '<ul class="list">' + m.workouts.map(function (w) {
+          return '<li class="list-item"><div><div class="title">' + esc(String(w.sport)) + '</div>' +
+            '<div class="meta">' + esc(String(w.start).slice(0, 16).replace('T', ' ')) + '</div></div>' +
+            '<div class="right">strain ' + esc(String(w.strain)) + '</div></li>';
+        }).join('') + '</ul>';
+      } else {
+        workoutsEl.className = 'empty-state';
+        workoutsEl.style.padding = '16px 8px';
+        workoutsEl.innerHTML = '<strong>No workouts yet</strong>Strain events and sports will appear here after sync.';
+      }
     }
 
     function setWhoopUI() {
       var banner = $('whoopBanner');
       var freshness = $('whoopFreshness');
       var metrics = document.querySelectorAll('[data-whoop-metric]');
+      var syncBtn = $('whoopSyncBtn');
+      var discBtn = $('disconnectWhoopBtn');
+      var connect2 = $('connectWhoopBtn2');
+
+      if (syncBtn) syncBtn.hidden = WHOOP_STATE === 'disconnected';
+      if (discBtn) discBtn.hidden = WHOOP_STATE === 'disconnected';
+      if (connect2) connect2.hidden = WHOOP_STATE !== 'disconnected';
 
       if (WHOOP_STATE === 'loading') {
         banner.className = 'status-banner';
-        banner.innerHTML = '<strong style="color:var(--warning)">Syncing…</strong><span>Loading wearable placeholders.</span>';
+        banner.innerHTML = '<strong style="color:var(--warning)">Syncing…</strong><span>Fetching live WHOOP metrics (rate-limited).</span>';
         freshness.textContent = 'Syncing';
         freshness.className = 'badge whoop';
         if ($('whoopStatus')) $('whoopStatus').value = 'Syncing…';
@@ -1271,59 +1337,57 @@
         });
         renderTodayMetrics();
         renderWhoopTrend();
+        paintWhoopExtras();
         return;
       }
 
       if (WHOOP_STATE === 'error') {
         banner.className = 'status-banner error';
-        banner.innerHTML = '<strong style="color:var(--danger)">Sync error</strong><span>Could not reach WHOOP API placeholder. Retry when backend is configured.</span><button type="button" class="btn" id="retryWhoop" style="margin-left:auto">Retry</button>';
+        banner.innerHTML = '<strong style="color:var(--danger)">Sync error</strong><span>' +
+          esc(WHOOP_ERROR || 'Could not reach WHOOP.') +
+          '</span><button type="button" class="btn" id="retryWhoop" style="margin-left:auto">Retry</button>';
         freshness.textContent = 'Error';
         freshness.className = 'badge err';
         if ($('whoopStatus')) $('whoopStatus').value = 'Error';
         if ($('whoopFreshField')) $('whoopFreshField').value = 'Sync failed';
-        $('retryWhoop').onclick = function () { simulateConnect(); };
+        var retry = $('retryWhoop');
+        if (retry) retry.onclick = function () { syncWhoopLive(true); };
         renderTodayMetrics();
         renderWhoopTrend();
+        paintWhoopExtras();
         return;
       }
 
-      if (WHOOP_STATE === 'connected') {
+      if (WHOOP_STATE === 'connected' && WHOOP_METRICS) {
+        var m = WHOOP_METRICS;
         banner.className = 'status-banner ok';
-        banner.innerHTML = '<strong style="color:var(--success)">Connected (sample)</strong><span>Showing placeholder live values — replace with real API later.</span><button type="button" class="btn" id="disconnectWhoop" style="margin-left:auto">Disconnect</button>';
-        freshness.textContent = 'Fresh · sample';
+        banner.innerHTML = '<strong style="color:var(--success)">Connected</strong><span>Live WHOOP data · cached ~15 min · Sync now forces refresh.</span>' +
+          '<button type="button" class="btn" id="disconnectWhoop" style="margin-left:auto">Disconnect</button>';
+        freshness.textContent = 'Live';
         freshness.className = 'badge ok';
-        if ($('whoopStatus')) $('whoopStatus').value = 'Connected (sample)';
-        $('lastSync').value = 'Just now (sample)';
-        if ($('whoopFreshField')) $('whoopFreshField').value = 'Fresh · sample data';
-        var sample = {
-          recovery: { v: '67%', zone: 'zone-y', sub: 'Yellow · sample data' },
-          sleep: { v: '84%', zone: 'zone-g', sub: '7h 12m · sample' },
-          strain: { v: '10.4', zone: 'zone-y', sub: 'Moderate load' },
-          hrv: { v: '68 ms', zone: 'zone-g', sub: 'Overnight' },
-          rhr: { v: '54 bpm', zone: 'zone-g', sub: 'Resting' },
-          resp: { v: '14.2', zone: '', sub: 'breaths / min' }
-        };
+        if ($('whoopStatus')) $('whoopStatus').value = 'Connected';
+        $('lastSync').value = fmtSyncTime(m.fetchedAt);
+        if ($('whoopFreshField')) $('whoopFreshField').value = 'Fresh · ' + fmtSyncTime(m.fetchedAt);
+        var map = { recovery: m.recovery, sleep: m.sleep, strain: m.strain, hrv: m.hrv, rhr: m.rhr, resp: m.resp };
         metrics.forEach(function (card) {
           var key = card.getAttribute('data-whoop-metric');
-          var s = sample[key];
-          card.className = 'card metric ' + (s.zone || '');
+          var s = map[key] || { value: '—', sub: '', zone: '' };
+          card.className = 'card metric' + (s.zone === 'g' ? ' zone-g' : s.zone === 'y' ? ' zone-y' : s.zone === 'r' ? ' zone-r' : '');
           card.querySelector('.metric-value').className = 'metric-value';
-          card.querySelector('.metric-value').textContent = s.v;
+          card.querySelector('.metric-value').textContent = s.value;
           card.querySelector('.metric-sub').textContent = s.sub;
         });
-        $('disconnectWhoop').onclick = function () {
-          WHOOP_STATE = 'disconnected';
-          setWhoopUI();
-          toast('WHOOP disconnected (placeholder)');
-        };
+        var dbtn = $('disconnectWhoop');
+        if (dbtn) dbtn.onclick = disconnectWhoopLive;
         renderTodayMetrics();
         renderWhoopTrend();
+        paintWhoopExtras();
         return;
       }
 
       // disconnected
       banner.className = 'status-banner';
-      banner.innerHTML = '<strong style="color:var(--warning)">Not connected yet</strong><span>Recovery, strain, sleep, HRV, and resting heart rate will appear after WHOOP API setup.</span><button type="button" class="btn primary" id="connectWhoopBtn" style="margin-left:auto">Connect WHOOP</button>';
+      banner.innerHTML = '<strong style="color:var(--warning)">Not connected yet</strong><span>Connect WHOOP to pull recovery, strain, sleep, HRV, and resting heart rate.</span><button type="button" class="btn primary" id="connectWhoopBtn" style="margin-left:auto">Connect WHOOP</button>';
       freshness.textContent = 'No sync';
       freshness.className = 'badge whoop';
       if ($('whoopStatus')) $('whoopStatus').value = 'Disconnected';
@@ -1344,19 +1408,88 @@
         card.querySelector('.metric-value').textContent = emptyMap[key];
       });
       var btn = $('connectWhoopBtn');
-      if (btn) btn.onclick = simulateConnect;
+      if (btn) btn.onclick = connectWhoopLive;
       renderTodayMetrics();
       renderWhoopTrend();
+      paintWhoopExtras();
     }
 
-    function simulateConnect() {
-      WHOOP_STATE = 'loading';
+    function connectWhoopLive() {
+      if (!window.JGWhoop || !JGWhoop.clientId()) {
+        toast('WHOOP_CLIENT_ID missing in config');
+        return;
+      }
+      try {
+        JGWhoop.startConnect();
+      } catch (e) {
+        toast(e.message || 'Could not start WHOOP OAuth');
+      }
+    }
+
+    function disconnectWhoopLive() {
+      if (window.JGWhoop) JGWhoop.disconnect();
+      WHOOP_STATE = 'disconnected';
+      WHOOP_METRICS = null;
+      WHOOP_ERROR = '';
       setWhoopUI();
-      setTimeout(function () {
+      toast('WHOOP disconnected');
+    }
+
+    function syncWhoopLive(force) {
+      if (!window.JGWhoop || !JGWhoop.isConnected()) {
+        WHOOP_STATE = 'disconnected';
+        setWhoopUI();
+        return Promise.resolve();
+      }
+      WHOOP_STATE = 'loading';
+      WHOOP_ERROR = '';
+      setWhoopUI();
+      return JGWhoop.syncMetrics({ force: !!force }).then(function (res) {
+        WHOOP_METRICS = res.metrics;
         WHOOP_STATE = 'connected';
         setWhoopUI();
-        toast('WHOOP sample connection ready');
-      }, 900);
+        if (res.rateLimited) toast('Showing cached WHOOP data · rate limit buffer');
+        else if (res.fromCache && res.throttled) toast('WHOOP cache still fresh');
+        else if (res.fromCache) toast('WHOOP loaded from cache');
+        else toast('WHOOP synced');
+      }).catch(function (err) {
+        var cached = JGWhoop.getCachedMetrics && JGWhoop.getCachedMetrics();
+        if (cached) {
+          WHOOP_METRICS = cached;
+          WHOOP_STATE = 'connected';
+          WHOOP_ERROR = '';
+          setWhoopUI();
+          toast('Using cached WHOOP · ' + (err && err.message ? err.message : 'sync failed'));
+          return;
+        }
+        WHOOP_STATE = 'error';
+        WHOOP_ERROR = (err && err.message) ? String(err.message) : 'Sync failed';
+        if (WHOOP_ERROR.indexOf('rate_limited') === 0) {
+          WHOOP_ERROR = 'Rate limit buffer reached — try again in a minute';
+        }
+        setWhoopUI();
+      });
+    }
+
+    function initWhoop() {
+      if (!window.JGWhoop) {
+        setWhoopUI();
+        return;
+      }
+      var captured = false;
+      try { captured = JGWhoop.captureCallbackHash(); } catch (e) { /* ignore */ }
+      if (captured) toast('WHOOP connected');
+      if (JGWhoop.isConnected()) {
+        WHOOP_METRICS = JGWhoop.getCachedMetrics();
+        if (WHOOP_METRICS) {
+          WHOOP_STATE = 'connected';
+          setWhoopUI();
+        }
+        syncWhoopLive(captured);
+      } else {
+        WHOOP_STATE = 'disconnected';
+        setWhoopUI();
+      }
     }
 
     var editCtx = null; // { kind, mode: add|edit, ... }
@@ -2841,19 +2974,13 @@
 
     function bindConnect(id) {
       var el = $(id);
-      if (el) el.onclick = simulateConnect;
+      if (el) el.onclick = connectWhoopLive;
     }
     bindConnect('connectWhoopBtn');
     bindConnect('connectWhoopBtn2');
-    $('simLoadBtn').onclick = function () {
-      WHOOP_STATE = 'loading';
-      setWhoopUI();
-      setTimeout(function () { WHOOP_STATE = 'disconnected'; setWhoopUI(); }, 1200);
-    };
-    $('simErrorBtn').onclick = function () {
-      WHOOP_STATE = 'error';
-      setWhoopUI();
-    };
+    if ($('whoopSyncBtn')) $('whoopSyncBtn').onclick = function () { syncWhoopLive(true); };
+    if ($('disconnectWhoopBtn')) $('disconnectWhoopBtn').onclick = disconnectWhoopLive;
+    initWhoop();
 
     $('genGroceryBtn') && null; // rebound in renderNutritionTargets
     // nutrition buttons (some rebound after re-render)
