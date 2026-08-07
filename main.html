@@ -1426,20 +1426,61 @@
     function todayKey() { return 'goals:' + getActiveDateString(); }
     function tomorrowKey() { return 'goals:' + getTomorrowDateString(); }
 
+    function normalizeGoalsStore(val) {
+      if (Array.isArray(val)) {
+        return { items: val.slice(), tombstones: {} };
+      }
+      if (val && typeof val === 'object') {
+        return {
+          items: Array.isArray(val.items) ? val.items.slice() : [],
+          tombstones: (val.tombstones && typeof val.tombstones === 'object' && !Array.isArray(val.tombstones))
+            ? Object.assign({}, val.tombstones)
+            : {}
+        };
+      }
+      return { items: [], tombstones: {} };
+    }
+
+    function getGoalsStore(key) {
+      return normalizeGoalsStore(storeGet(key));
+    }
+
     function getGoals(key) {
-      const g = storeGet(key);
-      return Array.isArray(g) ? g : [];
+      const store = getGoalsStore(key);
+      return store.items.filter(function (g) {
+        return !(g && g.id != null && store.tombstones[String(g.id)]);
+      });
     }
 
     function setGoals(key, goals) {
+      const existing = getGoalsStore(key);
       const normalized = ensureGoalIds(goals);
-      storeSet(key, normalized.goals);
+      storeSet(key, { items: normalized.goals, tombstones: existing.tombstones });
+    }
+
+    function deleteGoalAt(key, idx) {
+      const visible = getGoals(key);
+      const g = visible[idx];
+      const store = getGoalsStore(key);
+      if (g && g.id != null) {
+        store.tombstones[String(g.id)] = new Date().toISOString();
+        store.items = store.items.filter(function (x) { return !(x && String(x.id) === String(g.id)); });
+      } else if (g) {
+        store.items = store.items.filter(function (x) { return x !== g; });
+      }
+      storeSet(key, store);
     }
 
     function normalizeStoredGoalIds() {
       storeListKeys('goals:').forEach(function (key) {
-        const n = ensureGoalIds(getGoals(key));
-        if (n.changed) storeSet(key, n.goals);
+        const store = getGoalsStore(key);
+        const n = ensureGoalIds(store.items);
+        const stripped = n.goals.filter(function (g) {
+          return !(g && g.id != null && store.tombstones[String(g.id)]);
+        });
+        if (n.changed || Array.isArray(storeGet(key)) || stripped.length !== store.items.length) {
+          storeSet(key, { items: stripped, tombstones: store.tombstones });
+        }
       });
     }
 
@@ -1866,9 +1907,7 @@
       del.textContent = '×';
       del.title = 'Delete';
       del.addEventListener('click', function () {
-        const goals = getGoals(key);
-        goals.splice(idx, 1);
-        setGoals(key, goals);
+        deleteGoalAt(key, idx);
         if (key === todayKey()) loadToday();
         else loadTomorrow();
       });
@@ -2436,7 +2475,7 @@
   <script src="js/config.js?v=2"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/lock.js"></script>
-  <script src="js/sync.js?v=9"></script>
+  <script src="js/sync.js?v=10"></script>
   <script src="js/theme.js?v=3"></script>
   <script src="js/topbar.js?v=10"></script>
   <script>

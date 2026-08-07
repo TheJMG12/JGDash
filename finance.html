@@ -14,7 +14,7 @@
   <script src="js/config.js?v=2"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/lock.js"></script>
-  <script src="js/sync.js?v=9"></script>
+  <script src="js/sync.js?v=10"></script>
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
   <script src="js/theme.js?v=3"></script>
   <script src="js/topbar.js?v=10"></script>
@@ -471,7 +471,8 @@
         { name: 'Netflix', amount: 15.99, next: m + '-04' },
         { name: 'Spotify', amount: 11.99, next: m + '-02' },
         { name: 'iCloud+', amount: 2.99, next: m + '-12' }
-      ]
+      ],
+      tombstones: {}
     };
   }
 
@@ -498,17 +499,54 @@
     NVDA: { peNormalizedAnnual: 58.2, epsAnnual: 2.1, dividendYieldIndicatedAnnual: 0.03, '52WeekHigh': 152.9, '52WeekLow': 86.6, beta: 1.75 }
   };
 
+  function ensureFinanceTombs(data) {
+    if (!data.tombstones || typeof data.tombstones !== 'object' || Array.isArray(data.tombstones)) data.tombstones = {};
+    return data;
+  }
+
+  function removeFinanceById(id, fields) {
+    ensureFinanceTombs(store);
+    if (id == null || id === '') return;
+    store.tombstones[String(id)] = new Date().toISOString();
+    (fields || ['transactions', 'budgets', 'goals', 'holdings', 'watchlist']).forEach(function (field) {
+      if (!Array.isArray(store[field])) return;
+      store[field] = store[field].filter(function (x) {
+        return !(x && x.id != null && String(x.id) === String(id));
+      });
+    });
+  }
+
+  function stripFinanceTombs(data) {
+    ensureFinanceTombs(data);
+    ['transactions', 'budgets', 'goals', 'holdings', 'watchlist'].forEach(function (field) {
+      if (!Array.isArray(data[field])) return;
+      data[field] = data[field].filter(function (it) {
+        return !(it && it.id != null && data.tombstones[String(it.id)]);
+      });
+    });
+    return data;
+  }
+
   function loadData() {
     try {
       var raw = localStorage.getItem(DATA_KEY);
-      if (!raw) return defaultData();
+      if (!raw) {
+        var seed = defaultData();
+        ensureFinanceTombs(seed);
+        try { localStorage.setItem(DATA_KEY, JSON.stringify(seed)); } catch (e) { /* quota */ }
+        return seed;
+      }
       var parsed = JSON.parse(raw);
       var base = defaultData();
       Object.keys(parsed).forEach(function (k) { base[k] = parsed[k]; });
+      stripFinanceTombs(base);
+      try { localStorage.setItem(DATA_KEY, JSON.stringify(base)); } catch (e) { /* quota */ }
       return base;
     } catch (e) { return defaultData(); }
   }
   function saveData() {
+    ensureFinanceTombs(store);
+    stripFinanceTombs(store);
     try { localStorage.setItem(DATA_KEY, JSON.stringify(store)); }
     catch (e) { toast('Could not save'); }
   }
@@ -939,7 +977,7 @@
       row.querySelector('[data-act="del"]').onclick = function (e) {
         e.stopPropagation();
         if (!confirm('Delete transaction?')) return;
-        store.transactions = store.transactions.filter(function (x) { return x.id !== id; });
+        removeFinanceById(id, ['transactions']);
         saveData(); renderAll(); toast('Deleted');
       };
       row.onclick = function (e) { if (!e.target.closest('button')) editPurchase(t); };
@@ -975,7 +1013,7 @@
       },
       remove: function () {
         if (!confirm('Delete?')) return false;
-        store.transactions = store.transactions.filter(function (x) { return x.id !== t.id; });
+        removeFinanceById(t.id, ['transactions']);
         saveData(); renderAll(); toast('Deleted'); return true;
       }
     });
@@ -1014,7 +1052,7 @@
       card.querySelector('[data-act="add$"]').onclick = function () { contributeGoal(g); };
       card.querySelector('[data-act="del"]').onclick = function () {
         if (!confirm('Delete goal?')) return;
-        store.goals = store.goals.filter(function (x) { return x.id !== id; });
+        removeFinanceById(id, ['goals']);
         saveData(); renderGoals(); renderKpis(); toast('Deleted');
       };
     });
@@ -1044,7 +1082,7 @@
       },
       remove: function () {
         if (!confirm('Delete?')) return false;
-        store.goals = store.goals.filter(function (x) { return x.id !== g.id; });
+        removeFinanceById(g.id, ['goals']);
         saveData(); renderAll(); toast('Deleted'); return true;
       }
     });
@@ -1116,7 +1154,7 @@
         row.querySelector('[data-act="analyze"]').onclick = function () { scrollToSection('analyzer'); runAnalyzer(h.ticker); };
         row.querySelector('[data-act="del"]').onclick = function () {
           if (!confirm('Remove holding?')) return;
-          store.holdings = store.holdings.filter(function (x) { return x.id !== id; });
+          removeFinanceById(id, ['holdings']);
           saveData(); renderAll(); toast('Removed');
         };
       });
@@ -1183,7 +1221,7 @@
       },
       remove: function () {
         if (!confirm('Remove?')) return false;
-        store.holdings = store.holdings.filter(function (x) { return x.id !== h.id; });
+        removeFinanceById(h.id, ['holdings']);
         saveData(); renderAll(); toast('Removed'); return true;
       }
     });
@@ -1326,7 +1364,7 @@
       var w = store.watchlist.find(function (x) { return x.id === id; });
       row.querySelector('[data-act="analyze"]').onclick = function () { scrollToSection('analyzer'); runAnalyzer(w.ticker); };
       row.querySelector('[data-act="del"]').onclick = function () {
-        store.watchlist = store.watchlist.filter(function (x) { return x.id !== id; });
+        removeFinanceById(id, ['watchlist']);
         saveData(); renderWatchlist(); toast('Removed');
       };
     });
