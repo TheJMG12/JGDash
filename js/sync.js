@@ -24,8 +24,9 @@
   // Top-level array fields merged by item `id` (not whole-blob LWW).
   var MERGE_ARRAY_FIELDS = {
     habits_v1: ['items'],
+    projects_v1: ['items'],
     jg_media_data_v1: ['items', 'visuals', 'watchlist', 'books', 'feeds'],
-    jg_finance_data_v1: ['transactions', 'budgets', 'goals', 'holdings'],
+    jg_finance_data_v1: ['transactions', 'budgets', 'goals', 'holdings', 'watchlist'],
     jg_training_data_v1: ['sessions', 'exercises', 'drills', 'notes', 'videos', 'prs', 'milestones']
   };
 
@@ -320,7 +321,44 @@
     return localVal;
   }
 
-  function normalizeHabitsStore(val) {
+  function goalsItemCount(val) {
+    if (Array.isArray(val)) return val.length;
+    if (val && typeof val === 'object' && Array.isArray(val.items)) return val.items.length;
+    return 0;
+  }
+
+  function stripTombstonedDeep(obj, tombstones) {
+    if (!obj || !tombstones || typeof obj !== 'object') return obj;
+    Object.keys(obj).forEach(function (k) {
+      if (k === 'tombstones') return;
+      var v = obj[k];
+      if (Array.isArray(v)) {
+        obj[k] = v.filter(function (it) {
+          return !(it && typeof it === 'object' && it.id != null && tombstones[String(it.id)]);
+        });
+        obj[k].forEach(function (it) {
+          if (it && typeof it === 'object') stripTombstonedDeep(it, tombstones);
+        });
+      } else if (v && typeof v === 'object') {
+        // Health meal plan slots are keyed maps — honor meal:<slot> tombstones.
+        if (k === 'meals') {
+          Object.keys(v).forEach(function (slot) {
+            if (tombstones['meal:' + slot]) delete v[slot];
+          });
+        } else {
+          stripTombstonedDeep(v, tombstones);
+        }
+      }
+    });
+    return obj;
+  }
+
+  function goalsHasTombstones(val) {
+    var n = normalizeItemsStore(val);
+    return Object.keys(n.tombstones || {}).length > 0;
+  }
+
+  function normalizeItemsStore(val) {
     if (Array.isArray(val)) {
       return { items: val.slice(), tombstones: {} };
     }
@@ -335,46 +373,68 @@
     return { items: [], tombstones: {} };
   }
 
+  function mergeItemsStore(localVal, remoteVal) {
+    var localStore = normalizeItemsStore(localVal);
+    var remoteStore = normalizeItemsStore(remoteVal);
+    var merged = mergeObjectByIdArrays(localStore, remoteStore, ['items']);
+    if (!merged.tombstones || typeof merged.tombstones !== 'object') merged.tombstones = {};
+    stripTombstoned(merged, ['items'], merged.tombstones);
+    return merged;
+  }
+
   function mergeKey(key, localVal, remoteVal) {
-    // Habits: normalize legacy bare arrays even when one side is missing.
-    if (key === 'habits_v1') {
+    // Habits + Projects: { items, tombstones } (legacy bare arrays migrated).
+    if (key === 'habits_v1' || key === 'projects_v1') {
       if (remoteVal == null && localVal == null) return { items: [], tombstones: {} };
-      if (remoteVal == null) return normalizeHabitsStore(localVal);
-      if (localVal == null) return normalizeHabitsStore(remoteVal);
-      var localHabits = normalizeHabitsStore(localVal);
-      var remoteHabits = normalizeHabitsStore(remoteVal);
-      var mergedHabits = mergeObjectByIdArrays(localHabits, remoteHabits, ['items']);
-      if (!mergedHabits.tombstones || typeof mergedHabits.tombstones !== 'object') mergedHabits.tombstones = {};
-      stripTombstoned(mergedHabits, ['items'], mergedHabits.tombstones);
-      return mergedHabits;
+      if (remoteVal == null) return normalizeItemsStore(localVal);
+      if (localVal == null) return normalizeItemsStore(remoteVal);
+      return mergeItemsStore(localVal, remoteVal);
+    }
+
+    // Daily goals: prefer { items, tombstones }; legacy bare arrays supported.
+    if (key.indexOf('goals:') === 0) {
+      if (remoteVal == null && localVal == null) return { items: [], tombstones: {} };
+      if (remoteVal == null) return normalizeItemsStore(localVal);
+      if (localVal == null) return normalizeItemsStore(remoteVal);
+      var localGoals = normalizeItemsStore(localVal);
+      var remoteGoals = normalizeItemsStore(remoteVal);
+      var mergedGoalItems = mergeGoalsArray(localGoals.items, remoteGoals.items);
+      var mergedGoalTombs = mergeTombstones(localGoals.tombstones, remoteGoals.tombstones);
+      var goalOut = { items: mergedGoalItems, tombstones: mergedGoalTombs };
+      // Also drop items whose id is tombstoned
+      stripTombstoned(goalOut, ['items'], goalOut.tombstones);
+      return goalOut;
     }
 
     if (remoteVal == null) return localVal;
     if (localVal == null) return remoteVal;
 
-    // Daily goals are TOP-LEVEL arrays (not objects). Empty local must not wipe remote.
-    if (key.indexOf('goals:') === 0) {
-      if (Array.isArray(localVal) || Array.isArray(remoteVal)) {
-        return mergeGoalsArray(Array.isArray(localVal) ? localVal : [], Array.isArray(remoteVal) ? remoteVal : []);
-      }
-    }
-
-    if (key === 'projects_v1') {
-      if (Array.isArray(localVal) || Array.isArray(remoteVal)) {
-        return mergeArrayById(Array.isArray(localVal) ? localVal : [], Array.isArray(remoteVal) ? remoteVal : []);
-      }
-    }
-
     if (DEEP_MERGE_KEYS[key]) {
-      return deepMergeIdAware(localVal, remoteVal);
+      var deep = deepMergeIdAware(localVal, remoteVal);
+      if (deep && typeof deep === 'object' && !Array.isArray(deep)) {
+        deep.tombstones = mergeTombstones(
+          localVal && localVal.tombstones,
+          remoteVal && remoteVal.tombstones
+        );
+        stripTombstonedDeep(deep, deep.tombstones);
+      }
+      return deep;
     }
 
     if (MERGE_ARRAY_FIELDS[key]) {
       var mergedObj = mergeObjectByIdArrays(localVal, remoteVal, MERGE_ARRAY_FIELDS[key]);
-      if (key === 'jg_media_data_v1') {
-        if (!mergedObj.tombstones || typeof mergedObj.tombstones !== 'object') mergedObj.tombstones = {};
-        stripTombstoned(mergedObj, MERGE_ARRAY_FIELDS[key], mergedObj.tombstones);
+      if (!mergedObj.tombstones || typeof mergedObj.tombstones !== 'object') {
+        mergedObj.tombstones = mergeTombstones(
+          localVal && localVal.tombstones,
+          remoteVal && remoteVal.tombstones
+        );
+      } else {
+        mergedObj.tombstones = mergeTombstones(
+          localVal && localVal.tombstones,
+          remoteVal && remoteVal.tombstones
+        );
       }
+      stripTombstoned(mergedObj, MERGE_ARRAY_FIELDS[key], mergedObj.tombstones);
       return mergedObj;
     }
 
@@ -543,10 +603,17 @@
               meta = readMeta();
             } else if (localVal != null && remoteVal != null && canMerge) {
               finalVal = mergeKey(key, localVal, remoteVal);
-              // Goals safety: empty local must adopt remote tasks, never the reverse.
-              if (key.indexOf('goals:') === 0 && Array.isArray(remoteVal) && remoteVal.length > 0 &&
-                  Array.isArray(finalVal) && finalVal.length === 0) {
-                finalVal = mergeGoalsArray(Array.isArray(localVal) ? localVal : [], remoteVal);
+              // Goals safety: empty local adopts remote unless local has tombstones
+              // (intentional deletes — empty + tombstones must stay empty).
+              if (key.indexOf('goals:') === 0) {
+                var remoteGoalCount = goalsItemCount(remoteVal);
+                var finalGoalCount = goalsItemCount(finalVal);
+                var localGoalCount = goalsItemCount(localVal);
+                if (remoteGoalCount > 0 && finalGoalCount === 0 && localGoalCount === 0 &&
+                    !goalsHasTombstones(localVal) && !goalsHasTombstones(finalVal)) {
+                  finalVal = mergeKey(key, localVal, remoteVal);
+                  if (goalsItemCount(finalVal) === 0) finalVal = normalizeItemsStore(remoteVal);
+                }
               }
               if (!valuesEqual(finalVal, localVal)) {
                 applyRemoteRow(key, finalVal, pushIso);
@@ -578,23 +645,28 @@
             }
 
             if (shouldPush && finalVal != null) {
-              // Never push an empty goals day over a non-empty cloud day.
-              if (key.indexOf('goals:') === 0 && Array.isArray(finalVal) && finalVal.length === 0 &&
-                  remoteVal && Array.isArray(remoteVal) && remoteVal.length > 0) {
-                shouldPush = false;
-                if (!localChanged) {
-                  applyRemoteRow(key, remoteVal, remote.updated_at);
-                  applied.push(key);
-                  finalVal = remoteVal;
-                  meta = readMeta();
+              // Never push a bare empty goals day over cloud content — but DO push
+              // intentional empties that carry tombstones so deletes stick.
+              if (key.indexOf('goals:') === 0 && goalsItemCount(finalVal) === 0 && goalsItemCount(remoteVal) > 0) {
+                if (goalsHasTombstones(finalVal) || goalsHasTombstones(localVal)) {
+                  shouldPush = true;
+                } else {
+                  shouldPush = false;
+                  if (!localChanged) {
+                    applyRemoteRow(key, normalizeItemsStore(remoteVal), remote.updated_at);
+                    applied.push(key);
+                    finalVal = normalizeItemsStore(remoteVal);
+                    meta = readMeta();
+                  }
                 }
               }
             }
 
             if (shouldPush && finalVal != null) {
-              // Also block shrinking a goals day to empty / fewer items when local had nothing.
-              if (key.indexOf('goals:') === 0 && Array.isArray(finalVal) && Array.isArray(remoteVal) &&
-                  Array.isArray(localVal) && localVal.length === 0 && finalVal.length < remoteVal.length) {
+              // Block shrinking a goals day when local had nothing AND no tombstones.
+              if (key.indexOf('goals:') === 0 && goalsItemCount(localVal) === 0 &&
+                  goalsItemCount(finalVal) < goalsItemCount(remoteVal) &&
+                  !goalsHasTombstones(localVal) && !goalsHasTombstones(finalVal)) {
                 shouldPush = false;
               }
             }

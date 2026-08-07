@@ -172,7 +172,9 @@
       var parsed = JSON.parse(raw);
       var base = defaultData();
       Object.keys(parsed).forEach(function (k) { base[k] = parsed[k]; });
-      if (!Array.isArray(base.feeds) || !base.feeds.length) base.feeds = defaultFeeds();
+      if (!Array.isArray(base.feeds)) base.feeds = [];
+      // Empty feeds is a valid user state — do not re-seed defaults after delete-all.
+      if (!base.feeds.length && parsed.feeds == null) base.feeds = defaultFeeds();
       if (!Array.isArray(base.items)) base.items = [];
       if (!base.tombstones || typeof base.tombstones !== 'object') base.tombstones = {};
       base.items.forEach(function (it) {
@@ -189,6 +191,7 @@
           return !(it && it.id != null && base.tombstones[String(it.id)]);
         });
       });
+      try { localStorage.setItem(DATA_KEY, JSON.stringify(base)); } catch (e) { /* quota */ }
       return base;
     } catch (e) {
       return defaultData();

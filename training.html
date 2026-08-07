@@ -13,7 +13,7 @@
   <script src="js/config.js?v=2"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/lock.js"></script>
-  <script src="js/sync.js?v=9"></script>
+  <script src="js/sync.js?v=10"></script>
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
   <script src="js/theme.js?v=3"></script>
   <script src="js/topbar.js?v=10"></script>
@@ -721,10 +721,8 @@
         { id: uid(), domain: 'fitness', category: 'exercise form notes', title: 'Squat depth cue', body: 'Sit between heels more — last set depth was inconsistent.', tags: 'squat', pinned: false, linkedSessionId: '', nextFocus: 'Film side angle' },
         { id: uid(), domain: 'soccer', category: 'match reflections', title: 'Weekend match — movement', body: 'Good press trigger recognition; late to support after turnovers.', tags: 'tactical', pinned: false, linkedSessionId: '', nextFocus: 'Recovery runs' }
       ],
-      videos: [
-        { id: uid(), title: 'Bench setup cue (placeholder)', domain: 'fitness', linkedType: 'exercise', linkedName: 'Bench Press', duration: '—', tags: 'form', uploadedAt: '2026-07-28', hasBlob: false },
-        { id: uid(), title: 'Ball mastery rolls demo (placeholder)', domain: 'soccer', linkedType: 'drill', linkedName: 'Inside-outside rolls', duration: '—', tags: 'ball mastery', uploadedAt: '2026-07-29', hasBlob: false }
-      ],
+      videos: [],
+      tombstones: {},
       templates: {
         fitness: ['Push Pull Legs', 'Upper Lower', 'Full Body 3-Day', 'Conditioning Split', 'Custom Plan'],
         soccer: ['Ball Mastery Week', 'Finishing Focus', 'First Touch & Passing', 'Agility + Dribbling', 'Position-Specific Session', 'Custom Soccer Plan']
@@ -763,14 +761,68 @@
     return base;
   }
 
+  var TRAINING_ARRAY_FIELDS = ['sessions', 'exercises', 'drills', 'notes', 'videos', 'prs', 'milestones'];
+
+  function ensureTombstones(data) {
+    if (!data.tombstones || typeof data.tombstones !== 'object' || Array.isArray(data.tombstones)) {
+      data.tombstones = {};
+    }
+    return data;
+  }
+
+  function removeTrainingById(data, id, fields) {
+    ensureTombstones(data);
+    if (id == null || id === '') return data;
+    data.tombstones[String(id)] = new Date().toISOString();
+    (fields || TRAINING_ARRAY_FIELDS).forEach(function (field) {
+      if (!Array.isArray(data[field])) return;
+      data[field] = data[field].filter(function (it) {
+        return !(it && it.id != null && String(it.id) === String(id));
+      });
+    });
+    return data;
+  }
+
+  function stripTrainingTombstones(data) {
+    ensureTombstones(data);
+    TRAINING_ARRAY_FIELDS.forEach(function (field) {
+      if (!Array.isArray(data[field])) return;
+      data[field] = data[field].filter(function (it) {
+        return !(it && it.id != null && data.tombstones[String(it.id)]);
+      });
+    });
+    // Drop legacy sample video placeholders if they reappear from older cloud data
+    var now = new Date().toISOString();
+    data.videos = (data.videos || []).filter(function (v) {
+      var title = String((v && v.title) || '');
+      if (v && !v.hasBlob && /placeholder/i.test(title)) {
+        if (v.id != null) data.tombstones[String(v.id)] = now;
+        return false;
+      }
+      return true;
+    });
+    return data;
+  }
+
   function loadData() {
     try {
       var raw = localStorage.getItem(DATA_KEY);
-      if (!raw) return defaultData();
-      return deepMerge(defaultData(), JSON.parse(raw));
+      var data;
+      if (!raw) {
+        data = defaultData();
+        try { localStorage.setItem(DATA_KEY, JSON.stringify(data)); } catch (e) { /* quota */ }
+        return data;
+      }
+      data = deepMerge(defaultData(), JSON.parse(raw));
+      stripTrainingTombstones(data);
+      // Persist stripped rows so tombstoned items cannot linger for the next sync push.
+      try { localStorage.setItem(DATA_KEY, JSON.stringify(data)); } catch (e) { /* quota */ }
+      return data;
     } catch (e) { return defaultData(); }
   }
   function saveData() {
+    ensureTombstones(store);
+    stripTrainingTombstones(store);
     try { localStorage.setItem(DATA_KEY, JSON.stringify(store)); }
     catch (e) { toast('Could not save'); }
   }
@@ -1172,7 +1224,7 @@
       },
       remove: function () {
         if (!confirm('Delete this session?')) return false;
-        store.sessions = store.sessions.filter(function (x) { return x.id !== draft.id; });
+        removeTrainingById(store, draft.id, ['sessions']);
         saveData(); renderAll(); toast('Deleted'); return true;
       }
     });
@@ -1294,7 +1346,7 @@
       row.querySelector('[data-act="edit"]').onclick = function () { editExercise(ex); };
       row.querySelector('[data-act="del"]').onclick = function () {
         if (!confirm('Delete exercise?')) return;
-        store.exercises = store.exercises.filter(function (x) { return x.id !== id; });
+        removeTrainingById(store, id, ['exercises']);
         saveData(); renderFitness(); toast('Removed');
       };
     });
@@ -1307,7 +1359,7 @@
       if (editB && s) editB.onclick = function () { editSession(s); };
       if (delB && s) delB.onclick = function () {
         if (!confirm('Delete session?')) return;
-        store.sessions = store.sessions.filter(function (x) { return x.id !== s.id; });
+        removeTrainingById(store, s.id, ['sessions']);
         saveData(); renderAll(); toast('Removed');
       };
     });
@@ -1344,7 +1396,7 @@
       },
       remove: function () {
         if (!confirm('Delete?')) return false;
-        store.exercises = store.exercises.filter(function (x) { return x.id !== ex.id; });
+        removeTrainingById(store, ex.id, ['exercises']);
         saveData(); renderFitness(); toast('Deleted'); return true;
       }
     });
@@ -1397,7 +1449,7 @@
         row.querySelector('[data-act="edit"]').onclick = function () { editDrill(d); };
         row.querySelector('[data-act="del"]').onclick = function () {
           if (!confirm('Delete drill?')) return;
-          store.drills = store.drills.filter(function (x) { return x.id !== id; });
+          removeTrainingById(store, id, ['drills']);
           saveData(); paintDrills(); toast('Removed');
         };
       });
@@ -1414,7 +1466,7 @@
       if (editB && s) editB.onclick = function () { editSession(s); };
       if (delB && s) delB.onclick = function () {
         if (!confirm('Delete?')) return;
-        store.sessions = store.sessions.filter(function (x) { return x.id !== s.id; });
+        removeTrainingById(store, s.id, ['sessions']);
         saveData(); renderAll(); toast('Removed');
       };
     });
@@ -1447,7 +1499,7 @@
       },
       remove: function () {
         if (!confirm('Delete?')) return false;
-        store.drills = store.drills.filter(function (x) { return x.id !== d.id; });
+        removeTrainingById(store, d.id, ['drills']);
         saveData(); renderSoccer(); toast('Deleted'); return true;
       }
     });
@@ -1478,7 +1530,7 @@
       card.querySelector('[data-act="del"]').onclick = function () {
         if (!confirm('Delete video?')) return;
         idbDel(id).catch(function () {});
-        store.videos = store.videos.filter(function (x) { return x.id !== id; });
+        removeTrainingById(store, id, ['videos']);
         saveData(); renderVideos(); toast('Video removed');
       };
       if (v.hasBlob) {
@@ -1531,7 +1583,7 @@
       remove: function () {
         if (!confirm('Delete video?')) return false;
         idbDel(v.id).catch(function () {});
-        store.videos = store.videos.filter(function (x) { return x.id !== v.id; });
+        removeTrainingById(store, v.id, ['videos']);
         saveData(); renderVideos(); toast('Deleted'); return true;
       }
     });
@@ -1588,7 +1640,7 @@
       row.querySelector('[data-act="edit"]').onclick = function () { editNote(n); };
       row.querySelector('[data-act="del"]').onclick = function () {
         if (!confirm('Delete note?')) return;
-        store.notes = store.notes.filter(function (x) { return x.id !== id; });
+        removeTrainingById(store, id, ['notes']);
         saveData(); renderNotes(); toast('Removed');
       };
     });
@@ -1616,7 +1668,7 @@
       },
       remove: function () {
         if (!confirm('Delete?')) return false;
-        store.notes = store.notes.filter(function (x) { return x.id !== n.id; });
+        removeTrainingById(store, n.id, ['notes']);
         saveData(); renderNotes(); toast('Deleted'); return true;
       }
     });
@@ -1651,7 +1703,7 @@
       row.querySelector('[data-act="edit"]').onclick = function () { editSession(s); };
       row.querySelector('[data-act="del"]').onclick = function () {
         if (!confirm('Delete session?')) return;
-        store.sessions = store.sessions.filter(function (x) { return x.id !== id; });
+        removeTrainingById(store, id, ['sessions']);
         saveData(); renderAll(); toast('Removed');
       };
       row.onclick = function (e) {

@@ -14,7 +14,7 @@
   <script src="js/config.js?v=2"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/lock.js"></script>
-  <script src="js/sync.js?v=9"></script>
+  <script src="js/sync.js?v=10"></script>
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
   <script src="js/theme.js?v=3"></script>
   <script src="js/topbar.js?v=10"></script>
@@ -1627,6 +1627,8 @@
     ];
   }
 
+  var projectsTombstones = {};
+
   function stripOwner(list) {
     return (list || []).map(function (p) {
       if (!p || typeof p !== 'object' || !('owner' in p)) return p;
@@ -1636,30 +1638,60 @@
     });
   }
 
+  function normalizeProjectsStore(parsed) {
+    if (Array.isArray(parsed)) {
+      return { items: stripOwner(parsed), tombstones: {} };
+    }
+    if (parsed && typeof parsed === 'object') {
+      return {
+        items: stripOwner(Array.isArray(parsed.items) ? parsed.items : []),
+        tombstones: (parsed.tombstones && typeof parsed.tombstones === 'object' && !Array.isArray(parsed.tombstones))
+          ? Object.assign({}, parsed.tombstones)
+          : {}
+      };
+    }
+    return { items: [], tombstones: {} };
+  }
+
   function loadProjects() {
     try {
       var raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        var parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length) {
-          var cleaned = stripOwner(parsed);
-          // Persist stripped owners so they stay removed across reloads/sync.
-          if (JSON.stringify(cleaned) !== JSON.stringify(parsed)) saveProjects(cleaned);
-          else state.projects = cleaned;
-          return cleaned;
-        }
+      if (raw == null) {
+        var seed = sampleProjects();
+        projectsTombstones = {};
+        saveProjects(seed);
+        return seed;
       }
-    } catch (e) { /* ignore corrupt storage */ }
-    var seed = sampleProjects();
-    saveProjects(seed);
-    return seed;
+      var parsed = JSON.parse(raw);
+      var store = normalizeProjectsStore(parsed);
+      projectsTombstones = store.tombstones;
+      store.items = store.items.filter(function (p) {
+        return !(p && p.id != null && projectsTombstones[String(p.id)]);
+      });
+      // Persist migration / stripped owners / tombstone filter
+      saveProjects(store.items);
+      return store.items;
+    } catch (e) {
+      projectsTombstones = {};
+      return [];
+    }
   }
 
   function saveProjects(list) {
-    state.projects = stripOwner(list);
+    state.projects = stripOwner(list || []);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.projects));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        items: state.projects,
+        tombstones: projectsTombstones || {}
+      }));
     } catch (e) { /* quota */ }
+  }
+
+  function deleteProject(id) {
+    var sid = String(id);
+    projectsTombstones[sid] = new Date().toISOString();
+    saveProjects(state.projects.filter(function (p) { return !(p && String(p.id) === sid); }));
+    state.selected.delete(id);
   }
 
   function pushActivity(msg) {
@@ -1849,11 +1881,6 @@
       return next;
     });
     saveProjects(list);
-  }
-
-  function deleteProject(id) {
-    saveProjects(state.projects.filter(function (p) { return p.id !== id; }));
-    state.selected.delete(id);
   }
 
   function renderKPIs(list) {
