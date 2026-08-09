@@ -13,7 +13,7 @@
   <script src="js/config.js?v=2"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/lock.js"></script>
-  <script src="js/sync.js?v=10"></script>
+  <script src="js/sync.js?v=11"></script>
   <script src="js/whoop.js?v=2"></script>
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
   <script src="js/theme.js?v=3"></script>
@@ -916,181 +916,44 @@
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     };
 
+    /* Empty defaults only — never auto-seed demo therapy/nutrition/habits into localStorage.
+       Seeding used to stamp a sync mtime and overwrite live cloud data on the phone. */
     function defaultData() {
       return {
         therapy: {
           personal: {
-            appointment: {
-              when: 'Thu Jul 31 · 4:30 PM',
-              therapist: 'Dr. Elena Vargas',
-              mode: 'Telehealth · Zoom',
-              link: '',
-              focus: '',
-              tags: 'anxiety, sleep, work stress'
-            },
-            mood: {
-              lastSession: 'Jul 24',
-              before: '3 / 5 — tense shoulders',
-              after: '4 / 5 — clearer next steps',
-              improved: 'Used the pause-before-reply technique twice at work.',
-              difficult: 'Still avoiding the Sunday planning conversation.'
-            },
-            goals: [
-              { id: uid(), title: 'Reduce rumination after 9 PM', meta: 'Active · reviewed weekly', status: 'In progress' },
-              { id: uid(), title: 'Protect one recovery evening / week', meta: 'Linked to sleep hygiene', status: 'On track' },
-              { id: uid(), title: 'Name stressors before they escalate', meta: 'Homework pattern', status: 'Watch' }
-            ],
-            homework: [
-              { id: uid(), label: 'Journal 10 min after stressful meetings', done: true, tag: '' },
-              { id: uid(), label: 'Practice one boundary script this week', done: false, tag: 'Due Fri' },
-              { id: uid(), label: 'Bring sleep log to next session', done: false, tag: '' }
-            ],
-            journal: {
-              sessionNotes: 'Talked through the midweek overload pattern. Agreed to try a hard stop at 7:30 two nights this week.',
-              questions: '1) How to communicate capacity without sounding cold?\n2) Is Sunday planning anxiety more about control or fear of falling behind?'
-            },
-            history: [
-              { id: uid(), title: 'Jul 24 · Zoom', meta: 'Tags: work stress, sleep', right: '45 min' },
-              { id: uid(), title: 'Jul 17 · Zoom', meta: 'Tags: anxiety, boundaries', right: '50 min' },
-              { id: uid(), title: 'Jul 10 · In person', meta: 'Tags: family, energy', right: '55 min' }
-            ],
-            reminders: [
-              { id: uid(), title: 'Complete boundary script practice', meta: 'Before Jul 31 session', status: 'Open' },
-              { id: uid(), title: 'Export sleep notes for review', meta: 'Manual habit log', status: 'Open' }
-            ]
+            appointment: { when: '', therapist: '', mode: '', link: '', focus: '', tags: '' },
+            mood: { lastSession: '', before: '', after: '', improved: '', difficult: '' },
+            goals: [],
+            homework: [],
+            journal: { sessionNotes: '', questions: '' },
+            history: [],
+            reminders: []
           },
           couples: {
-            appointment: {
-              when: 'Sat Aug 2 · 11:00 AM',
-              therapist: 'Jordan Lee, LMFT',
-              mode: 'In person · Clinic room B',
-              link: '',
-              focus: 'Weekly check-in structure',
-              tags: 'communication, scheduling, repair'
-            },
-            checkin: {
-              connection: '4 — good evening walks',
-              conflict: 'Calm · one tense budget talk',
-              gratitude: 'Cooked together twice. Cleared calendar for Saturday morning.'
-            },
-            actions: [
-              { id: uid(), label: 'Sunday 20-min planning huddle', done: true, tag: '' },
-              { id: uid(), label: 'Use repair phrase after disagreements', done: false, tag: 'Shared' },
-              { id: uid(), label: 'Phone-free dinner 3× this week', done: false, tag: '' }
-            ],
-            themes: [
-              { id: uid(), title: 'Time allocation on weekends', meta: 'Recurring · improving', status: '' },
-              { id: uid(), title: 'Tone when discussing money', meta: 'Watch · use pause', status: '' },
-              { id: uid(), title: 'Assumptions about availability', meta: 'New this month', status: '' }
-            ],
-            reflection: {
-              improved: 'Faster repairs after small frictions; clearer asks.',
-              difficult: 'Friday evenings still feel rushed. Need a shared wind-down ritual.'
-            }
+            appointment: { when: '', therapist: '', mode: '', link: '', focus: '', tags: '' },
+            checkin: { connection: '', conflict: '', gratitude: '' },
+            actions: [],
+            themes: [],
+            reflection: { improved: '', difficult: '' }
           }
         },
         nutrition: {
-          targets: {
-            calories: '2400',
-            protein: '180',
-            carbs: '220',
-            fat: '70',
-            prepDay: 'Sun 3–5 PM',
-            prepNotes: 'Chicken · oats · salads',
-            budget: '92'
-          },
-          meals: {
-            '0-b': { title: 'Greek yogurt bowl', flags: ['prep'] },
-            '0-l': { title: 'Chicken rice bowl', flags: ['prep', 'left'] },
-            '0-d': { title: 'Salmon + greens', flags: [] },
-            '0-s': { title: 'Protein shake', flags: [] },
-            '1-b': { title: 'Egg scramble', flags: [] },
-            '1-l': { title: 'Chicken rice bowl', flags: ['left'] },
-            '1-d': { title: 'Turkey chili', flags: ['prep'] },
-            '2-b': { title: 'Oats + whey', flags: ['prep'] },
-            '2-l': { title: 'Tuna wrap', flags: ['easy'] },
-            '2-d': { title: 'Flexible / dining out', flags: ['out'] },
-            '3-b': { title: 'Greek yogurt bowl', flags: ['prep'] },
-            '3-l': { title: 'Leftover chili', flags: ['left'] },
-            '3-d': { title: 'Sheet-pan chicken', flags: ['prep'] },
-            '4-b': { title: 'Smoothie', flags: ['easy'] },
-            '4-l': { title: 'Salad + chicken', flags: [] },
-            '4-d': { title: 'Dining out', flags: ['out'] },
-            '5-b': { title: 'Eggs + toast', flags: [] },
-            '5-d': { title: 'Steak + potatoes', flags: [] },
-            '6-b': { title: 'Oats + whey', flags: ['prep'] },
-            '6-l': { title: 'Meal-prep bowl', flags: ['prep'] }
-          },
-          grocery: [
-            { id: uid(), cat: 'Produce', name: 'Baby spinach', qty: '2 bags', must: true, have: false, scope: 'week' },
-            { id: uid(), cat: 'Produce', name: 'Blueberries', qty: '1 pint', must: false, have: false, scope: 'week' },
-            { id: uid(), cat: 'Produce', name: 'Bananas', qty: '6', must: false, have: false, scope: 'week' },
-            { id: uid(), cat: 'Protein', name: 'Chicken thighs', qty: '3 lb', must: true, have: false, scope: 'week' },
-            { id: uid(), cat: 'Protein', name: 'Salmon fillets', qty: '2', must: true, have: false, scope: 'week' },
-            { id: uid(), cat: 'Protein', name: 'Ground turkey', qty: '2 lb', must: false, have: false, scope: 'week' },
-            { id: uid(), cat: 'Dairy', name: 'Greek yogurt', qty: '32 oz', must: true, have: false, scope: 'week' },
-            { id: uid(), cat: 'Dairy', name: 'Eggs', qty: '18 ct', must: true, have: false, scope: 'week' },
-            { id: uid(), cat: 'Pantry', name: 'Brown rice', qty: '2 lb', must: false, have: true, scope: 'week' },
-            { id: uid(), cat: 'Pantry', name: 'Black beans', qty: '2 cans', must: false, have: false, scope: 'week' },
-            { id: uid(), cat: 'Frozen', name: 'Mixed berries', qty: '1 bag', must: false, have: false, scope: 'later' },
-            { id: uid(), cat: 'Snacks', name: 'Almonds', qty: '1 bag', must: false, have: false, scope: 'later' },
-            { id: uid(), cat: 'Beverages', name: 'Electrolyte packets', qty: '1 box', must: false, have: false, scope: 'week' },
-            { id: uid(), cat: 'Household', name: 'Dish pods', qty: '1', must: false, have: false, scope: 'later' }
-          ],
-          pantry: [
-            { id: uid(), label: 'Olive oil', have: true },
-            { id: uid(), label: 'Rice · 2 lb', have: true },
-            { id: uid(), label: 'Greek yogurt', have: false },
-            { id: uid(), label: 'Eggs · dozen', have: false }
-          ],
-          aisleNotes: [
-            { id: uid(), title: 'Produce first', meta: 'Spinach, berries, bananas' },
-            { id: uid(), title: 'Protein aisle', meta: 'Chicken thighs, salmon' },
-            { id: uid(), title: 'Substitutions', meta: 'Almond milk OK if oat out' }
-          ],
-          recipes: [
-            { id: uid(), title: 'High-protein chicken bowl', time: '25 min', servings: '4', macros: 'P52 C48 F14', tags: 'high-protein, meal-prep, fav', cuisine: 'American' },
-            { id: uid(), title: 'Turkey chili', time: '40 min', servings: '6', macros: 'P38 C32 F12', tags: 'high-protein, meal-prep', cuisine: 'American' },
-            { id: uid(), title: 'Salmon greens plate', time: '22 min', servings: '2', macros: 'P42 C18 F22', tags: 'high-protein, easy', cuisine: 'Mediterranean' },
-            { id: uid(), title: 'Overnight oats + whey', time: '5 min', servings: '1', macros: 'P36 C44 F10', tags: 'easy, meal-prep, fav', cuisine: 'American' },
-            { id: uid(), title: 'Tuna wrap', time: '10 min', servings: '1', macros: 'P34 C28 F11', tags: 'easy, high-protein', cuisine: 'American' },
-            { id: uid(), title: 'Sheet-pan chicken', time: '35 min', servings: '4', macros: 'P46 C24 F16', tags: 'meal-prep', cuisine: 'American' }
-          ]
+          targets: { calories: '', protein: '', carbs: '', fat: '', prepDay: '', prepNotes: '', budget: '' },
+          meals: {},
+          grocery: [],
+          pantry: [],
+          aisleNotes: [],
+          recipes: []
         },
         habits: {
-          supplements: [
-            { id: uid(), label: 'Vitamin D · AM', done: true },
-            { id: uid(), label: 'Omega-3 · AM', done: true },
-            { id: uid(), label: 'Magnesium · PM', done: false },
-            { id: uid(), label: 'Electrolytes · post-gym', done: false }
-          ],
-          tracks: [
-            { id: uid(), name: 'Walk 8k+', pattern: [1, 1, 0, 1, 1, 1, 1] },
-            { id: uid(), name: 'Sleep hygiene', pattern: [1, 1, 1, 0, 1, 0, 1] }
-          ],
-          manual: {
-            appetite: 'High',
-            cravings: 'Salty · evening',
-            digestive: 'Fine',
-            stressors: 'Deadline cluster Wed–Thu'
-          },
-          symptoms: [
-            { id: uid(), label: 'Headache', done: false },
-            { id: uid(), label: 'Low energy crash', done: false },
-            { id: uid(), label: 'Tight neck / shoulders', done: true },
-            { id: uid(), label: 'Poor appetite', done: false }
-          ],
-          body: {
-            weight: '178.4 lb · this morning',
-            waist: '34.5 in · weekly',
-            notes: 'Measured fasted'
-          },
-          appointments: [
-            { id: uid(), title: 'Dental cleaning', meta: 'Aug 14', status: 'Soon' },
-            { id: uid(), title: 'Annual physical', meta: 'Schedule by Sep', status: 'Reminder' },
-            { id: uid(), title: 'Bloodwork follow-up', meta: 'Results review', status: 'Open' }
-          ],
-          dailyNotes: 'Walked after lunch. Skipped afternoon coffee. Prep chicken for Wed/Thu dinners.'
+          supplements: [],
+          tracks: [],
+          manual: { appetite: '', cravings: '', digestive: '', stressors: '' },
+          symptoms: [],
+          body: { weight: '', waist: '', notes: '' },
+          appointments: [],
+          dailyNotes: ''
         },
         tombstones: {}
       };
@@ -1136,21 +999,20 @@
       try {
         var raw = localStorage.getItem(DATA_KEY);
         if (!raw) {
-          var seed = defaultData();
-          ensureHealthTombs(seed);
-          try { localStorage.setItem(DATA_KEY, JSON.stringify(seed)); } catch (e) { /* quota */ }
-          return seed;
+          // Keep the key absent until the user saves (or sync pulls cloud data).
+          // Writing here would create a sync mtime and fight the browser copy.
+          return defaultData();
         }
         var parsed = JSON.parse(raw);
-        // Prefer stored collections so deletes stick; only fill missing top-level keys.
-        var base = defaultData();
-        Object.keys(base).forEach(function (k) {
-          if (parsed[k] === undefined) parsed[k] = base[k];
-        });
-        ensureHealthTombs(parsed);
-        stripHealthTombsDeep(parsed, parsed.tombstones);
-        try { localStorage.setItem(DATA_KEY, JSON.stringify(parsed)); } catch (e) { /* quota */ }
-        return parsed;
+        var merged = deepMerge(defaultData(), parsed);
+        ensureHealthTombs(merged);
+        stripHealthTombsDeep(merged, merged.tombstones);
+        // Only rewrite storage when stripping tombs / filling structure actually changed data.
+        // Rewriting on every page load was bumping sync mtimes and overwriting the other device.
+        if (JSON.stringify(merged) !== JSON.stringify(parsed)) {
+          try { localStorage.setItem(DATA_KEY, JSON.stringify(merged)); } catch (e) { /* quota */ }
+        }
+        return merged;
       } catch (e) {
         return defaultData();
       }
@@ -2041,6 +1903,7 @@
           e.stopPropagation();
           var k = b.getAttribute('data-meal-del');
           if (!confirmDelete('Remove this meal?')) return;
+          healthTombstone('meal:' + k);
           delete MEALS[k]; saveData(); renderMeals(); toast('Meal removed');
         };
       });
@@ -3068,6 +2931,28 @@
         else if (q.indexOf('insight') !== -1) scrollToSection('insights');
         else toast('Search: ' + $('searchInput').value);
       }
+    });
+
+    function refreshHealthFromStorage() {
+      store = loadData();
+      MEALS = store.nutrition.meals;
+      GROCERY = store.nutrition.grocery;
+      RECIPES = store.nutrition.recipes;
+      renderTherapy();
+      renderNutritionTargets();
+      renderMeals();
+      renderGrocery();
+      renderPantryAndAisle();
+      renderRecipes();
+      renderHabits();
+    }
+
+    // Quiet auto-sync merges health without a full reload — refresh Therapy / Nutrition / Habits UI.
+    window.addEventListener('jg-sync-complete', function (e) {
+      var detail = (e && e.detail) || {};
+      var keys = [].concat(detail.applied || [], detail.merged || []);
+      if (keys.indexOf(DATA_KEY) === -1) return;
+      refreshHealthFromStorage();
     });
 
     // init

@@ -299,7 +299,47 @@
     return obj;
   }
 
-  function deepMergeIdAware(localVal, remoteVal) {
+  /** Health demo seed signature — used to avoid re-pushing sample therapy/nutrition over live cloud data. */
+  function looksLikeHealthDemoSeed(val) {
+    try {
+      var appt = val && val.therapy && val.therapy.personal && val.therapy.personal.appointment;
+      if (appt && String(appt.therapist || '') === 'Dr. Elena Vargas') return true;
+      var meal = val && val.nutrition && val.nutrition.meals && val.nutrition.meals['0-b'];
+      if (meal && String(meal.title || '') === 'Greek yogurt bowl') return true;
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function healthContentWeight(val) {
+    var n = 0;
+    function walk(o) {
+      if (o == null) return;
+      if (typeof o === 'string') {
+        if (String(o).trim()) n += 1;
+        return;
+      }
+      if (typeof o !== 'object') return;
+      if (Array.isArray(o)) {
+        n += o.length;
+        o.forEach(walk);
+        return;
+      }
+      Object.keys(o).forEach(function (k) {
+        if (k === 'tombstones') return;
+        walk(o[k]);
+      });
+    }
+    walk(val);
+    return n;
+  }
+
+  /**
+   * Recursive id-aware merge for nested health blobs.
+   * preferRemote: when true, scalar / leaf conflicts take the remote value (LWW by key mtime).
+   */
+  function deepMergeIdAware(localVal, remoteVal, preferRemote) {
     if (remoteVal === undefined) return localVal;
     if (localVal === undefined) return remoteVal;
     if (Array.isArray(localVal) || Array.isArray(remoteVal)) {
@@ -313,12 +353,11 @@
       Object.keys(keys).forEach(function (k) {
         if (!(k in localVal)) out[k] = remoteVal[k];
         else if (!(k in remoteVal)) out[k] = localVal[k];
-        else out[k] = deepMergeIdAware(localVal[k], remoteVal[k]);
+        else out[k] = deepMergeIdAware(localVal[k], remoteVal[k], preferRemote);
       });
       return out;
     }
-    // Prefer local scalar when both exist (this device just edited).
-    return localVal;
+    return preferRemote ? remoteVal : localVal;
   }
 
   function goalsItemCount(val) {
@@ -382,7 +421,8 @@
     return merged;
   }
 
-  function mergeKey(key, localVal, remoteVal) {
+  function mergeKey(key, localVal, remoteVal, opts) {
+    opts = opts || {};
     // Habits + Projects: { items, tombstones } (legacy bare arrays migrated).
     if (key === 'habits_v1' || key === 'projects_v1') {
       if (remoteVal == null && localVal == null) return { items: [], tombstones: {} };
@@ -410,7 +450,17 @@
     if (localVal == null) return remoteVal;
 
     if (DEEP_MERGE_KEYS[key]) {
-      var deep = deepMergeIdAware(localVal, remoteVal);
+      var localTime = Number(opts.localTime) || 0;
+      var remoteTime = Number(opts.remoteTime) || 0;
+      // Scalar conflicts follow key mtime (newer device wins). Missing local mtime loses to cloud.
+      var preferRemote = remoteTime > localTime;
+      // Recovery: demo seed / empty local must not clobber real cloud health data.
+      if (looksLikeHealthDemoSeed(localVal) && !looksLikeHealthDemoSeed(remoteVal)) {
+        preferRemote = true;
+      } else if (healthContentWeight(localVal) === 0 && healthContentWeight(remoteVal) > 0) {
+        preferRemote = true;
+      }
+      var deep = deepMergeIdAware(localVal, remoteVal, preferRemote);
       if (deep && typeof deep === 'object' && !Array.isArray(deep)) {
         deep.tombstones = mergeTombstones(
           localVal && localVal.tombstones,
@@ -602,7 +652,8 @@
               applied.push(key);
               meta = readMeta();
             } else if (localVal != null && remoteVal != null && canMerge) {
-              finalVal = mergeKey(key, localVal, remoteVal);
+              var mergeOpts = { localTime: localTime, remoteTime: remoteTime };
+              finalVal = mergeKey(key, localVal, remoteVal, mergeOpts);
               // Goals safety: empty local adopts remote unless local has tombstones
               // (intentional deletes — empty + tombstones must stay empty).
               if (key.indexOf('goals:') === 0) {
@@ -611,9 +662,18 @@
                 var localGoalCount = goalsItemCount(localVal);
                 if (remoteGoalCount > 0 && finalGoalCount === 0 && localGoalCount === 0 &&
                     !goalsHasTombstones(localVal) && !goalsHasTombstones(finalVal)) {
-                  finalVal = mergeKey(key, localVal, remoteVal);
+                  finalVal = mergeKey(key, localVal, remoteVal, mergeOpts);
                   if (goalsItemCount(finalVal) === 0) finalVal = normalizeItemsStore(remoteVal);
                 }
+              }
+              // Health safety: never push a demo-seed blob over richer live cloud data.
+              if (key === 'jg_health_data_v1' &&
+                  looksLikeHealthDemoSeed(finalVal) && !looksLikeHealthDemoSeed(remoteVal) &&
+                  healthContentWeight(remoteVal) >= healthContentWeight(finalVal)) {
+                finalVal = mergeKey(key, localVal, remoteVal, {
+                  localTime: 0,
+                  remoteTime: remoteTime || 1
+                });
               }
               if (!valuesEqual(finalVal, localVal)) {
                 applyRemoteRow(key, finalVal, pushIso);
