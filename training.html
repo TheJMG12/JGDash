@@ -273,14 +273,76 @@
     }
     table.t td { padding: 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
     table.t tr:hover td { background: rgba(255,255,255,0.02); }
-    .video-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-    .video-card .thumb {
-      height: 120px; border-radius: 10px; border: 1px solid var(--border);
-      background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-      display: flex; align-items: center; justify-content: center; color: var(--text-tertiary);
-      font-size: 12px; margin-bottom: 8px; position: relative; overflow: hidden;
+    .video-toolbar {
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+      margin-bottom: 12px;
     }
-    .video-card .thumb video { width: 100%; height: 100%; object-fit: cover; }
+    .video-toolbar .select { min-width: 140px; flex: 1 1 140px; }
+    .video-toolbar .video-count {
+      margin-left: auto; font-size: 12px; color: var(--text-tertiary); white-space: nowrap;
+    }
+    .video-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+    }
+    .video-card {
+      padding: 0; overflow: hidden; display: flex; flex-direction: column;
+      background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px;
+      box-shadow: none;
+    }
+    .video-card .media {
+      position: relative; width: 100%; aspect-ratio: 16 / 9;
+      background: #0a0a0c; overflow: hidden; cursor: pointer;
+    }
+    .video-card .media::after {
+      content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 42%;
+      background: linear-gradient(to top, rgba(0,0,0,0.45), transparent);
+      pointer-events: none; z-index: 1;
+    }
+    .video-card .media .thumb-frame,
+    .video-card .media video {
+      position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+      display: block; border: 0;
+    }
+    .video-card .media .thumb-ph {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      color: var(--text-tertiary); font-size: 12px; text-align: center; padding: 12px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    }
+    .video-card .media .play-fab {
+      position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+      width: 48px; height: 48px; border-radius: 999px; border: 0; cursor: pointer;
+      background: rgba(0,0,0,0.55); color: #fff; font-size: 18px; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+      backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+      transition: transform .15s ease, background .15s ease;
+      z-index: 2;
+    }
+    .video-card .media .play-fab:hover { transform: translate(-50%, -50%) scale(1.06); background: rgba(0,0,0,0.7); }
+    .video-card .media .play-fab span { margin-left: 2px; }
+    .video-card .corner-actions {
+      position: absolute; top: 8px; left: 8px; z-index: 3;
+      display: flex; gap: 6px;
+    }
+    .video-card .corner-actions .icon-btn {
+      width: 30px; height: 30px; border-radius: 999px;
+      background: rgba(0,0,0,0.55); color: #fff; border: 1px solid rgba(255,255,255,0.12);
+      backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    }
+    .video-card .corner-actions .icon-btn.danger { color: #ffb4b4; }
+    .video-card .caption {
+      padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 3px; min-width: 0;
+    }
+    .video-card .caption .title {
+      font-size: 13px; font-weight: 650; line-height: 1.3;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .video-card .caption .meta {
+      font-size: 11px; color: var(--text-tertiary); line-height: 1.35;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .video-drop-card { margin-bottom: 12px; padding: 10px; }
+    .video-drop-card .dropzone { padding: 14px; }
     .dropzone {
       border: 1.5px dashed var(--border); border-radius: 14px; padding: 22px; text-align: center;
       color: var(--text-tertiary); font-size: 13px; background: var(--input-bg);
@@ -374,7 +436,10 @@
       .main-scroll { padding: 12px 12px 40px; }
       .section { max-width: 100%; min-width: 0; }
       .section-head .btn { flex: 0 1 auto; }
-      .video-grid { grid-template-columns: 1fr; }
+      .video-grid { grid-template-columns: 1fr; gap: 12px; }
+      .video-toolbar .video-count { margin-left: 0; width: 100%; }
+      .video-card .media .play-fab { width: 52px; height: 52px; font-size: 20px; }
+      .video-drop-card { display: none; }
       .modal-grid { grid-template-columns: 1fr; }
     }
     @media (max-width: 560px) {
@@ -540,15 +605,26 @@
         <section class="section" id="sec-videos">
           <div class="section-head">
             <h2 class="section-title">Training video library</h2>
-            <span class="section-sub">Upload .mp4 · attach to workouts, exercises, drills</span>
+            <span class="section-sub">Compact clips · filter by domain &amp; linked name</span>
             <button type="button" class="btn primary" id="uploadVideoBtn" style="margin-left:auto">Upload .mp4</button>
             <input type="file" id="videoFileInput" accept="video/mp4,video/*" multiple hidden />
           </div>
-          <div class="card" style="margin-bottom:12px">
+          <div class="card video-drop-card">
             <div class="dropzone" id="dropzone">
               <strong>Drop .mp4 files here</strong>
-              or click Upload — stored on this device and synced to your account when signed in (play on phone + laptop).
+              or tap Upload — stored on this device and synced when signed in.
             </div>
+          </div>
+          <div class="video-toolbar" id="videoToolbar">
+            <select class="select" id="videoFilterDomain" aria-label="Filter by domain">
+              <option value="all">All domains</option>
+              <option value="fitness">fitness</option>
+              <option value="soccer">soccer</option>
+            </select>
+            <select class="select" id="videoFilterLinked" aria-label="Filter by linked name">
+              <option value="all">All linked names</option>
+            </select>
+            <span class="video-count" id="videoFilterCount"></span>
           </div>
           <div class="video-grid" id="videoGrid"></div>
         </section>
@@ -836,6 +912,7 @@
   var timerSeconds = 90;
   var timerHandle = null;
   var filters = { domain: 'all', goal: 'all', status: 'all', equip: 'all', focus: 'all', duration: 'all', tags: '', q: '' };
+  var videoFilters = { domain: 'all', linkedName: 'all' };
 
   /* —— IndexedDB video blobs —— */
   function openDb() {
@@ -1560,28 +1637,98 @@
   }
 
   /* —— Videos —— */
+  function fillVideoFilters() {
+    var domainSel = $('videoFilterDomain');
+    var linkedSel = $('videoFilterLinked');
+    if (!domainSel || !linkedSel) return;
+    var domain = videoFilters.domain || 'all';
+    var names = {};
+    (store.videos || []).forEach(function (v) {
+      if (domain !== 'all' && String(v.domain || '') !== domain) return;
+      var n = String(v.linkedName || '').trim();
+      if (n) names[n] = true;
+    });
+    var sorted = Object.keys(names).sort(function (a, b) {
+      return a.toLowerCase().localeCompare(b.toLowerCase());
+    });
+    var prev = videoFilters.linkedName || 'all';
+    linkedSel.innerHTML = '<option value="all">All linked names</option>' +
+      sorted.map(function (n) {
+        return '<option value="' + esc(n) + '"' + (n === prev ? ' selected' : '') + '>' + esc(n) + '</option>';
+      }).join('');
+    if (prev !== 'all' && !names[prev]) {
+      videoFilters.linkedName = 'all';
+      linkedSel.value = 'all';
+    } else {
+      linkedSel.value = prev;
+    }
+    domainSel.value = domain;
+  }
+
+  function filteredVideos() {
+    return (store.videos || []).filter(function (v) {
+      if (videoFilters.domain !== 'all' && String(v.domain || '') !== videoFilters.domain) return false;
+      if (videoFilters.linkedName !== 'all' && String(v.linkedName || '').trim() !== videoFilters.linkedName) return false;
+      return true;
+    });
+  }
+
   function renderVideos() {
-    var list = store.videos;
-    if (!list.length) {
+    fillVideoFilters();
+    var all = store.videos || [];
+    var list = filteredVideos();
+    var countEl = $('videoFilterCount');
+    if (countEl) {
+      countEl.textContent = list.length + ' of ' + all.length + ' video' + (all.length === 1 ? '' : 's');
+    }
+    if (!all.length) {
       $('videoGrid').innerHTML = '<div class="card span-full empty-state"><strong>No videos uploaded</strong>Drop an .mp4 to get started.</div>';
       return;
     }
+    if (!list.length) {
+      $('videoGrid').innerHTML = '<div class="card span-full empty-state"><strong>No videos match these filters</strong>Clear Domain or Linked name to see more.</div>';
+      return;
+    }
     $('videoGrid').innerHTML = list.map(function (v) {
-      return '<div class="card video-card" data-id="' + esc(v.id) + '">' +
-        '<div class="thumb" data-thumb="' + esc(v.id) + '">Checking…</div>' +
-        '<div class="card-head"><h3 style="font-size:13px">' + esc(v.title) + '</h3>' +
-          '<div class="card-actions">' + iconBtn('play', '▶') + iconBtn('edit', '✎') + iconBtn('del', '✕', ' danger') + '</div></div>' +
-        '<p class="card-meta"><span class="badge ' + (v.domain === 'fitness' ? 'fit' : 'soc') + '">' + esc(v.domain) + '</span> · ' +
-          esc(v.linkedType) + ': ' + esc(v.linkedName) + '</p>' +
-        '<p class="card-meta">' + esc(v.duration) + ' · ' + esc(v.uploadedAt) + ' · ' + esc(v.tags) + '</p></div>';
+      var link = [v.linkedType, v.linkedName].filter(Boolean).join(': ');
+      return '<article class="video-card" data-id="' + esc(v.id) + '">' +
+        '<div class="media" data-play="' + esc(v.id) + '" role="button" tabindex="0" aria-label="Play ' + esc(v.title || 'video') + '">' +
+          '<div class="thumb-frame" data-thumb="' + esc(v.id) + '"><div class="thumb-ph">Loading…</div></div>' +
+          '<div class="corner-actions">' +
+            '<button type="button" class="icon-btn" data-act="edit" title="Edit" aria-label="Edit">✎</button>' +
+            '<button type="button" class="icon-btn danger" data-act="del" title="Delete" aria-label="Delete">✕</button>' +
+          '</div>' +
+          '<button type="button" class="play-fab" data-act="play" title="Play" aria-label="Play"><span>▶</span></button>' +
+        '</div>' +
+        '<div class="caption">' +
+          '<div class="title">' + esc(v.title || 'Untitled') + '</div>' +
+          '<div class="meta">' +
+            '<span class="badge ' + (v.domain === 'fitness' ? 'fit' : 'soc') + '">' + esc(v.domain || '—') + '</span>' +
+            (link ? ' · ' + esc(link) : '') +
+          '</div>' +
+          '<div class="meta">' + esc(v.duration || '—') + (v.uploadedAt ? ' · ' + esc(v.uploadedAt) : '') + '</div>' +
+        '</div></article>';
     }).join('');
 
     $('videoGrid').querySelectorAll('.video-card').forEach(function (card) {
       var id = card.getAttribute('data-id');
       var v = store.videos.find(function (x) { return x.id === id; });
-      card.querySelector('[data-act="play"]').onclick = function () { playVideo(id); };
-      card.querySelector('[data-act="edit"]').onclick = function () { editVideoMeta(v); };
-      card.querySelector('[data-act="del"]').onclick = function () {
+      var media = card.querySelector('.media');
+      function play() { playVideo(id); }
+      media.addEventListener('click', function (e) {
+        if (e.target.closest('[data-act="edit"]') || e.target.closest('[data-act="del"]')) return;
+        play();
+      });
+      media.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); play(); }
+      });
+      card.querySelector('[data-act="play"]').onclick = function (e) { e.stopPropagation(); play(); };
+      card.querySelector('[data-act="edit"]').onclick = function (e) {
+        e.stopPropagation();
+        editVideoMeta(v);
+      };
+      card.querySelector('[data-act="del"]').onclick = function (e) {
+        e.stopPropagation();
         if (!confirm('Delete video?')) return;
         idbDel(id).catch(function () {});
         cloudRemoveVideo(id);
@@ -1592,17 +1739,17 @@
       idbGet(id).then(function (blob) {
         if (blob) {
           var url = URL.createObjectURL(blob);
-          thumb.innerHTML = '<video muted preload="metadata" src="' + url + '#t=0.5"></video>';
+          thumb.innerHTML = '<video muted playsinline preload="metadata" src="' + url + '#t=0.1"></video>';
           return;
         }
-        if (v && (v.cloud || v.hasBlob)) {
-          thumb.textContent = '☁ Cloud · tap ▶ to load';
-          thumb.style.fontSize = '12px';
-        } else {
-          thumb.textContent = 'Placeholder · upload .mp4';
-        }
+        var ph = (v && (v.cloud || v.hasBlob))
+          ? '☁ Cloud · tap ▶ to load'
+          : 'Upload .mp4 for thumbnail';
+        thumb.innerHTML = '<div class="thumb-ph">' + ph + '</div>';
       }).catch(function () {
-        thumb.textContent = (v && v.hasBlob) ? '☁ Cloud · tap ▶ to load' : 'Placeholder · upload .mp4';
+        thumb.innerHTML = '<div class="thumb-ph">' +
+          ((v && v.hasBlob) ? '☁ Cloud · tap ▶ to load' : 'Upload .mp4 for thumbnail') +
+          '</div>';
       });
     });
   }
@@ -1930,6 +2077,15 @@
     e.preventDefault(); dz.classList.remove('drag');
     handleFiles(e.dataTransfer.files);
   });
+  $('videoFilterDomain').onchange = function () {
+    videoFilters.domain = $('videoFilterDomain').value || 'all';
+    videoFilters.linkedName = 'all';
+    renderVideos();
+  };
+  $('videoFilterLinked').onchange = function () {
+    videoFilters.linkedName = $('videoFilterLinked').value || 'all';
+    renderVideos();
+  };
 
   ['fDomain','fGoal','fStatus','fEquip','fFocus','fDuration'].forEach(function (id) {
     $(id).onchange = function () { readFilters(); renderAll(); };
