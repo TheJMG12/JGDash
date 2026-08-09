@@ -13,7 +13,7 @@
   <script src="js/config.js?v=2"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/lock.js"></script>
-  <script src="js/sync.js?v=11"></script>
+  <script src="js/sync.js?v=12"></script>
   <script src="js/whoop.js?v=2"></script>
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
   <script src="js/theme.js?v=3"></script>
@@ -995,6 +995,25 @@
       });
     }
 
+    function looksLikeHealthDemoSeed(val) {
+      // Mirror js/sync.js — drop the old auto-seed so Elena never paints before sync runs.
+      if (!val || typeof val !== 'object') return false;
+      var score = 0;
+      try {
+        var personal = (val.therapy && val.therapy.personal) || {};
+        var couples = (val.therapy && val.therapy.couples) || {};
+        if (String((personal.appointment || {}).therapist || '') === 'Dr. Elena Vargas') score += 3;
+        if (String((couples.appointment || {}).therapist || '') === 'Jordan Lee, LMFT') score += 3;
+        if (String((personal.journal || {}).sessionNotes || '').indexOf('midweek overload pattern') !== -1) score += 2;
+        var meal = val.nutrition && val.nutrition.meals && val.nutrition.meals['0-b'];
+        if (meal && String(meal.title || '') === 'Greek yogurt bowl') score += 2;
+        if (String((val.habits || {}).dailyNotes || '').indexOf('Prep chicken for Wed/Thu') !== -1) score += 2;
+        var goals = personal.goals || [];
+        if (goals.some(function (g) { return g && String(g.title || '') === 'Reduce rumination after 9 PM'; })) score += 2;
+      } catch (e) { /* ignore */ }
+      return score >= 5;
+    }
+
     function loadData() {
       try {
         var raw = localStorage.getItem(DATA_KEY);
@@ -1004,6 +1023,11 @@
           return defaultData();
         }
         var parsed = JSON.parse(raw);
+        // Poisoned local demo seed — remove so sync can purge cloud / keep real edits.
+        if (looksLikeHealthDemoSeed(parsed)) {
+          try { localStorage.removeItem(DATA_KEY); } catch (e) { /* ignore */ }
+          return defaultData();
+        }
         var merged = deepMerge(defaultData(), parsed);
         ensureHealthTombs(merged);
         stripHealthTombsDeep(merged, merged.tombstones);
