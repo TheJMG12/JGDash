@@ -13,7 +13,7 @@
   <script src="js/config.js?v=2"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/lock.js"></script>
-  <script src="js/sync.js?v=13"></script>
+  <script src="js/sync.js?v=14"></script>
   <script src="js/whoop.js?v=2"></script>
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
   <script src="js/theme.js?v=3"></script>
@@ -964,6 +964,7 @@
           personal: {
             appointment: { when: '', therapist: '', mode: '', link: '', focus: '', tags: '' },
             mood: { lastSession: '', before: '', after: '', improved: '', difficult: '' },
+            notes: { topicsGoalsFocus: '' },
             goals: [],
             homework: [],
             journal: { sessionNotes: '', questions: '' },
@@ -973,6 +974,7 @@
           couples: {
             appointment: { when: '', therapist: '', mode: '', link: '', focus: '', tags: '' },
             checkin: { connection: '', conflict: '', gratitude: '' },
+            notes: { topicsGoalsFocus: '' },
             actions: [],
             themes: [],
             reflection: { improved: '', difficult: '' }
@@ -1506,7 +1508,7 @@
         var val = f.value == null ? '' : f.value;
         var input;
         if (f.type === 'textarea') {
-          input = '<textarea id="ef_' + f.key + '" rows="' + (f.rows || 3) + '">' + esc(val) + '</textarea>';
+          input = '<textarea id="ef_' + f.key + '" rows="' + (f.rows || 3) + '" placeholder="' + esc(f.placeholder || '') + '">' + esc(val) + '</textarea>';
         } else if (f.type === 'select') {
           input = '<select id="ef_' + f.key + '">' + (f.options || []).map(function (o) {
             var v = typeof o === 'string' ? o : o.value;
@@ -1552,134 +1554,72 @@
     }
 
     /* —— Therapy render —— */
+    function ensureTherapyNotes(bucket) {
+      if (!bucket || typeof bucket !== 'object') return { topicsGoalsFocus: '' };
+      if (!bucket.notes || typeof bucket.notes !== 'object' || Array.isArray(bucket.notes)) {
+        bucket.notes = { topicsGoalsFocus: '' };
+      }
+      if (typeof bucket.notes.topicsGoalsFocus !== 'string') {
+        bucket.notes.topicsGoalsFocus = String(bucket.notes.topicsGoalsFocus || '');
+      }
+      return bucket.notes;
+    }
+
     function renderTherapy() {
       renderTherapyPersonal();
       renderTherapyCouples();
     }
 
+    function renderTherapyNotesCard(kind) {
+      var bucket = kind === 'couples' ? store.therapy.couples : store.therapy.personal;
+      var notes = ensureTherapyNotes(bucket);
+      var html = '<div class="card sensitive span-2" data-therapy-notes="' + kind + '">' +
+        cardHead('Notes') +
+        '<p class="card-meta">' + (kind === 'couples' ? 'Couples therapy' : 'Personal therapy') + '</p>' +
+        '<div class="field" style="margin:0">' +
+          '<label for="therapyNotes-' + kind + '">Topics, Goals, Focus</label>' +
+          '<textarea id="therapyNotes-' + kind + '" rows="8" placeholder="Topics, goals, and focus for sessions…">' +
+            esc(notes.topicsGoalsFocus || '') +
+          '</textarea>' +
+        '</div></div>';
+      return html;
+    }
+
+    function wireTherapyNotesCard(root, kind) {
+      if (!root) return;
+      var ta = root.querySelector('#therapyNotes-' + kind);
+      if (!ta) return;
+      var saveTimer = null;
+      function persist() {
+        var bucket = kind === 'couples' ? store.therapy.couples : store.therapy.personal;
+        var notes = ensureTherapyNotes(bucket);
+        var next = String(ta.value || '');
+        if (notes.topicsGoalsFocus === next) return;
+        notes.topicsGoalsFocus = next;
+        saveData();
+      }
+      ta.addEventListener('input', function () {
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(persist, 400);
+      });
+      ta.addEventListener('blur', persist);
+    }
+
     function renderTherapyPersonal() {
-      var p = store.therapy.personal;
-      var ap = p.appointment || {};
-      var mood = p.mood || {};
-      var journal = p.journal || {};
-      var html = '';
-
-      html += '<div class="card sensitive">' +
-        cardHead('Next appointment', iconBtn('edit-appt', '✎') + iconBtn('clear-appt', '✕', ' danger')) +
-        '<p class="card-meta">Personal</p>' +
-        (ap.when ? '<div class="mini-stat" style="margin-bottom:6px">' + esc(formatDatetimeDisplay(ap.when)) + '</div>' : listEmpty('No appointment set')) +
-        '<p style="font-size:13px;color:var(--text-secondary);line-height:1.45">' +
-          esc([ap.therapist, ap.mode].filter(Boolean).join(' · ')) +
-          (ap.focus ? '<br />Focus: ' + esc(ap.focus) : '') +
-          (ap.link ? '<br /><a href="' + esc(ap.link) + '" target="_blank" rel="noopener">Join / location link</a>' : '') +
-        '</p>' + tagsHtml(ap.tags) + '</div>';
-
-      html += '<div class="card sensitive">' +
-        cardHead('Session mood check-in', iconBtn('edit-mood', '✎')) +
-        '<p class="card-meta">Before / after · last session ' + esc(mood.lastSession ? formatDateDisplay(mood.lastSession) : '—') + '</p>' +
-        '<div class="grid-2" style="gap:8px">' +
-          '<div class="field"><label>Before</label><input value="' + esc(mood.before || '') + '" readonly /></div>' +
-          '<div class="field"><label>After</label><input value="' + esc(mood.after || '') + '" readonly /></div>' +
-        '</div>' +
-        '<div class="field"><label>What improved</label><textarea readonly>' + esc(mood.improved || '') + '</textarea></div>' +
-        '<div class="field" style="margin:0"><label>What felt difficult</label><textarea readonly>' + esc(mood.difficult || '') + '</textarea></div></div>';
-
-      html += '<div class="card sensitive">' +
-        cardHead('Goals / focus areas', iconBtn('add-goal', '+')) +
-        '<div data-list="goals">' + renderEditableList(p.goals, { empty: 'No goals yet.' }) + '</div></div>';
-
-      html += '<div class="card sensitive">' +
-        cardHead('Homework / action items', iconBtn('add-homework', '+')) +
-        '<div data-list="homework">' + renderCheckList(p.homework, 'homework') + '</div></div>';
-
-      html += '<div class="card sensitive span-2">' +
-        cardHead('Reflection journal', iconBtn('edit-journal', '✎')) +
-        '<p class="card-meta">Private notes · not shared</p>' +
-        '<div class="field"><label>Session notes</label><textarea readonly>' + esc(journal.sessionNotes || '') + '</textarea></div>' +
-        '<div class="field" style="margin:0"><label>Questions for next session</label><textarea readonly>' + esc(journal.questions || '') + '</textarea></div></div>';
-
-      html += '<div class="card sensitive">' +
-        cardHead('Session history', iconBtn('add-history', '+')) +
-        '<div data-list="history">' + renderEditableList(p.history) + '</div></div>';
-
-      html += '<div class="card sensitive">' +
-        cardHead('Follow-up reminders', iconBtn('add-reminder', '+')) +
-        '<div data-list="reminders">' + renderEditableList(p.reminders) + '</div></div>';
-
-      $('therapyPersonalMount').innerHTML = html;
-      wireTherapyPersonal();
+      $('therapyPersonalMount').innerHTML = renderTherapyNotesCard('personal');
+      wireTherapyNotesCard($('therapyPersonalMount'), 'personal');
     }
 
-    function wireTherapyPersonal() {
-      var root = $('therapyPersonalMount');
-      var p = store.therapy.personal;
-      root.querySelector('[data-act="edit-appt"]').onclick = function () {
-        openEditModal({
-          title: 'Edit personal appointment', mode: 'edit', canDelete: true, kind: 'personal-appt',
-          fields: [
-            { key: 'when', label: 'When', type: 'datetime-local', value: toDatetimeLocalInput(p.appointment.when), full: true },
-            { key: 'therapist', label: 'Therapist', value: p.appointment.therapist },
-            { key: 'mode', label: 'Mode / location', value: p.appointment.mode },
-            { key: 'link', label: 'Link', value: p.appointment.link, full: true, placeholder: 'https://…' },
-            { key: 'focus', label: 'Focus', value: p.appointment.focus, full: true },
-            { key: 'tags', label: 'Tags (comma-separated)', value: p.appointment.tags, full: true }
-          ],
-          save: function (v) {
-            Object.assign(p.appointment, v, { when: v.when || '' });
-            saveData(); renderTherapyPersonal(); toast('Appointment updated');
-          },
-          remove: function () {
-            if (!confirmDelete('Clear personal appointment?')) return false;
-            p.appointment = { when: '', therapist: '', mode: '', link: '', focus: '', tags: '' };
-            saveData(); renderTherapyPersonal(); toast('Appointment cleared'); return true;
-          }
-        });
-      };
-      root.querySelector('[data-act="clear-appt"]').onclick = function () {
-        if (!confirmDelete('Clear personal appointment?')) return;
-        p.appointment = { when: '', therapist: '', mode: '', link: '', focus: '', tags: '' };
-        saveData(); renderTherapyPersonal(); toast('Appointment cleared');
-      };
-      root.querySelector('[data-act="edit-mood"]').onclick = function () {
-        openEditModal({
-          title: 'Edit mood check-in', mode: 'edit', kind: 'personal-mood',
-          fields: [
-            { key: 'lastSession', label: 'Last session date', type: 'date', value: toDateInput(p.mood.lastSession) },
-            { key: 'before', label: 'Before', value: p.mood.before, full: true },
-            { key: 'after', label: 'After', value: p.mood.after, full: true },
-            { key: 'improved', label: 'What improved', type: 'textarea', value: p.mood.improved, full: true },
-            { key: 'difficult', label: 'What felt difficult', type: 'textarea', value: p.mood.difficult, full: true }
-          ],
-          save: function (v) {
-            Object.assign(p.mood, v, { lastSession: v.lastSession || '' });
-            saveData(); renderTherapyPersonal(); toast('Mood check-in updated');
-          }
-        });
-      };
-      root.querySelector('[data-act="edit-journal"]').onclick = function () {
-        openEditModal({
-          title: 'Edit reflection journal', mode: 'edit', kind: 'personal-journal',
-          fields: [
-            { key: 'sessionNotes', label: 'Session notes', type: 'textarea', rows: 5, value: p.journal.sessionNotes, full: true },
-            { key: 'questions', label: 'Questions for next session', type: 'textarea', rows: 4, value: p.journal.questions, full: true }
-          ],
-          save: function (v) { Object.assign(p.journal, v); saveData(); renderTherapyPersonal(); toast('Journal updated'); }
-        });
-      };
-      root.querySelector('[data-act="add-goal"]').onclick = function () { editListItem('goals', null); };
-      root.querySelector('[data-act="add-homework"]').onclick = function () { editCheckItem('homework', null); };
-      root.querySelector('[data-act="add-history"]').onclick = function () { editListItem('history', null); };
-      root.querySelector('[data-act="add-reminder"]').onclick = function () { editListItem('reminders', null); };
-
-      wireListCrud(root.querySelector('[data-list="goals"]'), 'goals');
-      wireCheckCrud(root.querySelector('[data-list="homework"]'), 'homework');
-      wireListCrud(root.querySelector('[data-list="history"]'), 'history');
-      wireListCrud(root.querySelector('[data-list="reminders"]'), 'reminders');
+    function renderTherapyCouples() {
+      $('therapyCouplesMount').innerHTML = renderTherapyNotesCard('couples');
+      wireTherapyNotesCard($('therapyCouplesMount'), 'couples');
     }
 
+    /* Legacy therapy list helpers kept for older stored list data / sync tombstones. */
     function editListItem(listKey, item) {
       var isAdd = !item;
       var arr = store.therapy.personal[listKey];
+      if (!Array.isArray(arr)) return;
       var fields = [
         { key: 'title', label: 'Title', value: item ? item.title : '', full: true }
       ];
@@ -1730,6 +1670,7 @@
     function editCheckItem(listKey, item) {
       var isAdd = !item;
       var arr = store.therapy.personal[listKey];
+      if (!Array.isArray(arr)) return;
       openEditModal({
         title: (isAdd ? 'Add' : 'Edit') + ' action item',
         mode: isAdd ? 'add' : 'edit', canDelete: !isAdd,
@@ -1784,174 +1725,6 @@
           store.therapy.personal[listKey] = store.therapy.personal[listKey].filter(function (x) { return x.id !== id; });
           saveData(); renderTherapyPersonal(); toast('Removed');
         };
-      });
-    }
-
-    function renderTherapyCouples() {
-      var c = store.therapy.couples;
-      var ap = c.appointment || {};
-      var checkin = c.checkin || {};
-      var refl = c.reflection || {};
-      var html = '';
-      html += '<div class="card sensitive">' +
-        cardHead('Next appointment', iconBtn('edit-appt', '✎') + iconBtn('clear-appt', '✕', ' danger')) +
-        '<p class="card-meta">Couples</p>' +
-        (ap.when ? '<div class="mini-stat" style="margin-bottom:6px">' + esc(formatDatetimeDisplay(ap.when)) + '</div>' : listEmpty('No appointment set')) +
-        '<p style="font-size:13px;color:var(--text-secondary);line-height:1.45">' +
-          esc([ap.therapist, ap.mode].filter(Boolean).join(' · ')) +
-          (ap.focus ? '<br />Focus: ' + esc(ap.focus) : '') +
-          (ap.link ? '<br /><a href="' + esc(ap.link) + '" target="_blank" rel="noopener">Join / location link</a>' : '') +
-        '</p>' + tagsHtml(ap.tags) + '</div>';
-
-      html += '<div class="card sensitive">' +
-        cardHead('Relationship check-in', iconBtn('edit-checkin', '✎')) +
-        '<p class="card-meta">This week · both partners</p>' +
-        '<div class="field"><label>Connection (1–5)</label><input value="' + esc(checkin.connection || '') + '" readonly /></div>' +
-        '<div class="field"><label>Conflict tone</label><input value="' + esc(checkin.conflict || '') + '" readonly /></div>' +
-        '<div class="field" style="margin:0"><label>Gratitude / wins</label><textarea readonly>' + esc(checkin.gratitude || '') + '</textarea></div></div>';
-
-      html += '<div class="card sensitive">' +
-        cardHead('Shared action items', iconBtn('add-action', '+')) +
-        '<div data-list="actions">' + renderCheckList(c.actions, 'actions') + '</div></div>';
-
-      html += '<div class="card sensitive">' +
-        cardHead('Conflict / communication themes', iconBtn('add-theme', '+')) +
-        '<div data-list="themes">' + renderEditableList(c.themes) + '</div></div>';
-
-      html += '<div class="card sensitive span-2">' +
-        cardHead('Couples reflection', iconBtn('edit-refl', '✎')) +
-        '<div class="field"><label>What improved</label><textarea readonly>' + esc(refl.improved || '') + '</textarea></div>' +
-        '<div class="field" style="margin:0"><label>What felt difficult</label><textarea readonly>' + esc(refl.difficult || '') + '</textarea></div></div>';
-
-      $('therapyCouplesMount').innerHTML = html;
-      wireTherapyCouples();
-    }
-
-    function wireTherapyCouples() {
-      var root = $('therapyCouplesMount');
-      var c = store.therapy.couples;
-      root.querySelector('[data-act="edit-appt"]').onclick = function () {
-        openEditModal({
-          title: 'Edit couples appointment', mode: 'edit', canDelete: true,
-          fields: [
-            { key: 'when', label: 'When', type: 'datetime-local', value: toDatetimeLocalInput(c.appointment.when), full: true },
-            { key: 'therapist', label: 'Therapist', value: c.appointment.therapist },
-            { key: 'mode', label: 'Mode / location', value: c.appointment.mode },
-            { key: 'link', label: 'Link', value: c.appointment.link, full: true },
-            { key: 'focus', label: 'Focus', value: c.appointment.focus, full: true },
-            { key: 'tags', label: 'Tags', value: c.appointment.tags, full: true }
-          ],
-          save: function (v) {
-            Object.assign(c.appointment, v, { when: v.when || '' });
-            saveData(); renderTherapyCouples(); toast('Appointment updated');
-          },
-          remove: function () {
-            if (!confirmDelete('Clear couples appointment?')) return false;
-            c.appointment = { when: '', therapist: '', mode: '', link: '', focus: '', tags: '' };
-            saveData(); renderTherapyCouples(); toast('Appointment cleared'); return true;
-          }
-        });
-      };
-      root.querySelector('[data-act="clear-appt"]').onclick = function () {
-        if (!confirmDelete('Clear couples appointment?')) return;
-        c.appointment = { when: '', therapist: '', mode: '', link: '', focus: '', tags: '' };
-        saveData(); renderTherapyCouples(); toast('Appointment cleared');
-      };
-      root.querySelector('[data-act="edit-checkin"]').onclick = function () {
-        openEditModal({
-          title: 'Edit relationship check-in', mode: 'edit',
-          fields: [
-            { key: 'connection', label: 'Connection', value: c.checkin.connection, full: true },
-            { key: 'conflict', label: 'Conflict tone', value: c.checkin.conflict, full: true },
-            { key: 'gratitude', label: 'Gratitude / wins', type: 'textarea', value: c.checkin.gratitude, full: true }
-          ],
-          save: function (v) { Object.assign(c.checkin, v); saveData(); renderTherapyCouples(); toast('Check-in updated'); }
-        });
-      };
-      root.querySelector('[data-act="edit-refl"]').onclick = function () {
-        openEditModal({
-          title: 'Edit couples reflection', mode: 'edit',
-          fields: [
-            { key: 'improved', label: 'What improved', type: 'textarea', value: c.reflection.improved, full: true },
-            { key: 'difficult', label: 'What felt difficult', type: 'textarea', value: c.reflection.difficult, full: true }
-          ],
-          save: function (v) { Object.assign(c.reflection, v); saveData(); renderTherapyCouples(); toast('Reflection updated'); }
-        });
-      };
-      root.querySelector('[data-act="add-action"]').onclick = function () { editCouplesCheck(null); };
-      root.querySelector('[data-act="add-theme"]').onclick = function () { editCouplesTheme(null); };
-
-      root.querySelectorAll('[data-list="actions"] .check-row').forEach(function (row) {
-        var id = row.getAttribute('data-id');
-        var item = c.actions.find(function (x) { return x.id === id; });
-        row.querySelector('input[type=checkbox]').onchange = function (e) {
-          item.done = e.target.checked; saveData(); renderTherapyCouples();
-        };
-        row.querySelector('[data-act="edit"]').onclick = function () { editCouplesCheck(item); };
-        row.querySelector('[data-act="del"]').onclick = function () {
-          if (!confirmDelete()) return;
-          healthTombstone(id);
-          c.actions = c.actions.filter(function (x) { return x.id !== id; });
-          saveData(); renderTherapyCouples(); toast('Removed');
-        };
-      });
-      root.querySelectorAll('[data-list="themes"] .list-item').forEach(function (row) {
-        var id = row.getAttribute('data-id');
-        var item = c.themes.find(function (x) { return x.id === id; });
-        row.querySelector('[data-act="edit"]').onclick = function () { editCouplesTheme(item); };
-        row.querySelector('[data-act="del"]').onclick = function () {
-          if (!confirmDelete()) return;
-          healthTombstone(id);
-          c.themes = c.themes.filter(function (x) { return x.id !== id; });
-          saveData(); renderTherapyCouples(); toast('Removed');
-        };
-      });
-    }
-    function editCouplesCheck(item) {
-      var isAdd = !item;
-      openEditModal({
-        title: (isAdd ? 'Add' : 'Edit') + ' shared action',
-        mode: isAdd ? 'add' : 'edit', canDelete: !isAdd,
-        fields: [
-          { key: 'label', label: 'Item', value: item ? item.label : '', full: true },
-          { key: 'tag', label: 'Tag', value: item ? item.tag : '' },
-          { key: 'done', label: 'Done', type: 'checkbox', value: item ? item.done : false, checkLabel: 'Completed' }
-        ],
-        save: function (v) {
-          if (!v.label.trim()) { $('editError').textContent = 'Required'; return false; }
-          if (isAdd) store.therapy.couples.actions.push({ id: uid(), label: v.label.trim(), tag: v.tag, done: !!v.done });
-          else { item.label = v.label.trim(); item.tag = v.tag; item.done = !!v.done; }
-          saveData(); renderTherapyCouples(); toast(isAdd ? 'Added' : 'Updated');
-        },
-        remove: function () {
-          if (!confirmDelete()) return false;
-          healthTombstone(item.id);
-          store.therapy.couples.actions = store.therapy.couples.actions.filter(function (x) { return x.id !== item.id; });
-          saveData(); renderTherapyCouples(); toast('Removed'); return true;
-        }
-      });
-    }
-    function editCouplesTheme(item) {
-      var isAdd = !item;
-      openEditModal({
-        title: (isAdd ? 'Add' : 'Edit') + ' theme',
-        mode: isAdd ? 'add' : 'edit', canDelete: !isAdd,
-        fields: [
-          { key: 'title', label: 'Theme', value: item ? item.title : '', full: true },
-          { key: 'meta', label: 'Notes', value: item ? item.meta : '', full: true }
-        ],
-        save: function (v) {
-          if (!v.title.trim()) { $('editError').textContent = 'Required'; return false; }
-          if (isAdd) store.therapy.couples.themes.push({ id: uid(), title: v.title.trim(), meta: v.meta, status: '' });
-          else { item.title = v.title.trim(); item.meta = v.meta; }
-          saveData(); renderTherapyCouples(); toast(isAdd ? 'Added' : 'Updated');
-        },
-        remove: function () {
-          if (!confirmDelete()) return false;
-          healthTombstone(item.id);
-          store.therapy.couples.themes = store.therapy.couples.themes.filter(function (x) { return x.id !== item.id; });
-          saveData(); renderTherapyCouples(); toast('Removed'); return true;
-        }
       });
     }
 
@@ -2371,8 +2144,9 @@
           '<div class="img">Image placeholder</div>' +
           '<div class="card-head" style="margin-bottom:4px"><div class="rtitle" style="flex:1">' + esc(r.title) + '</div>' +
             '<div class="card-actions">' + iconBtn('edit', '✎') + iconBtn('del', '✕', ' danger') + '</div></div>' +
-          '<div class="rmeta">' + esc(r.time) + ' · ' + esc(r.servings) + ' servings · ' + esc(r.cuisine) + '</div>' +
+          '<div class="rmeta">' + esc(r.time) + ' · ' + esc(r.servings) + ' servings</div>' +
           '<div class="macros">' + esc(r.macros) + '</div>' +
+          (r.instructions ? '<p class="card-meta" style="margin:8px 0;white-space:pre-wrap;max-height:4.5em;overflow:hidden">' + esc(r.instructions) + '</p>' : '') +
           '<div class="tags" style="margin:8px 0">' + tags.map(function (t) { return '<span class="tag-pill">' + esc(t) + '</span>'; }).join('') + '</div>' +
           '<div class="split">' +
             '<button type="button" class="btn primary" data-attach="' + esc(r.id) + '">Add to plan</button>' +
@@ -2422,19 +2196,23 @@
           { key: 'title', label: 'Title', value: item ? item.title : '', full: true },
           { key: 'time', label: 'Cook / prep time', value: item ? item.time : '20 min' },
           { key: 'servings', label: 'Servings', value: item ? item.servings : '2' },
-          { key: 'cuisine', label: 'Cuisine', value: item ? item.cuisine : '' },
           { key: 'macros', label: 'Macros', value: item ? item.macros : '', full: true, placeholder: 'P40 C30 F12' },
-          { key: 'tags', label: 'Tags (comma-separated)', value: item ? (Array.isArray(item.tags) ? item.tags.join(', ') : item.tags) : '', full: true }
+          { key: 'tags', label: 'Tags (comma-separated)', value: item ? (Array.isArray(item.tags) ? item.tags.join(', ') : item.tags) : '', full: true },
+          { key: 'instructions', label: 'Cooking instructions', type: 'textarea', rows: 6, value: item ? (item.instructions || '') : '', full: true, placeholder: 'Step-by-step cooking instructions…' }
         ],
         save: function (v) {
           if (!v.title.trim()) { $('editError').textContent = 'Title required'; return false; }
           if (isAdd) {
             store.nutrition.recipes.push({
               id: uid(), title: v.title.trim(), time: v.time, servings: v.servings,
-              cuisine: v.cuisine, macros: v.macros, tags: v.tags
+              macros: v.macros, tags: v.tags, instructions: v.instructions || ''
             });
           } else {
-            Object.assign(item, { title: v.title.trim(), time: v.time, servings: v.servings, cuisine: v.cuisine, macros: v.macros, tags: v.tags });
+            Object.assign(item, {
+              title: v.title.trim(), time: v.time, servings: v.servings,
+              macros: v.macros, tags: v.tags, instructions: v.instructions || ''
+            });
+            delete item.cuisine;
           }
           RECIPES = store.nutrition.recipes; saveData(); renderRecipes(); toast(isAdd ? 'Recipe added' : 'Recipe updated');
         },
