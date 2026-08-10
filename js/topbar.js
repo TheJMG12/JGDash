@@ -151,6 +151,12 @@
           '[data-theme="light"] .mobile-bar{background:rgba(244,243,240,0.94)!important;}' +
           'body.jgdash-mobile-bar-pad .main{' +
             'padding-top:var(--jgdash-mobile-bar-height,57px)!important;}' +
+          /* Sidebar starts below topbar + hamburger so Overview is not covered. */
+          '.sidebar{top:calc(var(--jgdash-topbar-height,0px) + var(--jgdash-mobile-bar-height,57px))!important;' +
+            'height:calc(100dvh - var(--jgdash-topbar-height,0px) - var(--jgdash-mobile-bar-height,57px))!important;' +
+            'bottom:auto!important;z-index:140!important;}' +
+          '.sidebar-overlay{top:calc(var(--jgdash-topbar-height,0px) + var(--jgdash-mobile-bar-height,57px))!important;' +
+            'z-index:130!important;}' +
         '}';
       document.head.appendChild(style);
     }
@@ -187,6 +193,24 @@
     // Topbar can wrap to two rows after fonts/layout settle.
     setTimeout(syncTopbarHeightVar, 0);
     setTimeout(syncTopbarHeightVar, 250);
+
+    // Hamburger toggles open/close (pages historically only called openSidebar).
+    if (!document.documentElement.getAttribute('data-jg-hamburger-toggle')) {
+      document.documentElement.setAttribute('data-jg-hamburger-toggle', '1');
+      document.addEventListener('click', function (e) {
+        var btn = e.target && e.target.closest && e.target.closest('#hamburger');
+        if (!btn) return;
+        var sidebar = document.getElementById('sidebar');
+        if (!sidebar) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+        var overlay = document.getElementById('sidebarOverlay');
+        var willOpen = !sidebar.classList.contains('open');
+        sidebar.classList.toggle('open', willOpen);
+        if (overlay) overlay.classList.toggle('open', willOpen);
+      }, true);
+    }
 
     var hubs = document.getElementById('tbHubs');
     var hubsBtn = document.getElementById('tbHubsBtn');
