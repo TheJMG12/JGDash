@@ -361,9 +361,15 @@
     }
 
     .habit-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .habit-day-labels { margin: 4px 0 8px; }
+    .habit-day-label {
+      text-align: center; font-size: 10px; font-weight: 600; letter-spacing: 0.02em;
+      color: var(--text-secondary); user-select: none;
+    }
+    .habit-day-label.today { color: var(--accent); }
     .habit-dot {
       aspect-ratio: 1; border-radius: 6px; border: 1px solid var(--border);
-      background: transparent;
+      background: transparent; cursor: pointer; width: 100%; padding: 0;
     }
     .habit-dot.on { background: color-mix(in srgb, var(--accent) 55%, transparent); border-color: transparent; }
     .habit-dot.miss { background: color-mix(in srgb, var(--danger) 25%, transparent); }
@@ -612,7 +618,7 @@
             </div>
             <div class="card">
               <h3>Water intake</h3>
-              <p class="card-meta">Manual · goal 3.0 L · <span id="waterLiters">1.5</span> L so far</p>
+              <p class="card-meta">Manual · goal 3.0 L · <span id="waterLiters">0.0</span> L so far · resets midnight</p>
               <div class="water-track" id="waterTrack" role="group" aria-label="Water cups"></div>
               <div class="progress-bar" aria-hidden="true"><span id="waterBar" style="width:50%"></span></div>
             </div>
@@ -1001,6 +1007,8 @@
         habits: {
           supplements: [],
           tracks: [],
+          weekKey: '',
+          water: { cups: 0, date: '', updatedAt: null },
           manual: { appetite: '', cravings: '', digestive: '', stressors: '' },
           symptoms: [],
           body: { weight: '', waist: '', notes: '' },
@@ -1138,10 +1146,144 @@
     var WHOOP_METRICS = null;
     var WHOOP_ERROR = '';
     var groceryScope = 'week';
-    var waterFilled = 3; // of 6 cups = 1.5L of 3L
+    var waterFilled = 0; // of 6 cups (0.5 L each); persisted in store.habits.water
     var dragKey = null;
+    var HABIT_DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
     function $(id) { return document.getElementById(id); }
+
+    function localDateKey(d) {
+      d = d || new Date();
+      var y = d.getFullYear();
+      var m = String(d.getMonth() + 1).padStart(2, '0');
+      var day = String(d.getDate()).padStart(2, '0');
+      return y + '-' + m + '-' + day;
+    }
+
+    /** America/New_York wall-clock parts for habit week boundary (Monday 7:00 AM ET). */
+    function nyWallParts(d) {
+      d = d || new Date();
+      var fmt = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        weekday: 'short'
+      });
+      var o = {};
+      fmt.formatToParts(d).forEach(function (p) {
+        if (p.type !== 'literal') o[p.type] = p.value;
+      });
+      var hour = parseInt(o.hour, 10);
+      if (hour === 24) hour = 0; // some engines use 24 for midnight
+      return {
+        year: parseInt(o.year, 10),
+        month: parseInt(o.month, 10),
+        day: parseInt(o.day, 10),
+        hour: hour,
+        weekday: o.weekday
+      };
+    }
+
+    /** Monday date (YYYY-MM-DD) of the current habit week in ET. Resets Mon 7:00 AM ET. */
+    function getHabitWeekId(now) {
+      var p = nyWallParts(now);
+      var wdMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+      var wd = wdMap[p.weekday];
+      if (wd == null) wd = 1;
+      var daysBack = (wd + 6) % 7; // Mon=0 … Sun=6
+      if (wd === 1 && p.hour < 7) daysBack = 7;
+      var utc = Date.UTC(p.year, p.month - 1, p.day) - daysBack * 86400000;
+      var md = new Date(utc);
+      return md.getUTCFullYear() + '-' +
+        String(md.getUTCMonth() + 1).padStart(2, '0') + '-' +
+        String(md.getUTCDate()).padStart(2, '0');
+    }
+
+    /** 0=Mon … 6=Sun for the current habit week (ET; before Mon 7am → Sunday). */
+    function getHabitDayIndex(now) {
+      var p = nyWallParts(now);
+      var wdMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+      var wd = wdMap[p.weekday];
+      if (wd == null) wd = 1;
+      if (wd === 1 && p.hour < 7) return 6;
+      return (wd + 6) % 7;
+    }
+
+    function ensureHabitsShape() {
+      if (!store.habits || typeof store.habits !== 'object') store.habits = defaultData().habits;
+      if (!Array.isArray(store.habits.tracks)) store.habits.tracks = [];
+      if (!store.habits.water || typeof store.habits.water !== 'object') {
+        store.habits.water = { cups: 0, date: '', updatedAt: null };
+      }
+      if (store.habits.weekKey == null) store.habits.weekKey = '';
+    }
+
+    /** Returns true if state changed and should be saved. */
+    function ensureHabitWeek() {
+      ensureHabitsShape();
+      var id = getHabitWeekId();
+      if (!store.habits.weekKey) {
+        store.habits.weekKey = id;
+        return true; // migrate existing fills into current week — do not wipe
+      }
+      if (store.habits.weekKey === id) return false;
+      store.habits.weekKey = id;
+      var nowIso = new Date().toISOString();
+      (store.habits.tracks || []).forEach(function (t) {
+        if (!t) return;
+        t.pattern = [0, 0, 0, 0, 0, 0, 0];
+        t.updatedAt = nowIso;
+      });
+      return true;
+    }
+
+    /** Returns true if water was reset or migrated and should be saved. */
+    function ensureWaterDay() {
+      ensureHabitsShape();
+      var today = localDateKey();
+      var w = store.habits.water;
+      if (!w.date) {
+        w.date = today;
+        w.cups = Number(w.cups) || 0;
+        if (!w.updatedAt) w.updatedAt = new Date().toISOString();
+        return true;
+      }
+      if (w.date === today) return false;
+      store.habits.water = { cups: 0, date: today, updatedAt: new Date().toISOString() };
+      return true;
+    }
+
+    function syncWaterFromStore() {
+      ensureHabitsShape();
+      waterFilled = Math.max(0, Math.min(6, Number(store.habits.water.cups) || 0));
+    }
+
+    function persistWaterCups(cups) {
+      ensureHabitsShape();
+      ensureWaterDay();
+      store.habits.water = {
+        cups: Math.max(0, Math.min(6, cups | 0)),
+        date: localDateKey(),
+        updatedAt: new Date().toISOString()
+      };
+      syncWaterFromStore();
+      saveData();
+    }
+
+    /** Apply week/day rollovers; persist if anything changed; refresh water var. */
+    function ensureHabitAndWaterState() {
+      ensureHabitsShape();
+      var dirty = false;
+      if (ensureHabitWeek()) dirty = true;
+      if (ensureWaterDay()) dirty = true;
+      if (dirty) saveData();
+      syncWaterFromStore();
+      return dirty;
+    }
     function toast(msg) {
       var el = $('toast');
       el.textContent = msg;
@@ -1161,7 +1303,7 @@
         { label: 'Resting HR', value: 'Awaiting sync', sub: 'WHOOP', kind: 'whoop', ph: true },
         { label: 'HRV', value: 'Not connected yet', sub: 'WHOOP', kind: 'whoop', ph: true },
         { label: 'Stress / readiness', value: 'Manual OK', sub: 'Check-in · 3/5', kind: 'manual', ph: false, zone: 'y' },
-        { label: 'Water', value: (waterFilled * 0.5).toFixed(1) + ' L', sub: 'of 3.0 L goal', kind: 'manual', ph: false, zone: 'y' },
+        { label: 'Water', value: (waterFilled * 0.5).toFixed(1) + ' L', sub: 'of 3.0 L goal', kind: 'manual', ph: false, zone: waterFilled >= 6 ? 'g' : waterFilled > 0 ? 'y' : 'r' },
         { label: 'Mood / energy', value: 'Good', sub: 'Logged this morning', kind: 'manual', ph: false, zone: 'g' }
       ];
 
@@ -1182,7 +1324,7 @@
           { label: 'Resting HR', value: m.rhr.value, sub: m.rhr.sub, kind: 'whoop', ph: false, zone: m.rhr.zone },
           { label: 'HRV', value: m.hrv.value, sub: m.hrv.sub, kind: 'whoop', ph: false, zone: m.hrv.zone },
           { label: 'Stress / readiness', value: 'Manual OK', sub: 'Check-in · 3/5', kind: 'manual', ph: false, zone: 'y' },
-          { label: 'Water', value: (waterFilled * 0.5).toFixed(1) + ' L', sub: 'of 3.0 L goal', kind: 'manual', ph: false, zone: 'y' },
+          { label: 'Water', value: (waterFilled * 0.5).toFixed(1) + ' L', sub: 'of 3.0 L goal', kind: 'manual', ph: false, zone: waterFilled >= 6 ? 'g' : waterFilled > 0 ? 'y' : 'r' },
           { label: 'Mood / energy', value: 'Good', sub: 'Logged this morning', kind: 'manual', ph: false, zone: 'g' }
         ];
       }
@@ -2273,15 +2415,20 @@
       html += '<div class="card">' + cardHead('Supplements / meds', iconBtn('add-supp', '+')) +
         '<div data-list="supplements">' + renderCheckList(h.supplements, 'supp') + '</div></div>';
 
+      var todayIdx = getHabitDayIndex();
       html += '<div class="card">' + cardHead('Habit tracker', iconBtn('add-track', '+')) +
-        '<p class="card-meta">Last 7 days · click a day to toggle</p>' +
+        '<p class="card-meta">Mon–Sun · resets Monday 7:00 AM ET · tap a day to toggle</p>' +
+        '<div class="habit-grid habit-day-labels" aria-hidden="true">' +
+        HABIT_DAY_LABELS.map(function (lab, i) {
+          return '<span class="habit-day-label' + (i === todayIdx ? ' today' : '') + '">' + lab + '</span>';
+        }).join('') + '</div>' +
         (h.tracks || []).map(function (tr) {
           return '<div style="margin:10px 0 6px;font-size:12px;color:var(--text-secondary);display:flex;align-items:center;gap:8px">' +
             '<span style="flex:1">' + esc(tr.name) + '</span>' +
             iconBtn('edit-track', '✎') + iconBtn('del-track', '✕', ' danger') +
             '</div><div class="habit-grid" data-track="' + esc(tr.id) + '">' +
             (tr.pattern || [0,0,0,0,0,0,0]).map(function (v, i) {
-              return '<button type="button" class="habit-dot' + (v === 1 ? ' on' : v === 0 ? ' miss' : '') + '" data-day="' + i + '" aria-label="Day ' + (i + 1) + '"></button>';
+              return '<button type="button" class="habit-dot' + (v === 1 ? ' on' : ' miss') + '" data-day="' + i + '" aria-label="' + HABIT_DAY_LABELS[i] + '"></button>';
             }).join('') + '</div>';
         }).join('') + '</div>';
 
@@ -2392,9 +2539,15 @@
         }
         grid.querySelectorAll('[data-day]').forEach(function (dot) {
           dot.onclick = function () {
+            ensureHabitWeek();
+            if (!Array.isArray(track.pattern) || track.pattern.length !== 7) {
+              track.pattern = [0, 0, 0, 0, 0, 0, 0];
+            }
             var i = parseInt(dot.getAttribute('data-day'), 10);
             track.pattern[i] = track.pattern[i] ? 0 : 1;
-            saveData(); renderHabits();
+            track.updatedAt = new Date().toISOString();
+            saveData();
+            renderHabits();
           };
         });
       });
@@ -2467,8 +2620,18 @@
         fields: [{ key: 'name', label: 'Habit name', value: item ? item.name : '', full: true }],
         save: function (v) {
           if (!v.name.trim()) { $('editError').textContent = 'Required'; return false; }
-          if (isAdd) store.habits.tracks.push({ id: uid(), name: v.name.trim(), pattern: [0,0,0,0,0,0,0] });
-          else item.name = v.name.trim();
+          ensureHabitWeek();
+          if (isAdd) {
+            store.habits.tracks.push({
+              id: uid(),
+              name: v.name.trim(),
+              pattern: [0, 0, 0, 0, 0, 0, 0],
+              updatedAt: new Date().toISOString()
+            });
+          } else {
+            item.name = v.name.trim();
+            item.updatedAt = new Date().toISOString();
+          }
           saveData(); renderHabits(); toast(isAdd ? 'Added' : 'Updated');
         },
         remove: function () {
@@ -2630,7 +2793,10 @@
     $('waterTrack').addEventListener('click', function (e) {
       var cup = e.target.closest('[data-cup]');
       if (!cup) return;
-      waterFilled = parseInt(cup.getAttribute('data-cup'), 10);
+      var n = parseInt(cup.getAttribute('data-cup'), 10);
+      // Re-tap the current fill level to clear (none selected).
+      if (n === waterFilled) n = 0;
+      persistWaterCups(n);
       renderWater();
     });
 
@@ -3170,6 +3336,7 @@
       ensureMealsMap();
       GROCERY = store.nutrition.grocery;
       RECIPES = store.nutrition.recipes;
+      ensureHabitAndWaterState();
       renderTherapy();
       renderNutritionTargets();
       renderMeals();
@@ -3177,6 +3344,7 @@
       renderPantryAndAisle();
       renderRecipes();
       renderHabits();
+      renderWater();
       bindNutritionChrome();
     }
 
@@ -3188,7 +3356,32 @@
       refreshHealthFromStorage();
     });
 
+    // Catch Monday 7am ET / local midnight while the tab stays open.
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState !== 'visible') return;
+      if (ensureHabitAndWaterState()) {
+        renderHabits();
+        renderWater();
+      } else {
+        syncWaterFromStore();
+        renderWater();
+      }
+    });
+    window.addEventListener('focus', function () {
+      if (ensureHabitAndWaterState()) {
+        renderHabits();
+        renderWater();
+      }
+    });
+    setInterval(function () {
+      if (ensureHabitAndWaterState()) {
+        renderHabits();
+        renderWater();
+      }
+    }, 60000);
+
     // init
+    ensureHabitAndWaterState();
     renderWater();
     setWhoopUI();
     renderTherapy();
