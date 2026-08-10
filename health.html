@@ -340,15 +340,25 @@
     .meal-cell.empty-add:hover { border-color: color-mix(in srgb, var(--accent) 45%, transparent); color: var(--accent); }
 
     .recipe-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-    .recipe-card .img {
-      height: 88px; border-radius: 10px; margin-bottom: 10px;
-      background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-      border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
-      color: var(--text-tertiary); font-size: 11px;
+    .recipe-card .rtitle {
+      font-size: 14px; font-weight: 700; margin-bottom: 4px;
+      background: none; border: none; padding: 0; color: inherit; font-family: inherit;
+      text-align: left; cursor: pointer; width: 100%;
     }
-    .recipe-card .rtitle { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+    .recipe-card .rtitle:hover { color: var(--accent); text-decoration: underline; }
+    .recipe-card .rtitle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
     .recipe-card .rmeta { font-size: 11px; color: var(--text-tertiary); margin-bottom: 8px; }
     .recipe-card .macros { font-family: var(--mono); font-size: 11px; color: var(--text-secondary); }
+    #editModal.view-mode .field input,
+    #editModal.view-mode .field textarea,
+    #editModal.view-mode .field select {
+      border-color: transparent;
+      background: transparent;
+      padding-left: 0;
+      padding-right: 0;
+      resize: none;
+      cursor: default;
+    }
 
     .habit-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
     .habit-dot {
@@ -1497,44 +1507,54 @@
 
     function openEditModal(cfg) {
       editCtx = cfg;
-      $('editTitle').textContent = cfg.title || (cfg.mode === 'add' ? 'Add' : 'Edit');
+      var isView = cfg.mode === 'view';
+      $('editTitle').textContent = cfg.title || (cfg.mode === 'add' ? 'Add' : cfg.mode === 'view' ? 'View' : 'Edit');
       $('editLead').hidden = !cfg.lead;
       $('editLead').textContent = cfg.lead || '';
       $('editError').textContent = '';
       $('editDelete').hidden = !(cfg.mode === 'edit' && cfg.canDelete);
+      $('editCancel').textContent = isView ? 'Close' : 'Cancel';
+      $('editSave').textContent = isView ? (cfg.primaryLabel || 'Edit') : 'Save';
+      $('editModal').classList.toggle('view-mode', !!isView);
       var fields = $('editFields');
       fields.innerHTML = (cfg.fields || []).map(function (f) {
         var full = f.full ? ' full' : '';
         var val = f.value == null ? '' : f.value;
+        var ro = isView || f.readonly ? ' readonly' : '';
+        var dis = isView || f.readonly ? ' disabled' : '';
         var input;
         if (f.type === 'textarea') {
-          input = '<textarea id="ef_' + f.key + '" rows="' + (f.rows || 3) + '" placeholder="' + esc(f.placeholder || '') + '">' + esc(val) + '</textarea>';
+          input = '<textarea id="ef_' + f.key + '" rows="' + (f.rows || 3) + '" placeholder="' + esc(f.placeholder || '') + '"' + ro + '>' + esc(val) + '</textarea>';
         } else if (f.type === 'select') {
-          input = '<select id="ef_' + f.key + '">' + (f.options || []).map(function (o) {
+          input = '<select id="ef_' + f.key + '"' + dis + '>' + (f.options || []).map(function (o) {
             var v = typeof o === 'string' ? o : o.value;
             var lab = typeof o === 'string' ? o : o.label;
             return '<option value="' + esc(v) + '"' + (String(v) === String(val) ? ' selected' : '') + '>' + esc(lab) + '</option>';
           }).join('') + '</select>';
         } else if (f.type === 'checkbox') {
-          input = '<label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox" id="ef_' + f.key + '"' + (val ? ' checked' : '') + ' /> ' + esc(f.checkLabel || 'Yes') + '</label>';
+          input = '<label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox" id="ef_' + f.key + '"' + (val ? ' checked' : '') + dis + ' /> ' + esc(f.checkLabel || 'Yes') + '</label>';
         } else {
-          input = '<input id="ef_' + f.key + '" type="' + (f.type || 'text') + '" value="' + esc(val) + '" placeholder="' + esc(f.placeholder || '') + '" />';
+          input = '<input id="ef_' + f.key + '" type="' + (f.type || 'text') + '" value="' + esc(val) + '" placeholder="' + esc(f.placeholder || '') + '"' + ro + ' />';
         }
         return '<div class="field' + full + '"><label for="ef_' + f.key + '">' + esc(f.label) + '</label>' + input + '</div>';
       }).join('');
       $('editModal').classList.add('open');
       fields.querySelectorAll('input[type="date"], input[type="datetime-local"], input[type="time"]').forEach(function (inp) {
+        if (isView) return;
         inp.addEventListener('click', function () {
           if (typeof inp.showPicker === 'function') {
             try { inp.showPicker(); } catch (e) { /* unsupported */ }
           }
         });
       });
-      var first = fields.querySelector('input,textarea,select');
+      var first = fields.querySelector('input:not([readonly]):not([disabled]),textarea:not([readonly]),select:not([disabled])');
       if (first) setTimeout(function () { first.focus(); }, 20);
     }
     function closeEditModal() {
       $('editModal').classList.remove('open');
+      $('editModal').classList.remove('view-mode');
+      if ($('editCancel')) $('editCancel').textContent = 'Cancel';
+      if ($('editSave')) $('editSave').textContent = 'Save';
       editCtx = null;
     }
     function readEditFields() {
@@ -2141,12 +2161,11 @@
       $('recipeGrid').innerHTML = list.map(function (r) {
         var tags = recipeTagsArr(r);
         return '<div class="card recipe-card" data-id="' + esc(r.id) + '">' +
-          '<div class="img">Image placeholder</div>' +
-          '<div class="card-head" style="margin-bottom:4px"><div class="rtitle" style="flex:1">' + esc(r.title) + '</div>' +
+          '<div class="card-head" style="margin-bottom:4px">' +
+            '<button type="button" class="rtitle" data-recipe-view="' + esc(r.id) + '" style="flex:1" title="View recipe">' + esc(r.title) + '</button>' +
             '<div class="card-actions">' + iconBtn('edit', '✎') + iconBtn('del', '✕', ' danger') + '</div></div>' +
-          '<div class="rmeta">' + esc(r.time) + ' · ' + esc(r.servings) + ' servings</div>' +
-          '<div class="macros">' + esc(r.macros) + '</div>' +
-          (r.instructions ? '<p class="card-meta" style="margin:8px 0;white-space:pre-wrap;max-height:4.5em;overflow:hidden">' + esc(r.instructions) + '</p>' : '') +
+          '<div class="rmeta">' + esc(r.time || '—') + ' · ' + esc(r.servings || '—') + ' servings</div>' +
+          (r.macros ? '<div class="macros">' + esc(r.macros) + '</div>' : '') +
           '<div class="tags" style="margin:8px 0">' + tags.map(function (t) { return '<span class="tag-pill">' + esc(t) + '</span>'; }).join('') + '</div>' +
           '<div class="split">' +
             '<button type="button" class="btn primary" data-attach="' + esc(r.id) + '">Add to plan</button>' +
@@ -2159,6 +2178,8 @@
         var item = RECIPES.find(function (x) { return x.id === id; });
         var editBtn = card.querySelector('[data-act="edit"]');
         var delBtn = card.querySelector('[data-act="del"]');
+        var viewBtn = card.querySelector('[data-recipe-view]');
+        if (viewBtn) viewBtn.onclick = function () { viewRecipe(item); };
         if (editBtn) editBtn.onclick = function () { editRecipe(item); };
         if (delBtn) delBtn.onclick = function () {
           if (!confirmDelete('Delete this recipe?')) return;
@@ -2188,18 +2209,38 @@
       });
     }
 
+    function recipeDetailFields(item) {
+      return [
+        { key: 'title', label: 'Title', value: item ? item.title : '', full: true },
+        { key: 'time', label: 'Cook / prep time', value: item ? item.time : '20 min' },
+        { key: 'servings', label: 'Servings', value: item ? item.servings : '2' },
+        { key: 'macros', label: 'Macros', value: item ? item.macros : '', full: true, placeholder: 'P40 C30 F12' },
+        { key: 'tags', label: 'Tags (comma-separated)', value: item ? (Array.isArray(item.tags) ? item.tags.join(', ') : item.tags) : '', full: true },
+        { key: 'instructions', label: 'Cooking instructions', type: 'textarea', rows: 8, value: item ? (item.instructions || '') : '', full: true, placeholder: 'Step-by-step cooking instructions…' }
+      ];
+    }
+
+    function viewRecipe(item) {
+      if (!item) return;
+      openEditModal({
+        title: item.title || 'Recipe',
+        mode: 'view',
+        lead: 'Tap Edit to change this recipe.',
+        primaryLabel: 'Edit',
+        fields: recipeDetailFields(item),
+        save: function () {
+          // Primary button in view mode opens the editor (keep modal open).
+          editRecipe(item);
+          return false;
+        }
+      });
+    }
+
     function editRecipe(item) {
       var isAdd = !item;
       openEditModal({
         title: (isAdd ? 'Add' : 'Edit') + ' recipe', mode: isAdd ? 'add' : 'edit', canDelete: !isAdd,
-        fields: [
-          { key: 'title', label: 'Title', value: item ? item.title : '', full: true },
-          { key: 'time', label: 'Cook / prep time', value: item ? item.time : '20 min' },
-          { key: 'servings', label: 'Servings', value: item ? item.servings : '2' },
-          { key: 'macros', label: 'Macros', value: item ? item.macros : '', full: true, placeholder: 'P40 C30 F12' },
-          { key: 'tags', label: 'Tags (comma-separated)', value: item ? (Array.isArray(item.tags) ? item.tags.join(', ') : item.tags) : '', full: true },
-          { key: 'instructions', label: 'Cooking instructions', type: 'textarea', rows: 6, value: item ? (item.instructions || '') : '', full: true, placeholder: 'Step-by-step cooking instructions…' }
-        ],
+        fields: recipeDetailFields(item),
         save: function (v) {
           if (!v.title.trim()) { $('editError').textContent = 'Title required'; return false; }
           if (isAdd) {
