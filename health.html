@@ -13,7 +13,7 @@
   <script src="js/config.js?v=2"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/lock.js"></script>
-  <script src="js/sync.js?v=12"></script>
+  <script src="js/sync.js?v=13"></script>
   <script src="js/whoop.js?v=2"></script>
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
   <script src="js/theme.js?v=3"></script>
@@ -1008,6 +1008,20 @@
       ensureHealthTombs(store);
       if (id == null || id === '') return;
       store.tombstones[String(id)] = new Date().toISOString();
+    }
+
+    /** Re-adding to a slot must clear meal:<slot> or saveData() strips the new meal. */
+    function healthReviveMealSlot(slot) {
+      ensureHealthTombs(store);
+      if (slot == null || slot === '') return;
+      delete store.tombstones['meal:' + String(slot)];
+    }
+
+    function setMealSlot(slot, meal) {
+      ensureMealsMap();
+      healthReviveMealSlot(slot);
+      MEALS[slot] = meal;
+      store.nutrition.meals = MEALS;
     }
 
     function stripHealthTombsDeep(node, tombs) {
@@ -2044,10 +2058,16 @@
           cell.classList.remove('drag-over');
           if (!dragKey || dragKey === cell.dataset.key) return;
           ensureMealsMap();
+          var dest = cell.dataset.key;
           var moving = MEALS[dragKey];
-          var target = MEALS[cell.dataset.key];
-          if (target) MEALS[dragKey] = target; else delete MEALS[dragKey];
-          MEALS[cell.dataset.key] = moving;
+          var target = MEALS[dest];
+          if (target) {
+            setMealSlot(dragKey, target);
+          } else {
+            delete MEALS[dragKey];
+            healthTombstone('meal:' + dragKey);
+          }
+          setMealSlot(dest, moving);
           dragKey = null;
           saveData(); renderMeals(); toast('Meal moved');
         });
@@ -2137,8 +2157,7 @@
         delete MEALS[mealComposerKey];
         healthTombstone('meal:' + mealComposerKey);
       }
-      MEALS[targetKey] = { title: title, flags: flags };
-      store.nutrition.meals = MEALS;
+      setMealSlot(targetKey, { title: title, flags: flags });
       saveData();
       closeMealComposer();
       renderMeals();
@@ -2380,13 +2399,14 @@
           var r = RECIPES.find(function (x) { return x.id === id; });
           if (!r) return;
           // place on first empty dinner slot or overwrite Mon dinner
+          ensureMealsMap();
           var placed = false;
           for (var di = 0; di < 7 && !placed; di++) {
             var k = di + '-d';
-            if (!MEALS[k]) { MEALS[k] = { title: r.title, flags: [] }; placed = true; }
+            if (!MEALS[k]) { setMealSlot(k, { title: r.title, flags: [] }); placed = true; }
           }
-          if (!placed) MEALS['0-d'] = { title: r.title, flags: [] };
-          saveData(); renderMeals(); setNutritionTab('meals'); toast('Added to meal plan');
+          if (!placed) setMealSlot('0-d', { title: r.title, flags: [] });
+          saveData(); renderMeals(); setNutritionTab('meals'); goToMealPlanner({ fromQuickFilter: true }); toast('Added to meal plan');
         };
       });
       $('recipeGrid').querySelectorAll('[data-cook]').forEach(function (btn) {
@@ -3277,9 +3297,30 @@
     $('quickAddBtn').onclick = function () { $('quickAddModal').classList.add('open'); $('qaDetail').focus(); };
     $('qaCancel').onclick = function () { $('quickAddModal').classList.remove('open'); };
     $('qaSave').onclick = function () {
+      var kind = String(($('qaType') && $('qaType').value) || '').toLowerCase();
+      var detail = String(($('qaDetail') && $('qaDetail').value) || '').trim();
       $('quickAddModal').classList.remove('open');
-      toast('Logged: ' + $('qaType').value + ($('qaDetail').value ? ' — ' + $('qaDetail').value : ''));
-      $('qaDetail').value = '';
+      if (kind === 'meal') {
+        ensureMealsMap();
+        var slot = '0-b';
+        for (var di = 0; di < 7; di++) {
+          var found = false;
+          for (var si = 0; si < SLOTS.length; si++) {
+            var k = di + '-' + SLOTS[si].key;
+            if (!MEALS[k]) { slot = k; found = true; break; }
+          }
+          if (found) break;
+        }
+        setMealSlot(slot, { title: detail || 'Quick meal', flags: [] });
+        saveData();
+        renderMeals();
+        if ($('qaDetail')) $('qaDetail').value = '';
+        goToMealPlanner({ fromQuickFilter: true });
+        toast('Added to meal plan');
+        return;
+      }
+      toast('Logged: ' + ($('qaType') && $('qaType').value) + (detail ? ' — ' + detail : ''));
+      if ($('qaDetail')) $('qaDetail').value = '';
     };
     $('quickAddModal').addEventListener('click', function (e) {
       if (e.target === $('quickAddModal')) $('quickAddModal').classList.remove('open');
