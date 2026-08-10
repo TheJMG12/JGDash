@@ -307,9 +307,10 @@
     .meal-day-h { text-align: center; }
     .meal-day-h.today { color: var(--accent); }
     .meal-cell {
-      min-height: 64px; border-radius: 10px; border: 1px dashed var(--border);
-      padding: 6px; font-size: 11px; background: var(--input-bg); cursor: grab;
+      min-height: 72px; border-radius: 10px; border: 1px dashed var(--border);
+      padding: 6px; font-size: 11px; background: var(--input-bg); cursor: pointer;
       display: flex; flex-direction: column; gap: 4px;
+      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
     }
     .meal-cell.filled { border-style: solid; cursor: grab; }
     .meal-cell .m-title { font-weight: 600; font-size: 12px; color: var(--text-primary); line-height: 1.25; }
@@ -322,6 +323,20 @@
     .meal-cell .flag.left { color: var(--warning); }
     .meal-cell .flag.out { color: var(--therapy); }
     .meal-cell.drag-over { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+    .meal-cell .m-actions {
+      display: flex; gap: 4px; margin-top: auto; flex-wrap: wrap;
+    }
+    .meal-cell .m-actions button {
+      font-size: 11px; font-weight: 700; padding: 6px 8px; border-radius: 6px;
+      border: 1px solid var(--border); color: var(--text-secondary); background: var(--card-bg);
+      min-height: 28px; cursor: pointer; touch-action: manipulation;
+    }
+    .meal-cell .m-actions button:hover { color: var(--text-primary); }
+    .meal-cell.empty-add {
+      align-items: center; justify-content: center;
+      color: var(--text-tertiary); font-size: 12px; font-weight: 600;
+    }
+    .meal-cell.empty-add:hover { border-color: color-mix(in srgb, var(--accent) 45%, transparent); color: var(--accent); }
 
     .recipe-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
     .recipe-card .img {
@@ -414,7 +429,7 @@
     .hidden { display: none !important; }
 
     .modal-backdrop {
-      display: none; position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,0.6);
+      display: none; position: fixed; inset: 0; z-index: 400; background: rgba(0,0,0,0.6);
       align-items: center; justify-content: center; padding: 20px;
     }
     .modal-backdrop.open { display: flex; }
@@ -467,14 +482,6 @@
     .check-row .item-actions { margin-left: auto; display: flex; gap: 4px; }
     .check-row .tag { margin-left: 8px; }
     .empty-inline { font-size: 12px; color: var(--text-tertiary); padding: 8px 0; }
-    .meal-cell .m-actions {
-      display: flex; gap: 2px; margin-top: auto;
-    }
-    .meal-cell .m-actions button {
-      font-size: 9px; font-weight: 700; padding: 2px 5px; border-radius: 4px;
-      border: 1px solid var(--border); color: var(--text-tertiary); background: transparent;
-    }
-    .meal-cell .m-actions button:hover { color: var(--text-primary); }
     .modal.wide { max-width: 560px; }
     .modal-grid {
       display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
@@ -720,7 +727,7 @@
             <div class="card" style="overflow-x:auto">
               <div class="section-head" style="margin-bottom:10px">
                 <h3 style="margin:0">Weekly meal planner</h3>
-                <span class="section-sub">Click a cell to add · drag to move · edit/remove on cards</span>
+                <span class="section-sub">Tap a cell or + Add · drag filled meals to move</span>
                 <button type="button" class="btn" id="addMealBtn" style="margin-left:auto">+ Add meal</button>
               </div>
               <div class="meal-week" id="mealWeek" aria-label="Weekly meal plan"></div>
@@ -1123,7 +1130,8 @@
     }
 
     var store = loadData();
-    var MEALS = store.nutrition.meals;
+    var MEALS;
+    ensureMealsMap();
     var GROCERY = store.nutrition.grocery;
     var RECIPES = store.nutrition.recipes;
 
@@ -2002,8 +2010,17 @@
       });
     }
 
-    function renderMeals() {
+    function ensureMealsMap() {
+      if (!store.nutrition || typeof store.nutrition !== 'object') store.nutrition = defaultData().nutrition;
+      if (!store.nutrition.meals || typeof store.nutrition.meals !== 'object' || Array.isArray(store.nutrition.meals)) {
+        store.nutrition.meals = {};
+      }
       MEALS = store.nutrition.meals;
+      return MEALS;
+    }
+
+    function renderMeals() {
+      ensureMealsMap();
       var html = '<div class="meal-corner"></div>';
       DAYS.forEach(function (d, i) {
         html += '<div class="meal-day-h' + (i === 0 ? ' today' : '') + '">' + d + '</div>';
@@ -2013,7 +2030,7 @@
         DAYS.forEach(function (_, di) {
           var key = di + '-' + slot.key;
           var meal = MEALS[key];
-          html += '<div class="meal-cell' + (meal ? ' filled' : '') + '" draggable="' + (meal ? 'true' : 'false') + '" data-key="' + key + '">';
+          html += '<div class="meal-cell' + (meal ? ' filled' : ' empty-add') + '" draggable="' + (meal ? 'true' : 'false') + '" data-key="' + key + '" role="button" tabindex="0" aria-label="' + (meal ? 'Edit' : 'Add') + ' ' + DAYS[di] + ' ' + slot.label + '">';
           if (meal) {
             html += '<div class="m-title">' + esc(meal.title) + '</div><div class="m-flags">';
             (meal.flags || []).forEach(function (f) {
@@ -2030,25 +2047,49 @@
           html += '</div>';
         });
       });
-      $('mealWeek').innerHTML = html;
+      var grid = $('mealWeek');
+      if (!grid) return;
+      grid.innerHTML = html;
 
-      $('mealWeek').querySelectorAll('[data-meal-add]').forEach(function (b) {
-        b.onclick = function (e) { e.stopPropagation(); editMeal(b.getAttribute('data-meal-add'), null); };
-      });
-      $('mealWeek').querySelectorAll('[data-meal-edit]').forEach(function (b) {
-        b.onclick = function (e) { e.stopPropagation(); var k = b.getAttribute('data-meal-edit'); editMeal(k, MEALS[k]); };
-      });
-      $('mealWeek').querySelectorAll('[data-meal-del]').forEach(function (b) {
+      grid.querySelectorAll('[data-meal-add]').forEach(function (b) {
         b.onclick = function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          editMeal(b.getAttribute('data-meal-add'), null);
+        };
+      });
+      grid.querySelectorAll('[data-meal-edit]').forEach(function (b) {
+        b.onclick = function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          var k = b.getAttribute('data-meal-edit');
+          editMeal(k, MEALS[k]);
+        };
+      });
+      grid.querySelectorAll('[data-meal-del]').forEach(function (b) {
+        b.onclick = function (e) {
+          e.preventDefault();
           e.stopPropagation();
           var k = b.getAttribute('data-meal-del');
           if (!confirmDelete('Remove this meal?')) return;
+          ensureMealsMap();
           healthTombstone('meal:' + k);
           delete MEALS[k]; saveData(); renderMeals(); toast('Meal removed');
         };
       });
 
-      $('mealWeek').querySelectorAll('.meal-cell').forEach(function (cell) {
+      grid.querySelectorAll('.meal-cell').forEach(function (cell) {
+        cell.addEventListener('click', function (e) {
+          if (e.target.closest('[data-meal-edit], [data-meal-del], [data-meal-add]')) return;
+          var k = cell.dataset.key;
+          editMeal(k, MEALS[k] || null);
+        });
+        cell.addEventListener('keydown', function (e) {
+          if (e.key !== 'Enter' && e.key !== ' ') return;
+          e.preventDefault();
+          var k = cell.dataset.key;
+          editMeal(k, MEALS[k] || null);
+        });
         cell.addEventListener('dragstart', function (e) {
           if (!MEALS[cell.dataset.key]) { e.preventDefault(); return; }
           dragKey = cell.dataset.key;
@@ -2060,6 +2101,7 @@
           e.preventDefault();
           cell.classList.remove('drag-over');
           if (!dragKey || dragKey === cell.dataset.key) return;
+          ensureMealsMap();
           var moving = MEALS[dragKey];
           var target = MEALS[cell.dataset.key];
           if (target) MEALS[dragKey] = target; else delete MEALS[dragKey];
@@ -2067,24 +2109,21 @@
           dragKey = null;
           saveData(); renderMeals(); toast('Meal moved');
         });
-        cell.addEventListener('dblclick', function () {
-          var k = cell.dataset.key;
-          editMeal(k, MEALS[k] || null);
-        });
       });
     }
 
     function editMeal(key, meal) {
+      ensureMealsMap();
       var isAdd = !meal;
-      var day = DAYS[parseInt(key.split('-')[0], 10)] || '';
-      var slot = SLOTS.find(function (s) { return s.key === key.split('-')[1]; });
+      var day = DAYS[parseInt(String(key || '0-b').split('-')[0], 10)] || '';
+      var slot = SLOTS.find(function (s) { return s.key === String(key || '0-b').split('-')[1]; });
       openEditModal({
         title: (isAdd ? 'Add' : 'Edit') + ' meal · ' + day + ' ' + (slot ? slot.label : ''),
         mode: isAdd ? 'add' : 'edit', canDelete: !isAdd,
         fields: [
           { key: 'title', label: 'Meal name', value: meal ? meal.title : '', full: true },
           { key: 'flags', label: 'Flags (prep, left, out, easy — comma-separated)', value: meal ? (meal.flags || []).join(', ') : '', full: true },
-          { key: 'slotKey', label: 'Move to slot', type: 'select', value: key, full: true,
+          { key: 'slotKey', label: 'Day / meal slot', type: 'select', value: key || '0-b', full: true,
             options: (function () {
               var opts = [];
               DAYS.forEach(function (d, di) {
@@ -2097,17 +2136,28 @@
           }
         ],
         save: function (v) {
-          if (!v.title.trim()) { $('editError').textContent = 'Meal name required'; return false; }
+          if (!v.title || !String(v.title).trim()) {
+            $('editError').textContent = 'Meal name required';
+            return false;
+          }
+          ensureMealsMap();
           var flags = String(v.flags || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean);
-          var targetKey = v.slotKey || key;
-          if (!isAdd && targetKey !== key) delete MEALS[key];
-          MEALS[targetKey] = { title: v.title.trim(), flags: flags };
-          saveData(); renderMeals(); toast(isAdd ? 'Meal added' : 'Meal updated');
+          var targetKey = v.slotKey || key || '0-b';
+          if (!isAdd && key && targetKey !== key) delete MEALS[key];
+          MEALS[targetKey] = { title: String(v.title).trim(), flags: flags };
+          store.nutrition.meals = MEALS;
+          saveData();
+          renderMeals();
+          setNutritionTab('meals');
+          toast(isAdd ? 'Meal added' : 'Meal updated');
         },
         remove: function () {
           if (!confirmDelete('Remove this meal?')) return false;
+          ensureMealsMap();
           healthTombstone('meal:' + key);
-          delete MEALS[key]; saveData(); renderMeals(); toast('Meal removed'); return true;
+          delete MEALS[key];
+          store.nutrition.meals = MEALS;
+          saveData(); renderMeals(); toast('Meal removed'); return true;
         }
       });
     }
@@ -3004,7 +3054,13 @@
     // nutrition buttons (some rebound after re-render)
     function bindNutritionChrome() {
       var addMeal = $('addMealBtn');
-      if (addMeal) addMeal.onclick = function () { editMeal('0-b', null); };
+      if (addMeal) {
+        addMeal.onclick = function (e) {
+          if (e) { e.preventDefault(); e.stopPropagation(); }
+          setNutritionTab('meals');
+          editMeal('0-b', null);
+        };
+      }
       var addG = $('addGroceryBtn');
       if (addG) addG.onclick = function () { editGroceryItem(null); };
       var staples = $('staplesBtn');
@@ -3031,11 +3087,13 @@
       if (importBtn) importBtn.onclick = function () { toast('Recipe link import — placeholder'); };
     }
     bindNutritionChrome();
-    $('recipeSearch').oninput = renderRecipes;
-    $('recipeFilter').onchange = renderRecipes;
-    $('exportSummaryBtn').onclick = function () {
-      toast('Export-safe summary prepared (excludes private therapy notes)');
-    };
+    if ($('recipeSearch')) $('recipeSearch').oninput = renderRecipes;
+    if ($('recipeFilter')) $('recipeFilter').onchange = renderRecipes;
+    if ($('exportSummaryBtn')) {
+      $('exportSummaryBtn').onclick = function () {
+        toast('Export-safe summary prepared (excludes private therapy notes)');
+      };
+    }
 
     $('editCancel').onclick = closeEditModal;
     $('editSave').onclick = function () {
@@ -3090,7 +3148,7 @@
 
     function refreshHealthFromStorage() {
       store = loadData();
-      MEALS = store.nutrition.meals;
+      ensureMealsMap();
       GROCERY = store.nutrition.grocery;
       RECIPES = store.nutrition.recipes;
       renderTherapy();
@@ -3100,6 +3158,7 @@
       renderPantryAndAisle();
       renderRecipes();
       renderHabits();
+      bindNutritionChrome();
     }
 
     // Quiet auto-sync merges health without a full reload — refresh Therapy / Nutrition / Habits UI.
