@@ -368,11 +368,12 @@
       border-color: color-mix(in srgb, #5B9FD4 50%, transparent); color: #9CCAE8;
     }
 
-    .insight-card .insight-kicker {
-      font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
-      color: var(--text-tertiary); margin-bottom: 6px;
+    .meal-composer {
+      margin-bottom: 12px;
+      border-color: color-mix(in srgb, var(--accent) 35%, transparent);
     }
-    .insight-card p { font-size: 13px; color: var(--text-secondary); line-height: 1.45; }
+    .meal-composer[hidden] { display: none !important; }
+    .meal-composer .modal-actions { margin-top: 8px; display: flex; align-items: center; gap: 8px; }
 
     .field {
       display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px;
@@ -537,7 +538,6 @@
       <button type="button" class="nav-link" data-section="therapy">Therapy</button>
       <button type="button" class="nav-link" data-section="nutrition">Nutrition</button>
       <button type="button" class="nav-link" data-section="habits">Habits</button>
-      <button type="button" class="nav-link" data-section="insights">Insights</button>
 
       <div class="sidebar-section">Quick filters</div>
       <button type="button" class="nav-link" data-section="nutrition" data-nutrition-tab="meals">Meal plan</button>
@@ -724,11 +724,38 @@
 
           <div id="nutritionMeals" class="nutrition-panel">
             <div class="grid-4" style="margin-bottom:12px" id="nutritionTargetsMount"></div>
+            <div class="card meal-composer" id="mealComposer" hidden>
+              <div class="section-head" style="margin-bottom:10px">
+                <h3 style="margin:0" id="mealComposerHeading">Add meal</h3>
+                <span class="section-sub" id="mealComposerSub">Pick a name and slot, then save</span>
+              </div>
+              <div class="modal-grid">
+                <div class="field full">
+                  <label for="mealComposerTitle">Meal name</label>
+                  <input id="mealComposerTitle" type="text" placeholder="e.g. Chicken rice bowl" autocomplete="off" />
+                </div>
+                <div class="field full">
+                  <label for="mealComposerSlot">Day / meal slot</label>
+                  <select id="mealComposerSlot"></select>
+                </div>
+                <div class="field full">
+                  <label for="mealComposerFlags">Flags (optional)</label>
+                  <input id="mealComposerFlags" type="text" placeholder="prep, left, out, easy" autocomplete="off" />
+                </div>
+              </div>
+              <p class="pin-error" id="mealComposerError" role="alert" hidden></p>
+              <div class="modal-actions">
+                <button type="button" class="btn danger" id="mealComposerDelete" hidden>Delete</button>
+                <div style="flex:1"></div>
+                <button type="button" class="btn" id="mealComposerCancel">Cancel</button>
+                <button type="button" class="btn primary" id="mealComposerSave">Save meal</button>
+              </div>
+            </div>
             <div class="card" style="overflow-x:auto">
               <div class="section-head" style="margin-bottom:10px">
                 <h3 style="margin:0">Weekly meal planner</h3>
-                <span class="section-sub">Tap a cell or + Add · drag filled meals to move</span>
-                <button type="button" class="btn" id="addMealBtn" style="margin-left:auto">+ Add meal</button>
+                <span class="section-sub">Tap a cell or + Add meal</span>
+                <button type="button" class="btn primary" id="addMealBtn" style="margin-left:auto">+ Add meal</button>
               </div>
               <div class="meal-week" id="mealWeek" aria-label="Weekly meal plan"></div>
             </div>
@@ -780,67 +807,6 @@
             <span class="section-sub">Manual tracking · fully editable</span>
           </div>
           <div class="grid-3" id="habitsMount"></div>
-        </section>
-
-        <!-- INSIGHTS -->
-        <section class="section" id="sec-insights" aria-labelledby="h-insights">
-          <div class="section-head">
-            <h2 class="section-title" id="h-insights">Insights &amp; notes</h2>
-            <span class="section-sub">Patterns · streaks · things to review</span>
-            <button type="button" class="btn" id="exportSummaryBtn" style="margin-left:auto">Export-safe summary</button>
-          </div>
-          <div class="grid-3">
-            <div class="card insight-card">
-              <div class="insight-kicker">Weekly summary</div>
-              <p>Meal plan adherence ~80%. Therapy homework 2/3 complete. Hydration streak active. WHOOP metrics still disconnected — manual logs carrying the week.</p>
-            </div>
-            <div class="card insight-card">
-              <div class="insight-kicker">Sleep consistency</div>
-              <p>Bedtime varied by ~70 minutes. Strongest nights followed earlier wind-down. Watch Thu–Fri drift.</p>
-            </div>
-            <div class="card insight-card">
-              <div class="insight-kicker">Nutrition adherence</div>
-              <p>Prep meals held Mon–Wed. Dining-out Friday is the main flex slot. Protein target hit 5/7 days.</p>
-            </div>
-            <div class="card insight-card">
-              <div class="insight-kicker">Therapy follow-up</div>
-              <p>One open action item before Jul 31. Couples shared checklist mid-week incomplete.</p>
-            </div>
-            <div class="card insight-card">
-              <div class="insight-kicker">Hydration streak</div>
-              <p>4-day streak at ≥2.5 L. Today at 50% of goal — afternoon catch-up recommended.</p>
-            </div>
-            <div class="card insight-card">
-              <div class="insight-kicker">Missing data</div>
-              <p>No WHOOP recovery/strain. Mood check-in logged. Supplement PM dose still open.</p>
-            </div>
-            <div class="card">
-              <h3>Streaks</h3>
-              <ul class="list">
-                <li class="list-item"><div><div class="title">Hydration ≥2.5 L</div><div class="meta">Manual</div></div><div class="right">4 days</div></li>
-                <li class="list-item"><div><div class="title">AM supplements</div><div class="meta">Manual</div></div><div class="right">9 days</div></li>
-                <li class="list-item"><div><div class="title">Meal prep Sundays</div><div class="meta">Nutrition</div></div><div class="right">3 weeks</div></li>
-              </ul>
-            </div>
-            <div class="card">
-              <h3>Things to review this week</h3>
-              <ul class="list">
-                <li class="list-item"><div><div class="title">Personal therapy prep questions</div><div class="meta">Due Thu</div></div></li>
-                <li class="list-item"><div><div class="title">Generate grocery before Thu shop</div><div class="meta">Nutrition</div></div></li>
-                <li class="list-item"><div><div class="title">Connect WHOOP when backend ready</div><div class="meta">Wearable</div></div></li>
-              </ul>
-            </div>
-            <div class="card">
-              <h3>Health score</h3>
-              <p class="card-meta">Placeholder · not a medical score</p>
-              <div class="mini-stat" style="color:var(--text-tertiary)">—</div>
-              <p style="font-size:12px;color:var(--text-tertiary);margin-top:8px">Will combine manual adherence + wearable recovery once connected.</p>
-            </div>
-            <div class="card span-full">
-              <h3>Freeform journal</h3>
-              <textarea id="insightJournal" style="width:100%;min-height:100px;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--input-bg)">Pattern note: when meals are prepped, evening stress drops and therapy homework gets done. Keep Sunday prep protected even if weekends get social.</textarea>
-            </div>
-          </div>
         </section>
       </div>
     </div>
@@ -1130,10 +1096,15 @@
     }
 
     var store = loadData();
-    var MEALS;
-    ensureMealsMap();
+    if (!store.nutrition || typeof store.nutrition !== 'object') store.nutrition = defaultData().nutrition;
+    if (!store.nutrition.meals || typeof store.nutrition.meals !== 'object' || Array.isArray(store.nutrition.meals)) {
+      store.nutrition.meals = {};
+    }
+    var MEALS = store.nutrition.meals;
     var GROCERY = store.nutrition.grocery;
     var RECIPES = store.nutrition.recipes;
+    var mealComposerKey = null;
+    var mealComposerIsAdd = true;
 
     var WHOOP_STATE = 'disconnected'; // disconnected | loading | connected | error
     var WHOOP_METRICS = null;
@@ -2051,44 +2022,13 @@
       if (!grid) return;
       grid.innerHTML = html;
 
-      grid.querySelectorAll('[data-meal-add]').forEach(function (b) {
-        b.onclick = function (e) {
-          e.preventDefault();
-          e.stopPropagation();
-          editMeal(b.getAttribute('data-meal-add'), null);
-        };
-      });
-      grid.querySelectorAll('[data-meal-edit]').forEach(function (b) {
-        b.onclick = function (e) {
-          e.preventDefault();
-          e.stopPropagation();
-          var k = b.getAttribute('data-meal-edit');
-          editMeal(k, MEALS[k]);
-        };
-      });
-      grid.querySelectorAll('[data-meal-del]').forEach(function (b) {
-        b.onclick = function (e) {
-          e.preventDefault();
-          e.stopPropagation();
-          var k = b.getAttribute('data-meal-del');
-          if (!confirmDelete('Remove this meal?')) return;
-          ensureMealsMap();
-          healthTombstone('meal:' + k);
-          delete MEALS[k]; saveData(); renderMeals(); toast('Meal removed');
-        };
-      });
-
+      // Clicks handled by document-level delegation in bindMealPlanEvents().
       grid.querySelectorAll('.meal-cell').forEach(function (cell) {
-        cell.addEventListener('click', function (e) {
-          if (e.target.closest('[data-meal-edit], [data-meal-del], [data-meal-add]')) return;
-          var k = cell.dataset.key;
-          editMeal(k, MEALS[k] || null);
-        });
         cell.addEventListener('keydown', function (e) {
           if (e.key !== 'Enter' && e.key !== ' ') return;
           e.preventDefault();
           var k = cell.dataset.key;
-          editMeal(k, MEALS[k] || null);
+          openMealComposer(k, MEALS[k] || null);
         });
         cell.addEventListener('dragstart', function (e) {
           if (!MEALS[cell.dataset.key]) { e.preventDefault(); return; }
@@ -2112,54 +2052,114 @@
       });
     }
 
-    function editMeal(key, meal) {
-      ensureMealsMap();
-      var isAdd = !meal;
-      var day = DAYS[parseInt(String(key || '0-b').split('-')[0], 10)] || '';
-      var slot = SLOTS.find(function (s) { return s.key === String(key || '0-b').split('-')[1]; });
-      openEditModal({
-        title: (isAdd ? 'Add' : 'Edit') + ' meal · ' + day + ' ' + (slot ? slot.label : ''),
-        mode: isAdd ? 'add' : 'edit', canDelete: !isAdd,
-        fields: [
-          { key: 'title', label: 'Meal name', value: meal ? meal.title : '', full: true },
-          { key: 'flags', label: 'Flags (prep, left, out, easy — comma-separated)', value: meal ? (meal.flags || []).join(', ') : '', full: true },
-          { key: 'slotKey', label: 'Day / meal slot', type: 'select', value: key || '0-b', full: true,
-            options: (function () {
-              var opts = [];
-              DAYS.forEach(function (d, di) {
-                SLOTS.forEach(function (s) {
-                  opts.push({ value: di + '-' + s.key, label: d + ' · ' + s.label });
-                });
-              });
-              return opts;
-            })()
-          }
-        ],
-        save: function (v) {
-          if (!v.title || !String(v.title).trim()) {
-            $('editError').textContent = 'Meal name required';
-            return false;
-          }
-          ensureMealsMap();
-          var flags = String(v.flags || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean);
-          var targetKey = v.slotKey || key || '0-b';
-          if (!isAdd && key && targetKey !== key) delete MEALS[key];
-          MEALS[targetKey] = { title: String(v.title).trim(), flags: flags };
-          store.nutrition.meals = MEALS;
-          saveData();
-          renderMeals();
-          setNutritionTab('meals');
-          toast(isAdd ? 'Meal added' : 'Meal updated');
-        },
-        remove: function () {
-          if (!confirmDelete('Remove this meal?')) return false;
-          ensureMealsMap();
-          healthTombstone('meal:' + key);
-          delete MEALS[key];
-          store.nutrition.meals = MEALS;
-          saveData(); renderMeals(); toast('Meal removed'); return true;
-        }
+    function populateMealComposerSlots(selected) {
+      var sel = $('mealComposerSlot');
+      if (!sel) return;
+      var opts = [];
+      DAYS.forEach(function (d, di) {
+        SLOTS.forEach(function (s) {
+          var value = di + '-' + s.key;
+          opts.push('<option value="' + value + '"' + (value === selected ? ' selected' : '') + '>' +
+            esc(d + ' · ' + s.label) + '</option>');
+        });
       });
+      sel.innerHTML = opts.join('');
+      if (selected) sel.value = selected;
+    }
+
+    function closeMealComposer() {
+      var box = $('mealComposer');
+      if (box) box.hidden = true;
+      mealComposerKey = null;
+      mealComposerIsAdd = true;
+      if ($('mealComposerError')) {
+        $('mealComposerError').hidden = true;
+        $('mealComposerError').textContent = '';
+      }
+    }
+
+    function openMealComposer(key, meal) {
+      ensureMealsMap();
+      setNutritionTab('meals');
+      closeEditModal();
+      key = key || '0-b';
+      mealComposerKey = key;
+      mealComposerIsAdd = !meal;
+      var day = DAYS[parseInt(String(key).split('-')[0], 10)] || '';
+      var slot = SLOTS.find(function (s) { return s.key === String(key).split('-')[1]; });
+      var heading = $('mealComposerHeading');
+      if (heading) {
+        heading.textContent = (mealComposerIsAdd ? 'Add meal' : 'Edit meal') +
+          (day ? (' · ' + day + (slot ? ' ' + slot.label : '')) : '');
+      }
+      populateMealComposerSlots(key);
+      if ($('mealComposerTitle')) $('mealComposerTitle').value = meal ? (meal.title || '') : '';
+      if ($('mealComposerFlags')) $('mealComposerFlags').value = meal && meal.flags ? meal.flags.join(', ') : '';
+      if ($('mealComposerError')) {
+        $('mealComposerError').hidden = true;
+        $('mealComposerError').textContent = '';
+      }
+      var del = $('mealComposerDelete');
+      if (del) del.hidden = mealComposerIsAdd;
+      var box = $('mealComposer');
+      if (box) {
+        box.hidden = false;
+        box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+      setTimeout(function () {
+        var title = $('mealComposerTitle');
+        if (title) title.focus();
+      }, 30);
+      toast(mealComposerIsAdd ? 'Enter a meal name, then Save meal' : 'Edit meal, then Save meal');
+    }
+
+    function saveMealComposer() {
+      ensureMealsMap();
+      var titleEl = $('mealComposerTitle');
+      var title = titleEl ? String(titleEl.value || '').trim() : '';
+      if (!title) {
+        var err = $('mealComposerError');
+        if (err) {
+          err.hidden = false;
+          err.textContent = 'Meal name required';
+        }
+        if (titleEl) titleEl.focus();
+        toast('Meal name required');
+        return false;
+      }
+      var flags = String(($('mealComposerFlags') && $('mealComposerFlags').value) || '')
+        .split(',').map(function (x) { return x.trim(); }).filter(Boolean);
+      var targetKey = ($('mealComposerSlot') && $('mealComposerSlot').value) || mealComposerKey || '0-b';
+      if (!mealComposerIsAdd && mealComposerKey && targetKey !== mealComposerKey) {
+        delete MEALS[mealComposerKey];
+        healthTombstone('meal:' + mealComposerKey);
+      }
+      MEALS[targetKey] = { title: title, flags: flags };
+      store.nutrition.meals = MEALS;
+      saveData();
+      closeMealComposer();
+      renderMeals();
+      setNutritionTab('meals');
+      toast(mealComposerIsAdd ? 'Meal added' : 'Meal updated');
+      return true;
+    }
+
+    function deleteMealComposer() {
+      if (mealComposerIsAdd || !mealComposerKey) return false;
+      if (!confirmDelete('Remove this meal?')) return false;
+      ensureMealsMap();
+      healthTombstone('meal:' + mealComposerKey);
+      delete MEALS[mealComposerKey];
+      store.nutrition.meals = MEALS;
+      saveData();
+      closeMealComposer();
+      renderMeals();
+      toast('Meal removed');
+      return true;
+    }
+
+    function editMeal(key, meal) {
+      openMealComposer(key, meal);
     }
 
     function renderGrocery() {
@@ -3053,14 +3053,7 @@
     $('genGroceryBtn') && null; // rebound in renderNutritionTargets
     // nutrition buttons (some rebound after re-render)
     function bindNutritionChrome() {
-      var addMeal = $('addMealBtn');
-      if (addMeal) {
-        addMeal.onclick = function (e) {
-          if (e) { e.preventDefault(); e.stopPropagation(); }
-          setNutritionTab('meals');
-          editMeal('0-b', null);
-        };
-      }
+      // Meal add/edit/delete uses bindMealPlanEvents() (delegation) — keep other chrome here.
       var addG = $('addGroceryBtn');
       if (addG) addG.onclick = function () { editGroceryItem(null); };
       var staples = $('staplesBtn');
@@ -3086,14 +3079,90 @@
       var importBtn = $('importRecipeBtn');
       if (importBtn) importBtn.onclick = function () { toast('Recipe link import — placeholder'); };
     }
+
+    var mealPlanEventsBound = false;
+    function bindMealPlanEvents() {
+      if (mealPlanEventsBound) return;
+      mealPlanEventsBound = true;
+
+      document.addEventListener('click', function (e) {
+        var t = e.target;
+        if (!t || !t.closest) return;
+
+        if (t.closest('#addMealBtn')) {
+          e.preventDefault();
+          openMealComposer('0-b', null);
+          return;
+        }
+        if (t.closest('#mealComposerSave')) {
+          e.preventDefault();
+          saveMealComposer();
+          return;
+        }
+        if (t.closest('#mealComposerCancel')) {
+          e.preventDefault();
+          closeMealComposer();
+          return;
+        }
+        if (t.closest('#mealComposerDelete')) {
+          e.preventDefault();
+          deleteMealComposer();
+          return;
+        }
+
+        var add = t.closest('[data-meal-add]');
+        if (add) {
+          e.preventDefault();
+          e.stopPropagation();
+          openMealComposer(add.getAttribute('data-meal-add'), null);
+          return;
+        }
+        var edit = t.closest('[data-meal-edit]');
+        if (edit) {
+          e.preventDefault();
+          e.stopPropagation();
+          var ek = edit.getAttribute('data-meal-edit');
+          openMealComposer(ek, MEALS[ek]);
+          return;
+        }
+        var del = t.closest('[data-meal-del]');
+        if (del) {
+          e.preventDefault();
+          e.stopPropagation();
+          var dk = del.getAttribute('data-meal-del');
+          if (!confirmDelete('Remove this meal?')) return;
+          ensureMealsMap();
+          healthTombstone('meal:' + dk);
+          delete MEALS[dk];
+          store.nutrition.meals = MEALS;
+          saveData();
+          renderMeals();
+          toast('Meal removed');
+          return;
+        }
+        var cell = t.closest('#mealWeek .meal-cell');
+        if (cell && !t.closest('[data-meal-edit], [data-meal-del], [data-meal-add]')) {
+          e.preventDefault();
+          var ck = cell.getAttribute('data-key');
+          openMealComposer(ck, MEALS[ck] || null);
+        }
+      });
+
+      var titleInput = $('mealComposerTitle');
+      if (titleInput) {
+        titleInput.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            saveMealComposer();
+          }
+        });
+      }
+    }
+
     bindNutritionChrome();
+    bindMealPlanEvents();
     if ($('recipeSearch')) $('recipeSearch').oninput = renderRecipes;
     if ($('recipeFilter')) $('recipeFilter').onchange = renderRecipes;
-    if ($('exportSummaryBtn')) {
-      $('exportSummaryBtn').onclick = function () {
-        toast('Export-safe summary prepared (excludes private therapy notes)');
-      };
-    }
 
     $('editCancel').onclick = closeEditModal;
     $('editSave').onclick = function () {
@@ -3110,8 +3179,14 @@
       closeEditModal();
     };
     $('editModal').addEventListener('click', function (e) {
+      // Only close when the dimmed backdrop itself is clicked (not modal content / inputs).
       if (e.target === $('editModal')) closeEditModal();
     });
+    // Avoid iOS keyboard/viewport quirks closing the modal via accidental backdrop taps on the dialog box.
+    var editDialog = $('editModal') && $('editModal').querySelector('.modal');
+    if (editDialog) {
+      editDialog.addEventListener('click', function (e) { e.stopPropagation(); });
+    }
     $('editModal').addEventListener('keydown', function (e) {
       if (e.key === 'Escape') { e.preventDefault(); closeEditModal(); }
       if (e.key === 'Enter' && e.target && e.target.tagName !== 'TEXTAREA') {
@@ -3140,8 +3215,7 @@
           scrollToSection('nutrition');
           if (q.indexOf('grocery') !== -1) setNutritionTab('grocery');
           if (q.indexOf('recipe') !== -1) setNutritionTab('recipes');
-        } else if (q.indexOf('habit') !== -1 || q.indexOf('water') !== -1) scrollToSection('habits');
-        else if (q.indexOf('insight') !== -1) scrollToSection('insights');
+        }         else if (q.indexOf('habit') !== -1 || q.indexOf('water') !== -1) scrollToSection('habits');
         else toast('Search: ' + $('searchInput').value);
       }
     });
