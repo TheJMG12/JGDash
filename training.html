@@ -600,7 +600,7 @@
             <div class="card span-2">
               <div class="card-head">
                 <h3>Weekly schedule</h3>
-                <span class="section-sub">Resets Sunday 10:00 PM · drag chips or templates · click to edit</span>
+                <span class="section-sub">New week Sunday 10:00 PM · past chips stay in History · drag chips or templates</span>
               </div>
               <div class="week-grid" id="weekGrid"></div>
             </div>
@@ -821,7 +821,7 @@
     return addDaysIso(getActiveWeekMonday(), offsetFromMon || 0);
   }
 
-  /** Wipe weekly-schedule sessions when Sunday 10pm boundary advances. Mid-week: no-op. */
+  /** Advance schedule week at Sunday 10pm. Does not delete sessions — they remain in Training history. */
   function ensureScheduleWeek() {
     var weekId = getActiveWeekMonday();
     if (!store.scheduleWeekKey) {
@@ -829,12 +829,7 @@
       return true; // migrate — keep existing chips
     }
     if (store.scheduleWeekKey === weekId) return false;
-    var oldMon = store.scheduleWeekKey;
-    var oldDates = {};
-    for (var i = 0; i < 7; i++) oldDates[addDaysIso(oldMon, i)] = true;
-    (store.sessions || []).slice().forEach(function (s) {
-      if (s && oldDates[s.date]) removeTrainingById(store, s.id, ['sessions']);
-    });
+    // New week: grid shows empty Mon–Sun dates; prior week sessions stay in store.sessions for history.
     store.scheduleWeekKey = weekId;
     return true;
   }
@@ -1268,9 +1263,10 @@
         e.preventDefault();
         col.classList.remove('tmpl-drag-over');
         var day = parseInt(col.getAttribute('data-day'), 10);
-        if (dragTemplateId) {
-          var tmpl = findWorkoutTemplate(dragTemplateId);
-          if (tmpl) addTemplateToDay(tmpl, day);
+        var tmplId = dragTemplateId || (e.dataTransfer && e.dataTransfer.getData('text/plain'));
+        var tmpl = tmplId ? findWorkoutTemplate(tmplId) : null;
+        if (tmpl) {
+          addTemplateToDay(tmpl, day);
           dragTemplateId = null;
           dragSessId = null;
           return;
@@ -1651,8 +1647,6 @@
 
   /* —— Fitness / Soccer mounts —— */
   function renderFitness() {
-    var workouts = store.sessions.filter(function (s) { return s.domain === 'fitness' && sessionMatches(s); });
-    var planned = workouts.filter(function (s) { return s.status === 'planned'; }).slice(0, 4);
     var tmpls = store.workoutTemplates || [];
     var html = '';
 
@@ -1693,15 +1687,6 @@
           '</td><td>' + esc(ex.primary) + '</td><td>' + esc(ex.equipment) + '</td><td>' + esc(ex.pattern) +
           '</td><td>' + esc(ex.lastPerf || '—') + '</td><td><div class="item-actions">' + iconBtn('edit', '✎') + iconBtn('del', '✕', ' danger') + '</div></td></tr>';
       }).join('') + '</tbody></table></div></div>';
-
-    html += '<div class="card domain-fit span-full">' +
-      '<div class="card-head"><h3>Planned fitness sessions</h3></div>' +
-      (planned.length ? '<ul class="list">' + planned.map(function (s) {
-        return '<li class="list-item"><div><div class="title">' + esc(s.name) + '</div><div class="meta">' + esc(s.date) + ' · ' + esc(s.goal) +
-          ' · ' + ((s.exercises || []).length) + ' exercises</div></div>' +
-          '<div class="right">' + esc(s.status) + '</div>' +
-          '<div class="item-actions">' + iconBtn('edit', '✎') + iconBtn('del', '✕', ' danger') + '</div></li>';
-      }).join('') + '</ul>' : '<div class="empty-state"><strong>No planned fitness work</strong>Schedule a template onto the week.</div>') + '</div>';
 
     $('fitnessMount').innerHTML = html;
     var createBtn = $('createTmplBtn');
@@ -1749,19 +1734,6 @@
         if (!confirm('Delete exercise?')) return;
         removeTrainingById(store, id, ['exercises']);
         saveData(); renderFitness(); toast('Removed');
-      };
-    });
-    $('fitnessMount').querySelectorAll('.list-item').forEach(function (row) {
-      var title = row.querySelector('.title');
-      if (!title) return;
-      var s = store.sessions.find(function (x) { return x.name === title.textContent && x.domain === 'fitness'; });
-      var editB = row.querySelector('[data-act="edit"]');
-      var delB = row.querySelector('[data-act="del"]');
-      if (editB && s) editB.onclick = function () { editSession(s); };
-      if (delB && s) delB.onclick = function () {
-        if (!confirm('Delete session?')) return;
-        removeTrainingById(store, s.id, ['sessions']);
-        saveData(); renderAll(); toast('Removed');
       };
     });
   }
@@ -2510,21 +2482,21 @@
     if (ensureScheduleWeek()) {
       saveData();
       renderAll();
-      toast('New training week — schedule cleared');
+      toast('New training week — schedule ready to fill');
     }
   });
   window.addEventListener('focus', function () {
     if (ensureScheduleWeek()) {
       saveData();
       renderAll();
-      toast('New training week — schedule cleared');
+      toast('New training week — schedule ready to fill');
     }
   });
   setInterval(function () {
     if (ensureScheduleWeek()) {
       saveData();
       renderAll();
-      toast('New training week — schedule cleared');
+      toast('New training week — schedule ready to fill');
     }
   }, 60000);
 })();
