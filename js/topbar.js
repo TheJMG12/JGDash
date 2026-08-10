@@ -140,9 +140,53 @@
         '}' +
         '@media (max-width:380px){' +
           '#jgdash-topbar .tb-btn,#jgdash-topbar .tb-hubs-btn{padding:6px 8px;font-size:11px;}' +
+        '}' +
+        /* Keep the left hamburger bar stuck under the sticky topbar while scrolling.
+           position:fixed — sticky fails when .main has overflow:hidden (Projects/Health/etc). */
+        '@media (max-width:860px){' +
+          '.mobile-bar{position:fixed!important;left:0;right:0;' +
+            'top:var(--jgdash-topbar-height,0px)!important;z-index:150!important;' +
+            'background:rgba(5,5,6,0.92)!important;backdrop-filter:blur(14px);' +
+            'display:flex!important;}' +
+          '[data-theme="light"] .mobile-bar{background:rgba(244,243,240,0.94)!important;}' +
+          'body.jgdash-mobile-bar-pad .main{' +
+            'padding-top:var(--jgdash-mobile-bar-height,57px)!important;}' +
         '}';
       document.head.appendChild(style);
     }
+
+    function syncTopbarHeightVar() {
+      var h = el.offsetHeight || 0;
+      document.documentElement.style.setProperty('--jgdash-topbar-height', h + 'px');
+      syncMobileBarLayout();
+    }
+
+    function syncMobileBarLayout() {
+      var bar = document.querySelector('.mobile-bar');
+      var show = false;
+      if (bar) {
+        // match pages that reveal the bar at ≤860px
+        show = window.matchMedia && window.matchMedia('(max-width: 860px)').matches;
+      }
+      document.body.classList.toggle('jgdash-mobile-bar-pad', !!show);
+      if (show && bar) {
+        // Temporarily ensure measurable height even before page CSS display:flex applies.
+        var h = bar.offsetHeight || 57;
+        document.documentElement.style.setProperty('--jgdash-mobile-bar-height', h + 'px');
+      }
+    }
+
+    syncTopbarHeightVar();
+    if (typeof ResizeObserver !== 'undefined') {
+      try {
+        var ro = new ResizeObserver(function () { syncTopbarHeightVar(); });
+        ro.observe(el);
+      } catch (err) { /* ignore */ }
+    }
+    window.addEventListener('resize', syncTopbarHeightVar);
+    // Topbar can wrap to two rows after fonts/layout settle.
+    setTimeout(syncTopbarHeightVar, 0);
+    setTimeout(syncTopbarHeightVar, 250);
 
     var hubs = document.getElementById('tbHubs');
     var hubsBtn = document.getElementById('tbHubsBtn');
