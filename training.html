@@ -13,7 +13,7 @@
   <script src="js/config.js?v=2"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/lock.js"></script>
-  <script src="js/sync.js?v=15"></script>
+  <script src="js/sync.js?v=16"></script>
   <script src="js/training-blobs.js?v=1"></script>
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
   <script src="js/theme.js?v=3"></script>
@@ -246,6 +246,21 @@
     .sess-chip .t { font-weight: 700; color: var(--text-primary); }
     .sess-chip .m { color: var(--text-tertiary); margin-top: 2px; }
     .sess-chip.drag-over { outline: 1px dashed var(--accent); }
+    .day-col.tmpl-drag-over { outline: 1px dashed var(--fitness); background: color-mix(in srgb, var(--fitness) 8%, var(--input-bg)); }
+    .tmpl-chip {
+      padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border);
+      background: var(--input-bg); cursor: grab; text-align: left; width: 100%;
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .tmpl-chip .t { font-size: 12px; font-weight: 700; color: var(--text-primary); }
+    .tmpl-chip .m { font-size: 11px; color: var(--text-tertiary); }
+    .tmpl-chip:hover { border-color: color-mix(in srgb, var(--fitness) 45%, transparent); }
+    .tmpl-ex-pick { display: flex; flex-direction: column; gap: 6px; max-height: 240px; overflow: auto; padding: 4px 0; }
+    .tmpl-ex-row {
+      display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 6px 8px;
+      border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); cursor: pointer;
+    }
+    .tmpl-ex-row input { flex-shrink: 0; }
     .list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
     .list-item {
       display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 12px;
@@ -570,7 +585,7 @@
             <div class="card" id="todayCard"></div>
             <div class="card">
               <div class="card-head"><h3>Quick presets</h3></div>
-              <p class="card-meta">Fitness templates</p>
+              <p class="card-meta">Fitness workout templates · drag onto a day or click to place</p>
               <div class="preset-row" id="fitPresets"></div>
               <p class="card-meta" style="margin-top:12px">Soccer templates</p>
               <div class="preset-row" id="socPresets"></div>
@@ -585,7 +600,7 @@
             <div class="card span-2">
               <div class="card-head">
                 <h3>Weekly schedule</h3>
-                <span class="section-sub">Drag chips to reorder · click to edit</span>
+                <span class="section-sub">Resets Sunday 10:00 PM · drag chips or templates · click to edit</span>
               </div>
               <div class="week-grid" id="weekGrid"></div>
             </div>
@@ -739,52 +754,7 @@
 
   function defaultData() {
     return {
-      sessions: [
-        { id: uid(), domain: 'fitness', name: 'Upper Strength', date: weekDate(0), status: 'completed', goal: 'strength', type: 'Upper', focus: 'upper', duration: 65, tags: 'barbell, strength', notes: 'Solid bench day', exercises: [
-          { name: 'Bench Press', sets: '4', reps: '5', weight: '185', rpe: '8', rest: '150s', tempo: '3010', notes: '' },
-          { name: 'Barbell Row', sets: '4', reps: '6', weight: '165', rpe: '7', rest: '120s', tempo: '', notes: '' },
-          { name: 'OHP', sets: '3', reps: '8', weight: '95', rpe: '7', rest: '90s', tempo: '', notes: '' }
-        ], videoIds: [], checklist: ['Warm-up', 'Main lifts', 'Accessories'], pinned: true, favorite: true },
-        { id: uid(), domain: 'soccer', name: 'Ball Mastery Circuit', date: weekDate(0), status: 'completed', goal: 'ball mastery', type: 'Technical', focus: 'first touch', duration: 45, location: 'Local turf', equipment: 'ball, cones', intensity: 'moderate', tags: 'technical', notes: 'Touches felt clean', drills: [
-          { name: 'Inside-outside rolls', category: 'ball mastery', duration: '8', reps: '4 rounds', coaching: 'Soft ankles', setup: '5 cones', equipment: 'ball', progression: 'Weaker foot only', metric: '50 clean touches', notes: '' },
-          { name: 'V-pulls', category: 'dribbling', duration: '6', reps: '3 rounds', coaching: 'Explode after pull', setup: '', equipment: 'ball', progression: '', metric: '', notes: '' }
-        ], videoIds: [], pinned: false, favorite: true },
-        { id: uid(), domain: 'fitness', name: 'Lower Power', date: weekDate(1), status: 'planned', goal: 'strength', type: 'Lower', focus: 'lower', duration: 70, tags: 'power', notes: '', exercises: [
-          { name: 'Back Squat', sets: '5', reps: '3', weight: '225', rpe: '8', rest: '180s', tempo: '', notes: '' },
-          { name: 'Romanian Deadlift', sets: '3', reps: '8', weight: '185', rpe: '7', rest: '120s', tempo: '', notes: '' }
-        ], videoIds: [], checklist: [], pinned: false, favorite: false },
-        { id: uid(), domain: 'soccer', name: 'Finishing Reps', date: weekDate(1), status: 'planned', goal: 'finishing', type: 'Finishing', focus: 'finishing', duration: 50, location: 'Cage', equipment: 'ball, goals', intensity: 'high', tags: 'finishing, weak foot', notes: '', drills: [
-          { name: '1-touch finish', category: 'finishing', duration: '12', reps: '20 each foot', coaching: 'Plant early', setup: 'Server + 2 cones', equipment: 'ball', progression: 'Far post only', metric: '70% on frame', notes: '' }
-        ], videoIds: [], pinned: false, favorite: false },
-        { id: uid(), domain: 'fitness', name: 'Push Hypertrophy', date: weekDate(2), status: 'planned', goal: 'hypertrophy', type: 'Push', focus: 'upper', duration: 55, tags: 'hypertrophy', notes: '', exercises: [
-          { name: 'Incline DB Press', sets: '4', reps: '10', weight: '60', rpe: '8', rest: '90s', tempo: '3020', notes: '' }
-        ], videoIds: [], checklist: [], pinned: false, favorite: false },
-        { id: uid(), domain: 'soccer', name: 'First Touch & Passing', date: weekDate(2), status: 'planned', goal: 'technical', type: 'Technical', focus: 'first touch', duration: 40, location: 'Park', equipment: 'ball, wall', intensity: 'moderate', tags: 'passing', notes: '', drills: [
-          { name: 'Wall receive-pass', category: 'passing', duration: '10', reps: 'continuous', coaching: 'Open hips', setup: 'Wall 8 yards', equipment: 'ball', progression: 'One-touch', metric: '', notes: '' }
-        ], videoIds: [], pinned: false, favorite: false },
-        { id: uid(), domain: 'fitness', name: 'Pull Volume', date: weekDate(3), status: 'planned', goal: 'hypertrophy', type: 'Pull', focus: 'upper', duration: 55, tags: '', notes: '', exercises: [
-          { name: 'Pull-ups', sets: '4', reps: '8', weight: 'BW', rpe: '8', rest: '120s', tempo: '', notes: '' }
-        ], videoIds: [], checklist: [], pinned: false, favorite: false },
-        { id: uid(), domain: 'soccer', name: 'Agility + Dribbling', date: weekDate(3), status: 'planned', goal: 'agility', type: 'Speed/Agility', focus: '1v1', duration: 45, location: 'Turf', equipment: 'ladder, cones, ball', intensity: 'high', tags: 'agility', notes: '', drills: [
-          { name: 'Ladder + ball carry', category: 'agility', duration: '8', reps: '6', coaching: 'Quick feet', setup: 'Ladder + 4 cones', equipment: 'ladder, ball', progression: '', metric: '', notes: '' }
-        ], videoIds: [], pinned: false, favorite: false },
-        { id: uid(), domain: 'fitness', name: 'Full Body Conditioning', date: weekDate(4), status: 'planned', goal: 'conditioning', type: 'Full Body', focus: 'full body', duration: 40, tags: 'conditioning', notes: '', exercises: [
-          { name: 'KB Swings', sets: '5', reps: '15', weight: '53', rpe: '7', rest: '60s', tempo: '', notes: '' },
-          { name: 'Bike', sets: '1', reps: '', weight: '', rpe: '7', rest: '', tempo: '', notes: '12 min Z2', timeDistance: '12 min' }
-        ], videoIds: [], checklist: [], pinned: false, favorite: false },
-        { id: uid(), domain: 'soccer', name: 'Weak Foot Session', date: weekDate(4), status: 'planned', goal: 'technical', type: 'Technical', focus: 'weak foot', duration: 35, location: 'Backyard', equipment: 'ball', intensity: 'low', tags: 'weak foot', notes: '', drills: [
-          { name: 'Weak-foot juggles', category: 'juggling', duration: '10', reps: '5 sets', coaching: 'Soft touch', setup: '', equipment: 'ball', progression: '', metric: '30 consecutive', notes: '' }
-        ], videoIds: [], pinned: false, favorite: false },
-        { id: uid(), domain: 'fitness', name: 'Mobility Reset', date: weekDate(5), status: 'planned', goal: 'recovery/mobility', type: 'Mobility', focus: 'full body', duration: 30, tags: 'mobility', notes: 'Rest day active', exercises: [
-          { name: 'Hip 90/90', sets: '3', reps: '8/side', weight: '', rpe: '3', rest: '30s', tempo: '', notes: '' }
-        ], videoIds: [], checklist: [], pinned: false, favorite: false },
-        { id: uid(), domain: 'soccer', name: '1v1 Move Work', date: weekDate(5), status: 'planned', goal: 'technical', type: '1v1', focus: '1v1', duration: 40, location: 'Cage', equipment: 'ball, cones', intensity: 'moderate', tags: '1v1', notes: '', drills: [
-          { name: 'Scissor into space', category: '1v1 moves', duration: '10', reps: '12 each', coaching: 'Sell with eyes', setup: 'Defender cone', equipment: 'ball, cones', progression: 'Live pressure', metric: '', notes: '' }
-        ], videoIds: [], pinned: false, favorite: false },
-        { id: uid(), domain: 'soccer', name: 'Position-Specific Technical', date: weekDate(6), status: 'planned', goal: 'tactical', type: 'Position', focus: 'movement', duration: 50, location: 'Field', equipment: 'ball, mannequins', intensity: 'moderate', tags: 'position', notes: '', drills: [
-          { name: 'Half-space receive & turn', category: 'position-specific work', duration: '12', reps: '10', coaching: 'Scan before receive', setup: 'Channel cones', equipment: 'ball', progression: '', metric: '', notes: '' }
-        ], videoIds: [], pinned: false, favorite: false }
-      ],
+      sessions: [],
       exercises: [
         { id: uid(), name: 'Bench Press', primary: 'chest', secondary: 'triceps, shoulders', equipment: 'barbell', pattern: 'push', difficulty: 'intermediate', tags: 'strength', favorite: true, instructions: 'Retract scapula, controlled eccentric', cues: 'Feet planted · wrists stacked', substitutions: 'DB Press', lastPerf: '185×5' },
         { id: uid(), name: 'Back Squat', primary: 'quads', secondary: 'glutes, core', equipment: 'barbell', pattern: 'squat', difficulty: 'intermediate', tags: 'strength', favorite: true, instructions: 'Brace, depth below parallel', cues: 'Knees track toes', substitutions: 'Goblet Squat', lastPerf: '225×3' },
@@ -801,40 +771,88 @@
         { id: uid(), name: 'Scissor into space', category: '1v1 moves', objective: 'Beat defender', duration: '10', setup: 'Defender cone', equipment: 'ball, cones', coaching: 'Sell with eyes', difficulty: 'intermediate', progression: 'Live pressure', regression: 'Slow tempo', tags: '1v1', favorite: false, videoId: '' },
         { id: uid(), name: 'Half-space receive & turn', category: 'position-specific work', objective: 'Receive under pressure', duration: '12', setup: 'Channel cones', equipment: 'ball', coaching: 'Scan before receive', difficulty: 'advanced', progression: 'Add shot', regression: 'Static receive', tags: 'position', favorite: false, videoId: '' }
       ],
-      notes: [
-        { id: uid(), domain: 'soccer', category: 'session takeaways', title: 'First touch under pressure', body: 'Need earlier scan before receiving in half-spaces. Wall work helped.', tags: 'first touch', pinned: true, linkedSessionId: '', nextFocus: 'Receive on back foot' },
-        { id: uid(), domain: 'soccer', category: 'weaknesses to improve', title: 'Weak foot finishing', body: 'Still opening hips late on left foot. Target 20 quality finishes next session.', tags: 'weak foot, finishing', pinned: true, linkedSessionId: '', nextFocus: 'Far-post left foot' },
-        { id: uid(), domain: 'fitness', category: 'workout takeaways', title: 'Bench groove better', body: 'Paused reps felt stronger. Keep 185 for another week before jump.', tags: 'bench', pinned: false, linkedSessionId: '', nextFocus: 'Add close-grip volume' },
-        { id: uid(), domain: 'fitness', category: 'exercise form notes', title: 'Squat depth cue', body: 'Sit between heels more — last set depth was inconsistent.', tags: 'squat', pinned: false, linkedSessionId: '', nextFocus: 'Film side angle' },
-        { id: uid(), domain: 'soccer', category: 'match reflections', title: 'Weekend match — movement', body: 'Good press trigger recognition; late to support after turnovers.', tags: 'tactical', pinned: false, linkedSessionId: '', nextFocus: 'Recovery runs' }
-      ],
+      notes: [],
       videos: [],
       tombstones: {},
+      workoutTemplates: [],
       templates: {
-        fitness: ['Push Pull Legs', 'Upper Lower', 'Full Body 3-Day', 'Conditioning Split', 'Custom Plan'],
+        fitness: [],
         soccer: ['Ball Mastery Week', 'Finishing Focus', 'First Touch & Passing', 'Agility + Dribbling', 'Position-Specific Session', 'Custom Soccer Plan']
       },
-      cycle: 'Upper / Lower · Week 3',
-      streak: 5,
-      prs: [
-        { id: uid(), name: 'Bench Press', value: '185×5', when: 'This month' },
-        { id: uid(), name: 'Back Squat', value: '225×3', when: 'This month' }
-      ],
-      milestones: [
-        { id: uid(), title: '10 soccer sessions logged', detail: 'Technical volume trending up' },
-        { id: uid(), title: '4-week training streak', detail: 'Consistency holding' }
-      ],
+      cycle: '',
+      streak: 0,
+      prs: [],
+      milestones: [],
       repeatWeekly: false,
-      restDays: [6]
+      restDays: [6],
+      scheduleWeekKey: ''
     };
   }
 
-  function weekDate(offsetFromMon) {
-    var d = new Date();
-    var day = d.getDay(); // 0 Sun
+  function isoDateFromLocal(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function addDaysIso(iso, days) {
+    var parts = String(iso || '').split('-');
+    if (parts.length !== 3) return isoDateFromLocal(new Date());
+    var d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]) + days);
+    return isoDateFromLocal(d);
+  }
+
+  /**
+   * Active schedule week Monday (local). Boundary: Sunday 10:00 PM local —
+   * at/after that time the week advances to the upcoming Monday and the prior week wipes.
+   */
+  function getActiveWeekMonday(now) {
+    now = now || new Date();
+    var d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes(), now.getSeconds());
+    var day = d.getDay(); // 0 Sun … 6 Sat
+    var afterSundayWipe = day === 0 && (d.getHours() > 22 || (d.getHours() === 22 && d.getMinutes() >= 0));
+    if (afterSundayWipe) {
+      // Next Monday is tomorrow
+      return isoDateFromLocal(new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1));
+    }
     var monOffset = day === 0 ? -6 : 1 - day;
-    var mon = new Date(d.getFullYear(), d.getMonth(), d.getDate() + monOffset + offsetFromMon);
-    return mon.toISOString().slice(0, 10);
+    return isoDateFromLocal(new Date(d.getFullYear(), d.getMonth(), d.getDate() + monOffset));
+  }
+
+  function weekDate(offsetFromMon) {
+    return addDaysIso(getActiveWeekMonday(), offsetFromMon || 0);
+  }
+
+  /** Wipe weekly-schedule sessions when Sunday 10pm boundary advances. Mid-week: no-op. */
+  function ensureScheduleWeek() {
+    var weekId = getActiveWeekMonday();
+    if (!store.scheduleWeekKey) {
+      store.scheduleWeekKey = weekId;
+      return true; // migrate — keep existing chips
+    }
+    if (store.scheduleWeekKey === weekId) return false;
+    var oldMon = store.scheduleWeekKey;
+    var oldDates = {};
+    for (var i = 0; i < 7; i++) oldDates[addDaysIso(oldMon, i)] = true;
+    (store.sessions || []).slice().forEach(function (s) {
+      if (s && oldDates[s.date]) removeTrainingById(store, s.id, ['sessions']);
+    });
+    store.scheduleWeekKey = weekId;
+    return true;
+  }
+
+  function normalizeTrainingStore(data) {
+    if (!data || typeof data !== 'object') return data;
+    if (!Array.isArray(data.workoutTemplates)) data.workoutTemplates = [];
+    data.workoutTemplates = data.workoutTemplates.filter(function (t) {
+      return t && typeof t === 'object' && t.id != null && String(t.name || '').trim();
+    });
+    if (!data.templates || typeof data.templates !== 'object') {
+      data.templates = { fitness: [], soccer: [] };
+    }
+    // Legacy fitness templates were bare strings — remove stock list; soccer strings remain for presets.
+    data.templates.fitness = [];
+    if (!Array.isArray(data.templates.soccer)) data.templates.soccer = [];
+    if (data.scheduleWeekKey == null) data.scheduleWeekKey = '';
+    return data;
   }
 
   function deepMerge(base, over) {
@@ -848,7 +866,7 @@
     return base;
   }
 
-  var TRAINING_ARRAY_FIELDS = ['sessions', 'exercises', 'drills', 'notes', 'videos', 'prs', 'milestones'];
+  var TRAINING_ARRAY_FIELDS = ['sessions', 'exercises', 'drills', 'notes', 'videos', 'prs', 'milestones', 'workoutTemplates'];
 
   function ensureTombstones(data) {
     if (!data.tombstones || typeof data.tombstones !== 'object' || Array.isArray(data.tombstones)) {
@@ -897,26 +915,31 @@
       var data;
       if (!raw) {
         data = defaultData();
+        normalizeTrainingStore(data);
         try { localStorage.setItem(DATA_KEY, JSON.stringify(data)); } catch (e) { /* quota */ }
         return data;
       }
       data = deepMerge(defaultData(), JSON.parse(raw));
+      normalizeTrainingStore(data);
       stripTrainingTombstones(data);
       // Persist stripped rows so tombstoned items cannot linger for the next sync push.
       try { localStorage.setItem(DATA_KEY, JSON.stringify(data)); } catch (e) { /* quota */ }
       return data;
-    } catch (e) { return defaultData(); }
+    } catch (e) { return normalizeTrainingStore(defaultData()); }
   }
   function saveData() {
     ensureTombstones(store);
+    normalizeTrainingStore(store);
     stripTrainingTombstones(store);
     try { localStorage.setItem(DATA_KEY, JSON.stringify(store)); }
     catch (e) { toast('Could not save'); }
   }
 
   var store = loadData();
+  if (ensureScheduleWeek()) saveData();
   var editCtx = null;
   var dragSessId = null;
+  var dragTemplateId = null;
   var playerList = [];
   var playerIndex = 0;
   var timerSeconds = 90;
@@ -1152,8 +1175,8 @@
     var today = todayIso();
     var list = store.sessions.filter(function (s) { return s.date === today && sessionMatches(s); });
     var s = list[0] || store.sessions.filter(function (x) { return x.status === 'planned' && sessionMatches(x); })[0];
-    if (!s) {
-      $('todayCard').innerHTML = '<div class="card-head"><h3>Today\'s Training</h3></div><div class="empty-state"><strong>No planned training</strong>Add a session or apply a preset.</div>';
+      if (!s) {
+      $('todayCard').innerHTML = '<div class="card-head"><h3>Today\'s Training</h3></div><div class="empty-state"><strong>No planned training</strong>Schedule a workout template or add a session.</div>';
       return;
     }
     var count = s.domain === 'fitness' ? (s.exercises || []).length : (s.drills || []).length;
@@ -1188,7 +1211,8 @@
       daySess.forEach(function (s) {
         html += '<div class="sess-chip ' + (s.domain === 'fitness' ? 'fit' : 'soc') + '" draggable="true" data-id="' + esc(s.id) + '">' +
           '<div class="t">' + esc(s.name) + '</div>' +
-          '<div class="m">' + esc(s.status) + ' · ' + esc(s.duration) + 'm' + (s.videoIds && s.videoIds.length ? ' · ▶' : '') + '</div></div>';
+          '<div class="m">' + esc(s.status) + ' · ' + esc(s.duration) + 'm' + (s.videoIds && s.videoIds.length ? ' · ▶' : '') +
+          ((s.exercises || []).length ? ' · ' + s.exercises.length + ' ex' : '') + '</div></div>';
       });
       html += '<button type="button" class="btn" style="margin-top:auto;font-size:11px;padding:4px 8px" data-add-day="' + i + '">+</button></div>';
     });
@@ -1198,32 +1222,62 @@
     });
     $('weekGrid').querySelectorAll('.sess-chip').forEach(function (chip) {
       chip.onclick = function () {
+        if (chip.getAttribute('data-dragging') === '1') return;
         var s = store.sessions.find(function (x) { return x.id === chip.getAttribute('data-id'); });
         if (s) editSession(s);
       };
-      chip.addEventListener('dragstart', function () { dragSessId = chip.getAttribute('data-id'); });
+      chip.addEventListener('dragstart', function (e) {
+        dragSessId = chip.getAttribute('data-id');
+        dragTemplateId = null;
+        chip.setAttribute('data-dragging', '1');
+        if (e.dataTransfer) e.dataTransfer.setData('text/plain', dragSessId);
+      });
+      chip.addEventListener('dragend', function () {
+        setTimeout(function () { chip.removeAttribute('data-dragging'); }, 0);
+      });
       chip.addEventListener('dragover', function (e) { e.preventDefault(); chip.classList.add('drag-over'); });
       chip.addEventListener('dragleave', function () { chip.classList.remove('drag-over'); });
       chip.addEventListener('drop', function (e) {
         e.preventDefault();
+        e.stopPropagation();
         chip.classList.remove('drag-over');
+        if (dragTemplateId) {
+          var tmplDrop = findWorkoutTemplate(dragTemplateId);
+          var target = store.sessions.find(function (x) { return x.id === chip.getAttribute('data-id'); });
+          if (tmplDrop && target) addTemplateToDay(tmplDrop, dayIndex(target.date));
+          dragTemplateId = null;
+          return;
+        }
         if (!dragSessId) return;
         var moving = store.sessions.find(function (x) { return x.id === dragSessId; });
-        var target = store.sessions.find(function (x) { return x.id === chip.getAttribute('data-id'); });
-        if (moving && target) {
-          moving.date = target.date;
+        var targetS = store.sessions.find(function (x) { return x.id === chip.getAttribute('data-id'); });
+        if (moving && targetS) {
+          moving.date = targetS.date;
           saveData(); renderAll(); toast('Session moved');
         }
         dragSessId = null;
       });
     });
     $('weekGrid').querySelectorAll('.day-col').forEach(function (col) {
-      col.addEventListener('dragover', function (e) { e.preventDefault(); });
+      col.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        if (dragTemplateId) col.classList.add('tmpl-drag-over');
+      });
+      col.addEventListener('dragleave', function () { col.classList.remove('tmpl-drag-over'); });
       col.addEventListener('drop', function (e) {
+        e.preventDefault();
+        col.classList.remove('tmpl-drag-over');
+        var day = parseInt(col.getAttribute('data-day'), 10);
+        if (dragTemplateId) {
+          var tmpl = findWorkoutTemplate(dragTemplateId);
+          if (tmpl) addTemplateToDay(tmpl, day);
+          dragTemplateId = null;
+          dragSessId = null;
+          return;
+        }
         if (!dragSessId) return;
         var moving = store.sessions.find(function (x) { return x.id === dragSessId; });
         if (!moving) return;
-        var day = parseInt(col.getAttribute('data-day'), 10);
         moving.date = weekDate(day);
         saveData(); renderAll(); toast('Rescheduled');
         dragSessId = null;
@@ -1231,27 +1285,101 @@
     });
   }
 
+  function findWorkoutTemplate(id) {
+    return (store.workoutTemplates || []).find(function (t) { return t.id === id; });
+  }
+
+  function sessionFromTemplate(tmpl, dateIso) {
+    var exercises = (tmpl.exercises || []).map(function (ex) {
+      return {
+        name: ex.name,
+        sets: ex.sets || '3',
+        reps: ex.reps || '8',
+        weight: ex.weight || '',
+        rpe: ex.rpe || '',
+        rest: ex.rest || '90s',
+        tempo: ex.tempo || '',
+        notes: ex.notes || '',
+        exerciseId: ex.exerciseId || ''
+      };
+    });
+    return {
+      id: uid(),
+      domain: 'fitness',
+      name: tmpl.name,
+      date: dateIso,
+      status: 'planned',
+      goal: 'strength',
+      type: 'Template',
+      focus: 'full body',
+      duration: Math.max(30, exercises.length * 12),
+      tags: 'template',
+      notes: '',
+      exercises: exercises,
+      drills: [],
+      videoIds: [],
+      checklist: [],
+      pinned: false,
+      favorite: false,
+      location: '',
+      equipment: '',
+      intensity: 'moderate',
+      templateId: tmpl.id,
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  function addTemplateToDay(tmpl, dayIndexNum) {
+    ensureScheduleWeek();
+    var idx = Math.max(0, Math.min(6, dayIndexNum | 0));
+    store.sessions.push(sessionFromTemplate(tmpl, weekDate(idx)));
+    saveData();
+    renderAll();
+    toast('Added “' + tmpl.name + '” to ' + DAYS[idx] + ' · ' + (tmpl.exercises || []).length + ' exercises');
+  }
+
+  function wireTemplateDrag(el, id) {
+    el.setAttribute('draggable', 'true');
+    el.addEventListener('dragstart', function (e) {
+      dragTemplateId = id;
+      dragSessId = null;
+      if (e.dataTransfer) {
+        e.dataTransfer.setData('text/plain', id);
+        e.dataTransfer.effectAllowed = 'copy';
+      }
+    });
+    el.addEventListener('dragend', function () { dragTemplateId = null; });
+  }
+
   function renderPresets() {
-    $('fitPresets').innerHTML = store.templates.fitness.map(function (p) {
-      return '<button type="button" class="btn fitness" data-preset="fitness" data-name="' + esc(p) + '">' + esc(p) + '</button>';
-    }).join('');
-    $('socPresets').innerHTML = store.templates.soccer.map(function (p) {
+    var tmpls = store.workoutTemplates || [];
+    if (!tmpls.length) {
+      $('fitPresets').innerHTML = '<span class="card-meta">No workout templates yet — create one under Strength &amp; Fitness.</span>';
+    } else {
+      $('fitPresets').innerHTML = tmpls.map(function (t) {
+        return '<button type="button" class="btn fitness" data-tmpl-id="' + esc(t.id) + '">' + esc(t.name) + '</button>';
+      }).join('');
+      $('fitPresets').querySelectorAll('[data-tmpl-id]').forEach(function (b) {
+        var id = b.getAttribute('data-tmpl-id');
+        wireTemplateDrag(b, id);
+        b.onclick = function () {
+          var tmpl = findWorkoutTemplate(id);
+          if (tmpl) scheduleTemplateChooser(tmpl);
+        };
+      });
+    }
+    $('socPresets').innerHTML = (store.templates.soccer || []).map(function (p) {
       return '<button type="button" class="btn soccer" data-preset="soccer" data-name="' + esc(p) + '">' + esc(p) + '</button>';
     }).join('');
-    document.querySelectorAll('[data-preset]').forEach(function (b) {
+    $('socPresets').querySelectorAll('[data-preset]').forEach(function (b) {
       b.onclick = function () {
-        applyPreset(b.getAttribute('data-preset'), b.getAttribute('data-name'));
+        applySoccerPreset(b.getAttribute('data-name'));
       };
     });
   }
 
-  function applyPreset(domain, name) {
+  function applySoccerPreset(name) {
     var map = {
-      'Push Pull Legs': ['Push Hypertrophy', 'Pull Volume', 'Lower Power'],
-      'Upper Lower': ['Upper Strength', 'Lower Power'],
-      'Full Body 3-Day': ['Full Body Conditioning', 'Upper Strength', 'Lower Power'],
-      'Conditioning Split': ['Full Body Conditioning', 'Mobility Reset'],
-      'Custom Plan': ['Custom Fitness Session'],
       'Ball Mastery Week': ['Ball Mastery Circuit', 'First Touch & Passing'],
       'Finishing Focus': ['Finishing Reps', 'Weak Foot Session'],
       'First Touch & Passing': ['First Touch & Passing'],
@@ -1262,16 +1390,108 @@
     var names = map[name] || [name];
     names.forEach(function (n, i) {
       store.sessions.push({
-        id: uid(), domain: domain, name: n, date: weekDate(Math.min(6, i)), status: 'planned',
-        goal: domain === 'fitness' ? 'strength' : 'technical', type: name, focus: domain === 'fitness' ? 'full body' : 'technical',
+        id: uid(), domain: 'soccer', name: n, date: weekDate(Math.min(6, i)), status: 'planned',
+        goal: 'technical', type: name, focus: 'technical',
         duration: 45, tags: 'preset', notes: 'From preset: ' + name,
-        exercises: domain === 'fitness' ? [{ name: 'TBD', sets: '3', reps: '8', weight: '', rpe: '', rest: '90s', tempo: '', notes: '' }] : [],
-        drills: domain === 'soccer' ? [{ name: 'TBD drill', category: 'ball mastery', duration: '8', reps: '3', coaching: '', setup: '', equipment: 'ball', progression: '', metric: '', notes: '' }] : [],
+        exercises: [],
+        drills: [{ name: 'TBD drill', category: 'ball mastery', duration: '8', reps: '3', coaching: '', setup: '', equipment: 'ball', progression: '', metric: '', notes: '' }],
         videoIds: [], checklist: [], pinned: false, favorite: false,
         location: '', equipment: '', intensity: 'moderate'
       });
     });
     saveData(); renderAll(); toast('Preset applied: ' + name);
+  }
+
+  function scheduleTemplateChooser(tmpl) {
+    openEdit({
+      title: 'Add to weekly schedule',
+      lead: 'Place “' + tmpl.name + '” on a day. All template exercises are copied onto the chip.',
+      mode: 'add',
+      fields: [
+        {
+          key: 'day', label: 'Day', type: 'select', value: String(Math.max(0, dayIndex(todayIso()))), full: true,
+          options: DAYS.map(function (d, i) {
+            return { value: String(i), label: d + ' · ' + weekDate(i) };
+          })
+        }
+      ],
+      save: function (v) {
+        addTemplateToDay(tmpl, parseInt(v.day, 10));
+      }
+    });
+  }
+
+  function editWorkoutTemplate(tmpl) {
+    var isAdd = !tmpl;
+    var selected = {};
+    ((tmpl && tmpl.exercises) || []).forEach(function (ex) {
+      if (ex.exerciseId) selected[ex.exerciseId] = ex;
+      if (ex.name) selected[ex.name] = ex;
+    });
+    var pickHtml = (store.exercises || []).length
+      ? (store.exercises || []).map(function (ex) {
+          var checked = !!(selected[ex.id] || selected[ex.name]);
+          return '<label class="tmpl-ex-row"><input type="checkbox" data-ex-id="' + esc(ex.id) + '"' +
+            (checked ? ' checked' : '') + ' /> <span>' + esc(ex.name) +
+            '</span><span class="card-meta" style="margin-left:auto">' + esc(ex.primary || '') + '</span></label>';
+        }).join('')
+      : '<div class="empty-state"><strong>No exercises yet</strong>Add some to the Exercise library first.</div>';
+    openEdit({
+      title: (isAdd ? 'Create' : 'Edit') + ' workout template',
+      lead: 'Pick exercises from your library. Scheduling this template copies them onto the day chip.',
+      mode: isAdd ? 'add' : 'edit',
+      canDelete: !isAdd,
+      fields: [
+        { key: 'name', label: 'Template name', value: tmpl ? tmpl.name : '', full: true, placeholder: 'e.g. Push Day' }
+      ],
+      extraHtml: '<div class="field full"><label>Exercises</label><div class="tmpl-ex-pick" id="tmplExPick">' + pickHtml + '</div></div>',
+      save: function (v) {
+        if (!v.name.trim()) { toast('Name required'); return false; }
+        var exercises = [];
+        document.querySelectorAll('#tmplExPick input[type="checkbox"]:checked').forEach(function (cb) {
+          var ex = store.exercises.find(function (x) { return x.id === cb.getAttribute('data-ex-id'); });
+          if (!ex) return;
+          var prev = selected[ex.id] || selected[ex.name] || {};
+          exercises.push({
+            exerciseId: ex.id,
+            name: ex.name,
+            sets: prev.sets || '3',
+            reps: prev.reps || '8',
+            weight: prev.weight || '',
+            rpe: prev.rpe || '',
+            rest: prev.rest || '90s',
+            tempo: prev.tempo || '',
+            notes: prev.notes || ''
+          });
+        });
+        if (!exercises.length) { toast('Pick at least one exercise'); return false; }
+        if (isAdd) {
+          store.workoutTemplates.push({
+            id: uid(),
+            name: v.name.trim(),
+            exercises: exercises,
+            updatedAt: new Date().toISOString()
+          });
+        } else {
+          tmpl.name = v.name.trim();
+          tmpl.exercises = exercises;
+          tmpl.updatedAt = new Date().toISOString();
+        }
+        saveData();
+        renderFitness();
+        renderPresets();
+        toast(isAdd ? 'Template created' : 'Template updated');
+      },
+      remove: function () {
+        if (!confirm('Delete template?')) return false;
+        removeTrainingById(store, tmpl.id, ['workoutTemplates']);
+        saveData();
+        renderFitness();
+        renderPresets();
+        toast('Deleted');
+        return true;
+      }
+    });
   }
 
   /* —— Session CRUD —— */
@@ -1432,26 +1652,37 @@
   /* —— Fitness / Soccer mounts —— */
   function renderFitness() {
     var workouts = store.sessions.filter(function (s) { return s.domain === 'fitness' && sessionMatches(s); });
-    var recent = workouts.filter(function (s) { return s.status === 'completed'; }).slice(-3).reverse();
     var planned = workouts.filter(function (s) { return s.status === 'planned'; }).slice(0, 4);
+    var tmpls = store.workoutTemplates || [];
     var html = '';
-    html += '<div class="card domain-fit">' +
-      '<div class="card-head"><h3>Current cycle</h3></div>' +
-      '<div class="mini-stat" style="font-size:16px">' + esc(store.cycle) + '</div>' +
-      '<p class="card-meta">Resume last workout or jump to planner</p>' +
-      '<div class="split"><button type="button" class="btn fitness" id="resumeFit">Resume last</button></div></div>';
 
     html += '<div class="card domain-fit">' +
-      '<div class="card-head"><h3>Workout templates</h3>' + iconBtn('noop', '') + '</div>' +
-      '<div class="preset-row">' + store.templates.fitness.map(function (p) {
-        return '<button type="button" class="btn" data-fit-preset="' + esc(p) + '">' + esc(p) + '</button>';
-      }).join('') + '</div></div>';
+      '<div class="card-head"><h3>Workout templates</h3>' +
+      '<button type="button" class="btn fitness" id="createTmplBtn">Create</button></div>' +
+      '<p class="card-meta">Build from the exercise library · click to place on a day · drag onto the weekly schedule</p>' +
+      (tmpls.length
+        ? '<div class="preset-row" style="flex-direction:column;align-items:stretch">' + tmpls.map(function (t) {
+            return '<div class="split" style="gap:6px;align-items:stretch">' +
+              '<button type="button" class="tmpl-chip" data-tmpl-id="' + esc(t.id) + '">' +
+                '<span class="t">' + esc(t.name) + '</span>' +
+                '<span class="m">' + (t.exercises || []).length + ' exercises · click or drag to schedule</span>' +
+              '</button>' +
+              '<div class="item-actions" style="flex-direction:column">' +
+                '<button type="button" class="icon-btn" data-tmpl-edit="' + esc(t.id) + '" title="Edit">✎</button>' +
+                '<button type="button" class="icon-btn danger" data-tmpl-del="' + esc(t.id) + '" title="Delete">✕</button>' +
+              '</div></div>';
+          }).join('') + '</div>'
+        : '<div class="empty-state"><strong>No templates yet</strong>Tap Create and pick exercises from your library.</div>') +
+      '</div>';
 
     html += '<div class="card domain-fit">' +
       '<div class="card-head"><h3>PR tracker</h3></div><ul class="list">' +
-      store.prs.map(function (p) {
-        return '<li class="list-item"><div><div class="title">' + esc(p.name) + '</div><div class="meta">' + esc(p.when) + '</div></div><div class="right">' + esc(p.value) + '</div></li>';
-      }).join('') + '</ul></div>';
+      ((store.prs || []).length
+        ? store.prs.map(function (p) {
+            return '<li class="list-item"><div><div class="title">' + esc(p.name) + '</div><div class="meta">' + esc(p.when) + '</div></div><div class="right">' + esc(p.value) + '</div></li>';
+          }).join('')
+        : '<li class="list-item"><div class="meta">No PRs logged yet</div></li>') +
+      '</ul></div>';
 
     html += '<div class="card domain-fit span-2">' +
       '<div class="card-head"><h3>Exercise library</h3><button type="button" class="btn" id="libAddEx">+ Exercise</button></div>' +
@@ -1463,31 +1694,53 @@
           '</td><td>' + esc(ex.lastPerf || '—') + '</td><td><div class="item-actions">' + iconBtn('edit', '✎') + iconBtn('del', '✕', ' danger') + '</div></td></tr>';
       }).join('') + '</tbody></table></div></div>';
 
-    html += '<div class="card domain-fit">' +
-      '<div class="card-head"><h3>Recent completed</h3></div>' +
-      (recent.length ? '<ul class="list">' + recent.map(function (s) {
-        return '<li class="list-item"><div><div class="title">' + esc(s.name) + '</div><div class="meta">' + esc(s.date) + ' · ' + esc(s.duration) + ' min</div></div>' +
-          '<div class="item-actions">' + iconBtn('edit', '✎') + '</div></li>';
-      }).join('') + '</ul>' : '<div class="empty-state"><strong>No completed workouts</strong></div>') + '</div>';
-
     html += '<div class="card domain-fit span-full">' +
       '<div class="card-head"><h3>Planned fitness sessions</h3></div>' +
       (planned.length ? '<ul class="list">' + planned.map(function (s) {
-        return '<li class="list-item"><div><div class="title">' + esc(s.name) + '</div><div class="meta">' + esc(s.date) + ' · ' + esc(s.goal) + '</div></div>' +
+        return '<li class="list-item"><div><div class="title">' + esc(s.name) + '</div><div class="meta">' + esc(s.date) + ' · ' + esc(s.goal) +
+          ' · ' + ((s.exercises || []).length) + ' exercises</div></div>' +
           '<div class="right">' + esc(s.status) + '</div>' +
           '<div class="item-actions">' + iconBtn('edit', '✎') + iconBtn('del', '✕', ' danger') + '</div></li>';
-      }).join('') + '</ul>' : '<div class="empty-state"><strong>No planned fitness work</strong></div>') + '</div>';
+      }).join('') + '</ul>' : '<div class="empty-state"><strong>No planned fitness work</strong>Schedule a template onto the week.</div>') + '</div>';
 
     $('fitnessMount').innerHTML = html;
-    var resume = $('resumeFit');
-    if (resume) resume.onclick = function () {
-      var last = store.sessions.filter(function (s) { return s.domain === 'fitness'; }).slice(-1)[0];
-      if (last) editSession(last); else toast('No workouts yet');
-    };
+    var createBtn = $('createTmplBtn');
+    if (createBtn) createBtn.onclick = function () { editWorkoutTemplate(null); };
     $('libAddEx').onclick = function () { editExercise(null); };
-    $('fitnessMount').querySelectorAll('[data-fit-preset]').forEach(function (b) {
-      b.onclick = function () { applyPreset('fitness', b.getAttribute('data-fit-preset')); };
+
+    $('fitnessMount').querySelectorAll('[data-tmpl-id]').forEach(function (b) {
+      var id = b.getAttribute('data-tmpl-id');
+      wireTemplateDrag(b, id);
+      b.onclick = function () {
+        if (b.getAttribute('data-dragging') === '1') return;
+        var tmpl = findWorkoutTemplate(id);
+        if (tmpl) scheduleTemplateChooser(tmpl);
+      };
+      b.addEventListener('dragstart', function () { b.setAttribute('data-dragging', '1'); });
+      b.addEventListener('dragend', function () {
+        setTimeout(function () { b.removeAttribute('data-dragging'); }, 0);
+      });
     });
+    $('fitnessMount').querySelectorAll('[data-tmpl-edit]').forEach(function (b) {
+      b.onclick = function (e) {
+        e.stopPropagation();
+        var tmpl = findWorkoutTemplate(b.getAttribute('data-tmpl-edit'));
+        if (tmpl) editWorkoutTemplate(tmpl);
+      };
+    });
+    $('fitnessMount').querySelectorAll('[data-tmpl-del]').forEach(function (b) {
+      b.onclick = function (e) {
+        e.stopPropagation();
+        var id = b.getAttribute('data-tmpl-del');
+        if (!confirm('Delete template?')) return;
+        removeTrainingById(store, id, ['workoutTemplates']);
+        saveData();
+        renderFitness();
+        renderPresets();
+        toast('Deleted');
+      };
+    });
+
     $('fitnessMount').querySelectorAll('tbody tr').forEach(function (row) {
       var id = row.getAttribute('data-id');
       var ex = store.exercises.find(function (x) { return x.id === id; });
@@ -2238,12 +2491,42 @@
   $('addSessionBtn').onclick = function () { openAddSessionChooser(); };
 
   paintTimer();
+  if (ensureScheduleWeek()) saveData();
   renderAll();
   // After laptop uploads sync metadata, push local bytes to Storage so phones can play.
   setTimeout(backfillCloudVideos, 800);
-  window.addEventListener('jg-sync-complete', function () {
+  window.addEventListener('jg-sync-complete', function (e) {
+    var detail = (e && e.detail) || {};
+    var keys = [].concat(detail.applied || [], detail.merged || []);
+    if (keys.indexOf(DATA_KEY) !== -1) {
+      store = loadData();
+      if (ensureScheduleWeek()) saveData();
+      renderAll();
+    }
     setTimeout(backfillCloudVideos, 400);
   });
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState !== 'visible') return;
+    if (ensureScheduleWeek()) {
+      saveData();
+      renderAll();
+      toast('New training week — schedule cleared');
+    }
+  });
+  window.addEventListener('focus', function () {
+    if (ensureScheduleWeek()) {
+      saveData();
+      renderAll();
+      toast('New training week — schedule cleared');
+    }
+  });
+  setInterval(function () {
+    if (ensureScheduleWeek()) {
+      saveData();
+      renderAll();
+      toast('New training week — schedule cleared');
+    }
+  }, 60000);
 })();
 
   </script>
