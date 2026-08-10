@@ -167,6 +167,16 @@
       padding: 7px 10px; border-radius: 10px; border: 1px solid var(--border);
       background: var(--input-bg); font-size: 13px; color: var(--text-primary); width: 100%;
     }
+    .field input[type="date"],
+    .field input[type="datetime-local"],
+    .field input[type="time"] {
+      min-height: 40px; color-scheme: dark; cursor: pointer;
+    }
+    [data-theme="light"] .field input[type="date"],
+    [data-theme="light"] .field input[type="datetime-local"],
+    [data-theme="light"] .field input[type="time"] {
+      color-scheme: light;
+    }
     .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
     .field label { font-size: 11px; font-weight: 600; color: var(--text-tertiary); }
     .field textarea { min-height: 72px; resize: vertical; }
@@ -1087,6 +1097,13 @@
     $('editExtra').innerHTML = cfg.extraHtml || '';
     if (typeof cfg.afterOpen === 'function') cfg.afterOpen();
     $('editModal').classList.add('open');
+    $('editFields').querySelectorAll('input[type="date"], input[type="datetime-local"], input[type="time"]').forEach(function (inp) {
+      inp.addEventListener('click', function () {
+        if (typeof inp.showPicker === 'function') {
+          try { inp.showPicker(); } catch (e) { /* unsupported */ }
+        }
+      });
+    });
   }
   function closeEdit() { $('editModal').classList.remove('open'); editCtx = null; }
   function readFields() {

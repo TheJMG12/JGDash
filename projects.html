@@ -463,6 +463,16 @@
       font-size: 13px;
       color: var(--text-primary);
     }
+    .field input[type="date"],
+    .field input[type="datetime-local"],
+    .field input[type="time"] {
+      min-height: 40px; color-scheme: dark; cursor: pointer;
+    }
+    [data-theme="light"] .field input[type="date"],
+    [data-theme="light"] .field input[type="datetime-local"],
+    [data-theme="light"] .field input[type="time"] {
+      color-scheme: light;
+    }
 
     .field textarea { min-height: 72px; resize: vertical; }
 
