@@ -306,6 +306,7 @@
         personal: {
           appointment: { when: '', therapist: '', mode: '', link: '', focus: '', tags: '' },
           mood: { lastSession: '', before: '', after: '', improved: '', difficult: '' },
+          notes: { topicsGoalsFocus: '' },
           goals: [],
           homework: [],
           journal: { sessionNotes: '', questions: '' },
@@ -315,6 +316,7 @@
         couples: {
           appointment: { when: '', therapist: '', mode: '', link: '', focus: '', tags: '' },
           checkin: { connection: '', conflict: '', gratitude: '' },
+          notes: { topicsGoalsFocus: '' },
           actions: [],
           themes: [],
           reflection: { improved: '', difficult: '' }
