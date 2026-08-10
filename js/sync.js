@@ -27,7 +27,7 @@
     projects_v1: ['items'],
     jg_media_data_v1: ['items', 'visuals', 'watchlist', 'books', 'feeds'],
     jg_finance_data_v1: ['transactions', 'budgets', 'goals', 'holdings', 'watchlist'],
-    jg_training_data_v1: ['sessions', 'exercises', 'drills', 'notes', 'videos', 'prs', 'milestones']
+    jg_training_data_v1: ['sessions', 'exercises', 'drills', 'notes', 'videos', 'prs', 'milestones', 'workoutTemplates']
   };
 
   // Nested object stores (health) — recursive id-aware merge.
