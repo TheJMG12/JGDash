@@ -333,6 +333,8 @@
       habits: {
         supplements: [],
         tracks: [],
+        weekKey: '',
+        water: { cups: 0, date: '', updatedAt: null },
         manual: { appetite: '', cravings: '', digestive: '', stressors: '' },
         symptoms: [],
         body: { weight: '', waist: '', notes: '' },
@@ -511,6 +513,60 @@
     });
   }
 
+  /** Water intake: newer calendar day wins; same day → updatedAt LWW. */
+  function mergeWaterIntake(a, b) {
+    if (!a || typeof a !== 'object') return b && typeof b === 'object' ? b : { cups: 0, date: '', updatedAt: null };
+    if (!b || typeof b !== 'object') return a;
+    var ad = String(a.date || '');
+    var bd = String(b.date || '');
+    if (ad !== bd) return ad > bd ? a : b;
+    var at = Date.parse(a.updatedAt) || 0;
+    var bt = Date.parse(b.updatedAt) || 0;
+    if (at !== bt) return at > bt ? a : b;
+    return (Number(a.cups) || 0) >= (Number(b.cups) || 0) ? a : b;
+  }
+
+  /**
+   * Habit weekKey is Monday (ET) of the habit week. Newer week wins patterns;
+   * tracks that exist only on the older week are kept with an empty pattern.
+   */
+  function reconcileHabitWeek(merged, localH, remoteH) {
+    if (!merged || typeof merged !== 'object') return;
+    if (!merged.habits || typeof merged.habits !== 'object') merged.habits = {};
+    var lh = (localH && localH.habits) || {};
+    var rh = (remoteH && remoteH.habits) || {};
+    var lKey = String(lh.weekKey || '');
+    var rKey = String(rh.weekKey || '');
+    merged.habits.water = mergeWaterIntake(lh.water, rh.water);
+    if (!lKey && !rKey) return;
+    if (lKey === rKey) {
+      merged.habits.weekKey = lKey;
+      return;
+    }
+    var preferLocal = lKey > rKey;
+    var winner = preferLocal ? lh : rh;
+    var loser = preferLocal ? rh : lh;
+    merged.habits.weekKey = preferLocal ? lKey : rKey;
+    var winMap = {};
+    var out = [];
+    (winner.tracks || []).forEach(function (t) {
+      if (!t || t.id == null) return;
+      winMap[String(t.id)] = true;
+      out.push(t);
+    });
+    (loser.tracks || []).forEach(function (t) {
+      if (!t || t.id == null) return;
+      if (winMap[String(t.id)]) return;
+      out.push({
+        id: t.id,
+        name: t.name,
+        pattern: [0, 0, 0, 0, 0, 0, 0],
+        updatedAt: t.updatedAt || new Date().toISOString()
+      });
+    });
+    merged.habits.tracks = out;
+  }
+
   function goalsHasTombstones(val) {
     var n = normalizeItemsStore(val);
     return Object.keys(n.tombstones || {}).length > 0;
@@ -595,6 +651,9 @@
         );
         // Revive/delete for meal slots follows clock mtime, not content-weight.
         reconcileMealSlotTombs(deep, localH, remoteH, preferRemoteByTime);
+        if (key === 'jg_health_data_v1') {
+          reconcileHabitWeek(deep, localH, remoteH);
+        }
         stripTombstonedDeep(deep, deep.tombstones);
       }
       return deep;
