@@ -180,7 +180,8 @@
     }
     .card h3 { font-size: 13px; font-weight: 700; margin-bottom: 10px; letter-spacing: -0.01em; }
     .card-meta { font-size: 11px; color: var(--text-tertiary); margin-bottom: 8px; }
-    .section { margin-bottom: 28px; scroll-margin-top: 16px; }
+    .section { margin-bottom: 28px; scroll-margin-top: 72px; }
+    #mealPlannerCard, #mealComposer { scroll-margin-top: 72px; }
     .section-head {
       display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px;
     }
@@ -723,7 +724,7 @@
           </div>
 
           <div id="nutritionMeals" class="nutrition-panel">
-            <div class="grid-4" style="margin-bottom:12px" id="nutritionTargetsMount"></div>
+            <!-- Planner first so Meal plan / Nutrition nav lands on the grid, not calorie cards -->
             <div class="card meal-composer" id="mealComposer" hidden>
               <div class="section-head" style="margin-bottom:10px">
                 <h3 style="margin:0" id="mealComposerHeading">Add meal</h3>
@@ -751,7 +752,7 @@
                 <button type="button" class="btn primary" id="mealComposerSave">Save meal</button>
               </div>
             </div>
-            <div class="card" style="overflow-x:auto">
+            <div class="card" id="mealPlannerCard" style="overflow-x:auto;margin-bottom:12px">
               <div class="section-head" style="margin-bottom:10px">
                 <h3 style="margin:0">Weekly meal planner</h3>
                 <span class="section-sub">Tap a cell or + Add meal</span>
@@ -759,6 +760,7 @@
               </div>
               <div class="meal-week" id="mealWeek" aria-label="Weekly meal plan"></div>
             </div>
+            <div class="grid-4" style="margin-bottom:12px" id="nutritionTargetsMount"></div>
           </div>
 
           <div id="nutritionGrocery" class="nutrition-panel hidden">
@@ -2104,12 +2106,13 @@
       var box = $('mealComposer');
       if (box) {
         box.hidden = false;
-        box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        scrollToEl(box);
       }
       setTimeout(function () {
         var title = $('mealComposerTitle');
         if (title) title.focus();
-      }, 30);
+        scrollToEl($('mealComposer') || $('mealPlannerCard'));
+      }, 60);
       toast(mealComposerIsAdd ? 'Enter a meal name, then Save meal' : 'Edit meal, then Save meal');
     }
 
@@ -2639,9 +2642,57 @@
     }
 
 
+    function scrollToEl(el, offsetPx) {
+      if (!el) return;
+      offsetPx = offsetPx == null ? 72 : offsetPx;
+      var scroller = $('mainScroll');
+      // Desktop: content scrolls inside #mainScroll. Mobile: page/body often scrolls instead.
+      var useScroller = scroller && scroller.scrollHeight > scroller.clientHeight + 4;
+      if (useScroller) {
+        var top = el.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop - offsetPx;
+        scroller.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      } else {
+        try {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } catch (e) {
+          el.scrollIntoView(true);
+        }
+        // Compensates sticky mobile bar / topbar covering the target.
+        setTimeout(function () {
+          var y = window.scrollY || document.documentElement.scrollTop || 0;
+          var delta = el.getBoundingClientRect().top - offsetPx;
+          if (Math.abs(delta) > 2) window.scrollBy({ top: delta, behavior: 'smooth' });
+        }, 50);
+      }
+    }
+
+    function goToMealPlanner(opts) {
+      opts = opts || {};
+      setNutritionTab('meals');
+      document.querySelectorAll('.sidebar .nav-link').forEach(function (n) {
+        var isMealPlan = n.getAttribute('data-nutrition-tab') === 'meals';
+        var isNutritionRoot = n.getAttribute('data-section') === 'nutrition' && !n.getAttribute('data-nutrition-tab');
+        n.classList.toggle('active', opts.fromQuickFilter ? isMealPlan : (isMealPlan || isNutritionRoot));
+      });
+      closeSidebar();
+      // Wait for tab unhide + sidebar close before measuring scroll targets.
+      var run = function () {
+        if (opts.openComposer) {
+          openMealComposer(opts.slot || '0-b', opts.meal || null);
+        } else {
+          scrollToEl($('mealPlannerCard') || $('mealWeek') || $('sec-nutrition'));
+        }
+      };
+      if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(function () { requestAnimationFrame(run); });
+      } else {
+        setTimeout(run, 40);
+      }
+    }
+
     function scrollToSection(id) {
       var el = $('sec-' + id);
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (el) scrollToEl(el);
       document.querySelectorAll('.sidebar .nav-link').forEach(function (n) {
         n.classList.toggle('active', n.getAttribute('data-section') === id && !n.getAttribute('data-nutrition-tab') && !n.getAttribute('data-therapy-tab'));
       });
@@ -2687,9 +2738,26 @@
     document.querySelectorAll('.sidebar .nav-link').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var sec = btn.getAttribute('data-section');
+        var nutTab = btn.getAttribute('data-nutrition-tab');
+        var therapyTab = btn.getAttribute('data-therapy-tab');
+
+        if (nutTab === 'meals' || (sec === 'nutrition' && !nutTab)) {
+          goToMealPlanner({ fromQuickFilter: nutTab === 'meals' });
+          return;
+        }
+        if (sec === 'nutrition' && nutTab) {
+          setNutritionTab(nutTab);
+          scrollToSection('nutrition');
+          // After scrolling to section, nudge to the active panel card when possible.
+          setTimeout(function () {
+            if (nutTab === 'grocery') scrollToEl($('nutritionGrocery') || $('sec-nutrition'));
+            if (nutTab === 'recipes') scrollToEl($('nutritionRecipes') || $('sec-nutrition'));
+          }, 40);
+          return;
+        }
+
         scrollToSection(sec);
-        if (btn.getAttribute('data-nutrition-tab')) setNutritionTab(btn.getAttribute('data-nutrition-tab'));
-        if (btn.getAttribute('data-therapy-tab')) setTherapyTab(btn.getAttribute('data-therapy-tab'));
+        if (therapyTab) setTherapyTab(therapyTab);
       });
     });
 
@@ -2697,7 +2765,18 @@
       b.addEventListener('click', function () { setTherapyTab(b.getAttribute('data-therapy-tab')); });
     });
     document.querySelectorAll('#sec-nutrition .panel-tabs [data-nutrition-tab]').forEach(function (b) {
-      b.addEventListener('click', function () { setNutritionTab(b.getAttribute('data-nutrition-tab')); });
+      b.addEventListener('click', function () {
+        var tab = b.getAttribute('data-nutrition-tab');
+        if (tab === 'meals') {
+          goToMealPlanner({ fromQuickFilter: true });
+          return;
+        }
+        setNutritionTab(tab);
+        setTimeout(function () {
+          if (tab === 'grocery') scrollToEl($('nutritionGrocery'));
+          if (tab === 'recipes') scrollToEl($('nutritionRecipes'));
+        }, 30);
+      });
     });
     document.querySelectorAll('[data-grocery-scope]').forEach(function (b) {
       b.addEventListener('click', function () {
@@ -3091,7 +3170,7 @@
 
         if (t.closest('#addMealBtn')) {
           e.preventDefault();
-          openMealComposer('0-b', null);
+          goToMealPlanner({ openComposer: true, slot: '0-b', fromQuickFilter: true });
           return;
         }
         if (t.closest('#mealComposerSave')) {
@@ -3211,11 +3290,17 @@
         var q = $('searchInput').value.toLowerCase();
         if (q.indexOf('whoop') !== -1) scrollToSection('whoop');
         else if (q.indexOf('therap') !== -1) scrollToSection('therapy');
-        else if (q.indexOf('meal') !== -1 || q.indexOf('grocery') !== -1 || q.indexOf('recipe') !== -1) {
+        else if (q.indexOf('grocery') !== -1) {
+          setNutritionTab('grocery');
           scrollToSection('nutrition');
-          if (q.indexOf('grocery') !== -1) setNutritionTab('grocery');
-          if (q.indexOf('recipe') !== -1) setNutritionTab('recipes');
-        }         else if (q.indexOf('habit') !== -1 || q.indexOf('water') !== -1) scrollToSection('habits');
+          setTimeout(function () { scrollToEl($('nutritionGrocery') || $('sec-nutrition')); }, 40);
+        } else if (q.indexOf('recipe') !== -1) {
+          setNutritionTab('recipes');
+          scrollToSection('nutrition');
+          setTimeout(function () { scrollToEl($('nutritionRecipes') || $('sec-nutrition')); }, 40);
+        } else if (q.indexOf('meal') !== -1 || q.indexOf('nutrition') !== -1 || q.indexOf('food') !== -1) {
+          goToMealPlanner({ fromQuickFilter: true });
+        } else if (q.indexOf('habit') !== -1 || q.indexOf('water') !== -1) scrollToSection('habits');
         else toast('Search: ' + $('searchInput').value);
       }
     });
