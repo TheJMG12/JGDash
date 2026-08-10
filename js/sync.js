@@ -299,17 +299,80 @@
     return obj;
   }
 
-  /** Health demo seed signature — used to avoid re-pushing sample therapy/nutrition over live cloud data. */
-  function looksLikeHealthDemoSeed(val) {
+  /** Empty Health blob — same shape as health.html defaultData (no sample content). */
+  function emptyHealthBlob() {
+    return {
+      therapy: {
+        personal: {
+          appointment: { when: '', therapist: '', mode: '', link: '', focus: '', tags: '' },
+          mood: { lastSession: '', before: '', after: '', improved: '', difficult: '' },
+          goals: [],
+          homework: [],
+          journal: { sessionNotes: '', questions: '' },
+          history: [],
+          reminders: []
+        },
+        couples: {
+          appointment: { when: '', therapist: '', mode: '', link: '', focus: '', tags: '' },
+          checkin: { connection: '', conflict: '', gratitude: '' },
+          actions: [],
+          themes: [],
+          reflection: { improved: '', difficult: '' }
+        }
+      },
+      nutrition: {
+        targets: { calories: '', protein: '', carbs: '', fat: '', prepDay: '', prepNotes: '', budget: '' },
+        meals: {},
+        grocery: [],
+        pantry: [],
+        aisleNotes: [],
+        recipes: []
+      },
+      habits: {
+        supplements: [],
+        tracks: [],
+        manual: { appetite: '', cravings: '', digestive: '', stressors: '' },
+        symptoms: [],
+        body: { weight: '', waist: '', notes: '' },
+        appointments: [],
+        dailyNotes: ''
+      },
+      tombstones: {}
+    };
+  }
+
+  /**
+   * Score unique strings from the old auto-seeded Health demo.
+   * Threshold keeps a lone "Greek yogurt bowl" meal from wiping real data.
+   */
+  function healthDemoScore(val) {
+    if (!val || typeof val !== 'object') return 0;
+    var score = 0;
     try {
-      var appt = val && val.therapy && val.therapy.personal && val.therapy.personal.appointment;
-      if (appt && String(appt.therapist || '') === 'Dr. Elena Vargas') return true;
-      var meal = val && val.nutrition && val.nutrition.meals && val.nutrition.meals['0-b'];
-      if (meal && String(meal.title || '') === 'Greek yogurt bowl') return true;
-      return false;
-    } catch (e) {
-      return false;
-    }
+      var therapy = val.therapy || {};
+      var personal = therapy.personal || {};
+      var couples = therapy.couples || {};
+      var pAppt = personal.appointment || {};
+      var cAppt = couples.appointment || {};
+      if (String(pAppt.therapist || '') === 'Dr. Elena Vargas') score += 3;
+      if (String(cAppt.therapist || '') === 'Jordan Lee, LMFT') score += 3;
+      if (String((personal.journal || {}).sessionNotes || '').indexOf('midweek overload pattern') !== -1) score += 2;
+      if (String((personal.mood || {}).improved || '').indexOf('pause-before-reply') !== -1) score += 2;
+      var meal = val.nutrition && val.nutrition.meals && val.nutrition.meals['0-b'];
+      if (meal && String(meal.title || '') === 'Greek yogurt bowl') score += 2;
+      if (String((val.habits || {}).dailyNotes || '').indexOf('Prep chicken for Wed/Thu') !== -1) score += 2;
+      var goals = (personal.goals) || [];
+      if (goals.some(function (g) { return g && String(g.title || '') === 'Reduce rumination after 9 PM'; })) score += 2;
+      var recipes = (val.nutrition && val.nutrition.recipes) || [];
+      if (recipes.some(function (r) { return r && String(r.title || '') === 'High-protein chicken bowl'; })) score += 1;
+    } catch (e) { /* ignore */ }
+    return score;
+  }
+
+  /** True when the blob is the old sample seed (or mostly that seed) — never treat as live user data.
+   *  Threshold 5: a lone leftover "Dr. Elena Vargas" field must not wipe real edits. */
+  function looksLikeHealthDemoSeed(val) {
+    return healthDemoScore(val) >= 5;
   }
 
   function healthContentWeight(val) {
@@ -333,6 +396,42 @@
     }
     walk(val);
     return n;
+  }
+
+  /**
+   * Resolve Health sync while treating demo seeds as non-data.
+   * Poisoned cloud rows that still contain Elena/etc. are discarded and purged.
+   */
+  function resolveHealthSync(localVal, remoteVal, localTime, remoteTime) {
+    var localDemo = looksLikeHealthDemoSeed(localVal);
+    var remoteDemo = looksLikeHealthDemoSeed(remoteVal);
+    var localUse = localDemo ? null : localVal;
+    var remoteUse = remoteDemo ? null : remoteVal;
+    var purgedDemo = !!(localDemo || remoteDemo);
+
+    if (localUse == null && remoteUse == null) {
+      return { finalVal: emptyHealthBlob(), forcePush: true, purgedDemo: true };
+    }
+    if (localUse == null) {
+      return { finalVal: remoteUse, forcePush: purgedDemo, purgedDemo: purgedDemo };
+    }
+    if (remoteUse == null) {
+      // Keep real local edits and push so cloud demo is overwritten.
+      return { finalVal: localUse, forcePush: true, purgedDemo: purgedDemo };
+    }
+    var merged = mergeKey('jg_health_data_v1', localUse, remoteUse, {
+      localTime: localTime,
+      remoteTime: remoteTime,
+      skipHealthDemoGuard: true
+    });
+    if (looksLikeHealthDemoSeed(merged)) {
+      return { finalVal: emptyHealthBlob(), forcePush: true, purgedDemo: true };
+    }
+    return {
+      finalVal: merged,
+      forcePush: purgedDemo || !valuesEqual(merged, remoteUse),
+      purgedDemo: purgedDemo
+    };
   }
 
   /**
@@ -452,19 +551,26 @@
     if (DEEP_MERGE_KEYS[key]) {
       var localTime = Number(opts.localTime) || 0;
       var remoteTime = Number(opts.remoteTime) || 0;
+      var localH = localVal;
+      var remoteH = remoteVal;
+      // Demo seeds are never authoritative — drop them before merging.
+      if (!opts.skipHealthDemoGuard && key === 'jg_health_data_v1') {
+        if (looksLikeHealthDemoSeed(localH)) localH = null;
+        if (looksLikeHealthDemoSeed(remoteH)) remoteH = null;
+        if (localH == null && remoteH == null) return emptyHealthBlob();
+        if (localH == null) return remoteH;
+        if (remoteH == null) return localH;
+      }
       // Scalar conflicts follow key mtime (newer device wins). Missing local mtime loses to cloud.
       var preferRemote = remoteTime > localTime;
-      // Recovery: demo seed / empty local must not clobber real cloud health data.
-      if (looksLikeHealthDemoSeed(localVal) && !looksLikeHealthDemoSeed(remoteVal)) {
-        preferRemote = true;
-      } else if (healthContentWeight(localVal) === 0 && healthContentWeight(remoteVal) > 0) {
+      if (healthContentWeight(localH) === 0 && healthContentWeight(remoteH) > 0) {
         preferRemote = true;
       }
-      var deep = deepMergeIdAware(localVal, remoteVal, preferRemote);
+      var deep = deepMergeIdAware(localH, remoteH, preferRemote);
       if (deep && typeof deep === 'object' && !Array.isArray(deep)) {
         deep.tombstones = mergeTombstones(
-          localVal && localVal.tombstones,
-          remoteVal && remoteVal.tombstones
+          localH && localH.tombstones,
+          remoteH && remoteH.tombstones
         );
         stripTombstonedDeep(deep, deep.tombstones);
       }
@@ -639,7 +745,21 @@
             var localChanged = false;
             var shouldPush = false;
 
-            if (remoteVal == null && localVal != null) {
+            // Health: discard poisoned demo seeds from either side and purge cloud.
+            if (key === 'jg_health_data_v1' && (localVal != null || remoteVal != null)) {
+              var healthRes = resolveHealthSync(localVal, remoteVal, localTime, remoteTime);
+              finalVal = healthRes.finalVal;
+              if (!valuesEqual(finalVal, localVal)) {
+                applyRemoteRow(key, finalVal, pushIso);
+                applied.push(key);
+                localChanged = true;
+                mergedKeys.push(key);
+                meta = readMeta();
+              }
+              if (healthRes.forcePush || localChanged || !valuesEqual(finalVal, remoteVal)) {
+                shouldPush = true;
+              }
+            } else if (remoteVal == null && localVal != null) {
               finalVal = localVal;
               shouldPush = true;
               if (!localMtime) {
@@ -665,15 +785,6 @@
                   finalVal = mergeKey(key, localVal, remoteVal, mergeOpts);
                   if (goalsItemCount(finalVal) === 0) finalVal = normalizeItemsStore(remoteVal);
                 }
-              }
-              // Health safety: never push a demo-seed blob over richer live cloud data.
-              if (key === 'jg_health_data_v1' &&
-                  looksLikeHealthDemoSeed(finalVal) && !looksLikeHealthDemoSeed(remoteVal) &&
-                  healthContentWeight(remoteVal) >= healthContentWeight(finalVal)) {
-                finalVal = mergeKey(key, localVal, remoteVal, {
-                  localTime: 0,
-                  remoteTime: remoteTime || 1
-                });
               }
               if (!valuesEqual(finalVal, localVal)) {
                 applyRemoteRow(key, finalVal, pushIso);
@@ -893,6 +1004,9 @@
     installHooks: installHooks,
     isSyncKey: isSyncKey,
     mergeKey: mergeKey,
+    looksLikeHealthDemoSeed: looksLikeHealthDemoSeed,
+    emptyHealthBlob: emptyHealthBlob,
+    resolveHealthSync: resolveHealthSync,
     getStatus: function () { return lastStatus; },
     onStatus: onStatus,
     META_KEY: META_KEY,
