@@ -367,6 +367,18 @@
       padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border);
       background: var(--input-bg); font-size: 13px; color: var(--text-primary); width: 100%;
     }
+    .field input[type="date"],
+    .field input[type="datetime-local"],
+    .field input[type="time"] {
+      min-height: 40px;
+      color-scheme: dark;
+      cursor: pointer;
+    }
+    [data-theme="light"] .field input[type="date"],
+    [data-theme="light"] .field input[type="datetime-local"],
+    [data-theme="light"] .field input[type="time"] {
+      color-scheme: light;
+    }
     .field textarea { min-height: 72px; resize: vertical; }
 
     .privacy-blur .sensitive-content {
@@ -916,6 +928,59 @@
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     };
 
+    /* —— Date / time helpers (native calendar pickers) —— */
+    function pad2(n) { return String(n).padStart(2, '0'); }
+    function toDateObj(val) {
+      if (val == null || val === '') return null;
+      if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
+      var s = String(val).trim();
+      if (!s) return null;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+        var d0 = new Date(s + 'T12:00:00');
+        return isNaN(d0.getTime()) ? null : d0;
+      }
+      if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s)) {
+        var d1 = new Date(s);
+        return isNaN(d1.getTime()) ? null : d1;
+      }
+      var loose = s.replace(/·/g, ' ').replace(/\s+/g, ' ');
+      var n = Date.parse(loose);
+      if (!isNaN(n)) return new Date(n);
+      return null;
+    }
+    function toDateInput(val) {
+      var d = toDateObj(val);
+      if (!d) return '';
+      return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+    }
+    function toDatetimeLocalInput(val) {
+      var d = toDateObj(val);
+      if (!d) return '';
+      return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) +
+        'T' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+    }
+    function formatDateDisplay(val) {
+      var d = toDateObj(val);
+      if (!d) return val ? String(val) : '';
+      try {
+        return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+      } catch (e) {
+        return toDateInput(val);
+      }
+    }
+    function formatDatetimeDisplay(val) {
+      var d = toDateObj(val);
+      if (!d) return val ? String(val) : '';
+      try {
+        return d.toLocaleString(undefined, {
+          weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
+          hour: 'numeric', minute: '2-digit'
+        });
+      } catch (e) {
+        return toDatetimeLocalInput(val);
+      }
+    }
+
     /* Empty defaults only — never auto-seed demo therapy/nutrition/habits into localStorage.
        Seeding used to stamp a sync mtime and overwrite live cloud data on the phone. */
     function defaultData() {
@@ -1400,9 +1465,21 @@
       opts = opts || {};
       if (!items || !items.length) return listEmpty(opts.empty);
       return '<ul class="list">' + items.map(function (it) {
+        var metaParts = [];
+        if (it.date) metaParts.push(formatDateDisplay(it.date));
+        if (it.when) metaParts.push(formatDatetimeDisplay(it.when));
+        if (it.meta) {
+          var metaStr = String(it.meta);
+          if (metaParts.indexOf(metaStr) === -1 &&
+              metaParts.indexOf(formatDateDisplay(metaStr)) === -1 &&
+              metaParts.indexOf(formatDatetimeDisplay(metaStr)) === -1) {
+            metaParts.push(metaStr);
+          }
+        }
+        var metaHtml = metaParts.length ? '<div class="meta">' + esc(metaParts.join(' · ')) + '</div>' : '';
         return '<li class="list-item" data-id="' + esc(it.id) + '">' +
           '<div><div class="title">' + esc(it.title || it.label || '') + '</div>' +
-          (it.meta ? '<div class="meta">' + esc(it.meta) + '</div>' : '') + '</div>' +
+          metaHtml + '</div>' +
           (it.status || it.right ? '<div class="right">' + esc(it.status || it.right) + '</div>' : '') +
           '<div class="item-actions">' +
             iconBtn('edit', '✎') + iconBtn('del', '✕', ' danger') +
@@ -1449,6 +1526,13 @@
         return '<div class="field' + full + '"><label for="ef_' + f.key + '">' + esc(f.label) + '</label>' + input + '</div>';
       }).join('');
       $('editModal').classList.add('open');
+      fields.querySelectorAll('input[type="date"], input[type="datetime-local"], input[type="time"]').forEach(function (inp) {
+        inp.addEventListener('click', function () {
+          if (typeof inp.showPicker === 'function') {
+            try { inp.showPicker(); } catch (e) { /* unsupported */ }
+          }
+        });
+      });
       var first = fields.querySelector('input,textarea,select');
       if (first) setTimeout(function () { first.focus(); }, 20);
     }
@@ -1488,7 +1572,7 @@
       html += '<div class="card sensitive">' +
         cardHead('Next appointment', iconBtn('edit-appt', '✎') + iconBtn('clear-appt', '✕', ' danger')) +
         '<p class="card-meta">Personal</p>' +
-        (ap.when ? '<div class="mini-stat" style="margin-bottom:6px">' + esc(ap.when) + '</div>' : listEmpty('No appointment set')) +
+        (ap.when ? '<div class="mini-stat" style="margin-bottom:6px">' + esc(formatDatetimeDisplay(ap.when)) + '</div>' : listEmpty('No appointment set')) +
         '<p style="font-size:13px;color:var(--text-secondary);line-height:1.45">' +
           esc([ap.therapist, ap.mode].filter(Boolean).join(' · ')) +
           (ap.focus ? '<br />Focus: ' + esc(ap.focus) : '') +
@@ -1497,7 +1581,7 @@
 
       html += '<div class="card sensitive">' +
         cardHead('Session mood check-in', iconBtn('edit-mood', '✎')) +
-        '<p class="card-meta">Before / after · last session ' + esc(mood.lastSession || '—') + '</p>' +
+        '<p class="card-meta">Before / after · last session ' + esc(mood.lastSession ? formatDateDisplay(mood.lastSession) : '—') + '</p>' +
         '<div class="grid-2" style="gap:8px">' +
           '<div class="field"><label>Before</label><input value="' + esc(mood.before || '') + '" readonly /></div>' +
           '<div class="field"><label>After</label><input value="' + esc(mood.after || '') + '" readonly /></div>' +
@@ -1538,14 +1622,17 @@
         openEditModal({
           title: 'Edit personal appointment', mode: 'edit', canDelete: true, kind: 'personal-appt',
           fields: [
-            { key: 'when', label: 'When', value: p.appointment.when, full: true, placeholder: 'Thu Jul 31 · 4:30 PM' },
+            { key: 'when', label: 'When', type: 'datetime-local', value: toDatetimeLocalInput(p.appointment.when), full: true },
             { key: 'therapist', label: 'Therapist', value: p.appointment.therapist },
             { key: 'mode', label: 'Mode / location', value: p.appointment.mode },
             { key: 'link', label: 'Link', value: p.appointment.link, full: true, placeholder: 'https://…' },
             { key: 'focus', label: 'Focus', value: p.appointment.focus, full: true },
             { key: 'tags', label: 'Tags (comma-separated)', value: p.appointment.tags, full: true }
           ],
-          save: function (v) { Object.assign(p.appointment, v); saveData(); renderTherapyPersonal(); toast('Appointment updated'); },
+          save: function (v) {
+            Object.assign(p.appointment, v, { when: v.when || '' });
+            saveData(); renderTherapyPersonal(); toast('Appointment updated');
+          },
           remove: function () {
             if (!confirmDelete('Clear personal appointment?')) return false;
             p.appointment = { when: '', therapist: '', mode: '', link: '', focus: '', tags: '' };
@@ -1562,13 +1649,16 @@
         openEditModal({
           title: 'Edit mood check-in', mode: 'edit', kind: 'personal-mood',
           fields: [
-            { key: 'lastSession', label: 'Last session date', value: p.mood.lastSession },
+            { key: 'lastSession', label: 'Last session date', type: 'date', value: toDateInput(p.mood.lastSession) },
             { key: 'before', label: 'Before', value: p.mood.before, full: true },
             { key: 'after', label: 'After', value: p.mood.after, full: true },
             { key: 'improved', label: 'What improved', type: 'textarea', value: p.mood.improved, full: true },
             { key: 'difficult', label: 'What felt difficult', type: 'textarea', value: p.mood.difficult, full: true }
           ],
-          save: function (v) { Object.assign(p.mood, v); saveData(); renderTherapyPersonal(); toast('Mood check-in updated'); }
+          save: function (v) {
+            Object.assign(p.mood, v, { lastSession: v.lastSession || '' });
+            saveData(); renderTherapyPersonal(); toast('Mood check-in updated');
+          }
         });
       };
       root.querySelector('[data-act="edit-journal"]').onclick = function () {
@@ -1595,22 +1685,41 @@
     function editListItem(listKey, item) {
       var isAdd = !item;
       var arr = store.therapy.personal[listKey];
+      var fields = [
+        { key: 'title', label: 'Title', value: item ? item.title : '', full: true }
+      ];
+      if (listKey === 'history' || listKey === 'reminders') {
+        fields.push({
+          key: 'date',
+          label: listKey === 'history' ? 'Session date' : 'Due date',
+          type: 'date',
+          value: toDateInput(item && (item.date || item.meta))
+        });
+      }
+      fields.push(
+        { key: 'meta', label: 'Details', value: item ? item.meta : '', full: true },
+        { key: 'status', label: listKey === 'history' ? 'Duration / right label' : 'Status', value: item ? (item.status || item.right || '') : '' }
+      );
       openEditModal({
         title: (isAdd ? 'Add' : 'Edit') + ' ' + listKey.slice(0, -1),
         mode: isAdd ? 'add' : 'edit', canDelete: !isAdd, kind: 'list-' + listKey,
-        fields: [
-          { key: 'title', label: 'Title', value: item ? item.title : '', full: true },
-          { key: 'meta', label: 'Details', value: item ? item.meta : '', full: true },
-          { key: 'status', label: listKey === 'history' ? 'Duration / right label' : 'Status', value: item ? (item.status || item.right || '') : '' }
-        ],
+        fields: fields,
         save: function (v) {
           if (!v.title.trim()) { $('editError').textContent = 'Title is required'; return false; }
+          var dateVal = v.date || '';
+          var metaVal = v.meta || '';
+          if (listKey === 'history' || listKey === 'reminders') {
+            if (dateVal && !metaVal) metaVal = formatDateDisplay(dateVal);
+          }
           if (isAdd) {
-            var row = { id: uid(), title: v.title.trim(), meta: v.meta, status: v.status };
+            var row = { id: uid(), title: v.title.trim(), meta: metaVal, status: v.status };
+            if (listKey === 'history' || listKey === 'reminders') row.date = dateVal;
             if (listKey === 'history') { row.right = v.status; delete row.status; }
             arr.push(row);
           } else {
-            item.title = v.title.trim(); item.meta = v.meta;
+            item.title = v.title.trim();
+            item.meta = metaVal;
+            if (listKey === 'history' || listKey === 'reminders') item.date = dateVal;
             if (listKey === 'history') item.right = v.status; else item.status = v.status;
           }
           saveData(); renderTherapyPersonal(); toast(isAdd ? 'Added' : 'Updated');
@@ -1631,13 +1740,17 @@
         mode: isAdd ? 'add' : 'edit', canDelete: !isAdd,
         fields: [
           { key: 'label', label: 'Item', value: item ? item.label : '', full: true },
-          { key: 'tag', label: 'Tag / due', value: item ? item.tag : '' },
+          { key: 'due', label: 'Due date', type: 'date', value: toDateInput(item && (item.due || item.tag)) },
+          { key: 'tag', label: 'Tag', value: item ? (item.due ? item.tag : (toDateInput(item.tag) ? '' : (item.tag || ''))) : '' },
           { key: 'done', label: 'Completed', type: 'checkbox', value: item ? item.done : false, checkLabel: 'Done' }
         ],
         save: function (v) {
           if (!v.label.trim()) { $('editError').textContent = 'Item text is required'; return false; }
-          if (isAdd) arr.push({ id: uid(), label: v.label.trim(), tag: v.tag, done: !!v.done });
-          else { item.label = v.label.trim(); item.tag = v.tag; item.done = !!v.done; }
+          var due = v.due || '';
+          var tag = (v.tag || '').trim();
+          if (due && !tag) tag = 'Due ' + formatDateDisplay(due);
+          if (isAdd) arr.push({ id: uid(), label: v.label.trim(), tag: tag, due: due, done: !!v.done });
+          else { item.label = v.label.trim(); item.tag = tag; item.due = due; item.done = !!v.done; }
           saveData(); renderTherapyPersonal(); toast(isAdd ? 'Added' : 'Updated');
         },
         remove: function () {
@@ -1688,7 +1801,7 @@
       html += '<div class="card sensitive">' +
         cardHead('Next appointment', iconBtn('edit-appt', '✎') + iconBtn('clear-appt', '✕', ' danger')) +
         '<p class="card-meta">Couples</p>' +
-        (ap.when ? '<div class="mini-stat" style="margin-bottom:6px">' + esc(ap.when) + '</div>' : listEmpty('No appointment set')) +
+        (ap.when ? '<div class="mini-stat" style="margin-bottom:6px">' + esc(formatDatetimeDisplay(ap.when)) + '</div>' : listEmpty('No appointment set')) +
         '<p style="font-size:13px;color:var(--text-secondary);line-height:1.45">' +
           esc([ap.therapist, ap.mode].filter(Boolean).join(' · ')) +
           (ap.focus ? '<br />Focus: ' + esc(ap.focus) : '') +
@@ -1726,14 +1839,17 @@
         openEditModal({
           title: 'Edit couples appointment', mode: 'edit', canDelete: true,
           fields: [
-            { key: 'when', label: 'When', value: c.appointment.when, full: true },
+            { key: 'when', label: 'When', type: 'datetime-local', value: toDatetimeLocalInput(c.appointment.when), full: true },
             { key: 'therapist', label: 'Therapist', value: c.appointment.therapist },
             { key: 'mode', label: 'Mode / location', value: c.appointment.mode },
             { key: 'link', label: 'Link', value: c.appointment.link, full: true },
             { key: 'focus', label: 'Focus', value: c.appointment.focus, full: true },
             { key: 'tags', label: 'Tags', value: c.appointment.tags, full: true }
           ],
-          save: function (v) { Object.assign(c.appointment, v); saveData(); renderTherapyCouples(); toast('Appointment updated'); },
+          save: function (v) {
+            Object.assign(c.appointment, v, { when: v.when || '' });
+            saveData(); renderTherapyCouples(); toast('Appointment updated');
+          },
           remove: function () {
             if (!confirmDelete('Clear couples appointment?')) return false;
             c.appointment = { when: '', therapist: '', mode: '', link: '', focus: '', tags: '' };
@@ -2416,17 +2532,32 @@
     }
     function editHabitAppt(item) {
       var isAdd = !item;
+      var existingWhen = item ? (item.when || item.meta) : '';
+      var existingDetails = item ? (item.details || (toDateInput(item && item.meta) ? '' : (item.meta || ''))) : '';
       openEditModal({
         title: (isAdd ? 'Add' : 'Edit') + ' appointment', mode: isAdd ? 'add' : 'edit', canDelete: !isAdd,
         fields: [
           { key: 'title', label: 'Title', value: item ? item.title : '', full: true },
-          { key: 'meta', label: 'When / details', value: item ? item.meta : '', full: true },
+          { key: 'when', label: 'When', type: 'datetime-local', value: toDatetimeLocalInput(existingWhen), full: true },
+          { key: 'details', label: 'Details', value: existingDetails, full: true },
           { key: 'status', label: 'Status', value: item ? item.status : 'Open' }
         ],
         save: function (v) {
           if (!v.title.trim()) { $('editError').textContent = 'Required'; return false; }
-          if (isAdd) store.habits.appointments.push({ id: uid(), title: v.title.trim(), meta: v.meta, status: v.status });
-          else { item.title = v.title.trim(); item.meta = v.meta; item.status = v.status; }
+          var when = v.when || '';
+          var details = (v.details || '').trim();
+          var meta = [when ? formatDatetimeDisplay(when) : '', details].filter(Boolean).join(' · ');
+          if (isAdd) {
+            store.habits.appointments.push({
+              id: uid(), title: v.title.trim(), when: when, details: details, meta: meta, status: v.status
+            });
+          } else {
+            item.title = v.title.trim();
+            item.when = when;
+            item.details = details;
+            item.meta = meta;
+            item.status = v.status;
+          }
           saveData(); renderHabits(); toast(isAdd ? 'Added' : 'Updated');
         },
         remove: function () {
