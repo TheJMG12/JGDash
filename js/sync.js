@@ -491,6 +491,24 @@
     return obj;
   }
 
+  /**
+   * Meal slots reuse keys (0-b, …). Tombstone union alone would re-kill a re-add when
+   * the other device still has meal:<slot>. Use clock mtime (not content-weight): if the
+   * newer device still has that slot filled, drop the tombstone (revive). Deletes on the
+   * newer device keep the tomb and strip still removes the older meal.
+   */
+  function reconcileMealSlotTombs(merged, localH, remoteH, preferRemoteByTime) {
+    if (!merged || typeof merged !== 'object') return;
+    if (!merged.tombstones || typeof merged.tombstones !== 'object') return;
+    var preferred = preferRemoteByTime ? remoteH : localH;
+    var preferMeals = (preferred && preferred.nutrition && preferred.nutrition.meals) || {};
+    Object.keys(merged.tombstones).forEach(function (id) {
+      if (String(id).indexOf('meal:') !== 0) return;
+      var slot = String(id).slice(5);
+      if (preferMeals[slot]) delete merged.tombstones[id];
+    });
+  }
+
   function goalsHasTombstones(val) {
     var n = normalizeItemsStore(val);
     return Object.keys(n.tombstones || {}).length > 0;
@@ -562,7 +580,8 @@
         if (remoteH == null) return localH;
       }
       // Scalar conflicts follow key mtime (newer device wins). Missing local mtime loses to cloud.
-      var preferRemote = remoteTime > localTime;
+      var preferRemoteByTime = remoteTime > localTime;
+      var preferRemote = preferRemoteByTime;
       if (healthContentWeight(localH) === 0 && healthContentWeight(remoteH) > 0) {
         preferRemote = true;
       }
@@ -572,6 +591,8 @@
           localH && localH.tombstones,
           remoteH && remoteH.tombstones
         );
+        // Revive/delete for meal slots follows clock mtime, not content-weight.
+        reconcileMealSlotTombs(deep, localH, remoteH, preferRemoteByTime);
         stripTombstonedDeep(deep, deep.tombstones);
       }
       return deep;
