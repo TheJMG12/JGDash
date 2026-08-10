@@ -32,6 +32,7 @@
       --accent: #6BE3A4;
       --fitness: #7DD3FC;
       --soccer: #F2C063;
+      --game: #86EFAC;
       --border: rgba(255, 255, 255, 0.08);
       --input-bg: rgba(255, 255, 255, 0.05);
       --sidebar-w: 220px;
@@ -52,6 +53,7 @@
       --accent: #1F9D62;
       --fitness: #0284C7;
       --soccer: #C4841A;
+      --game: #15803D;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { height: 100%; }
@@ -162,6 +164,10 @@
       background: color-mix(in srgb, var(--soccer) 18%, transparent);
       border-color: color-mix(in srgb, var(--soccer) 40%, transparent); color: var(--soccer);
     }
+    .btn.game {
+      background: color-mix(in srgb, var(--game) 18%, transparent);
+      border-color: color-mix(in srgb, var(--game) 40%, transparent); color: var(--game);
+    }
     .btn.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 35%, transparent); }
     .select, .field input, .field textarea, .field select {
       padding: 7px 10px; border-radius: 10px; border: 1px solid var(--border);
@@ -203,6 +209,7 @@
     }
     .badge.fit { color: var(--fitness); border-color: color-mix(in srgb, var(--fitness) 40%, transparent); }
     .badge.soc { color: var(--soccer); border-color: color-mix(in srgb, var(--soccer) 40%, transparent); }
+    .badge.game { color: var(--game); border-color: color-mix(in srgb, var(--game) 40%, transparent); }
     .badge.ok { color: var(--success); border-color: color-mix(in srgb, var(--success) 40%, transparent); }
     .badge.warn { color: var(--warning); border-color: color-mix(in srgb, var(--warning) 40%, transparent); }
     .kpi-row { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; margin-bottom: 14px; }
@@ -218,6 +225,9 @@
     .kpi-delta.down { color: var(--danger); }
     .spark { display: flex; align-items: flex-end; gap: 2px; height: 18px; margin-top: auto; }
     .spark i { flex: 1; border-radius: 2px; background: color-mix(in srgb, var(--accent) 40%, transparent); min-height: 3px; }
+    .spark i.fit { background: color-mix(in srgb, var(--fitness) 55%, transparent); }
+    .spark i.soc { background: color-mix(in srgb, var(--soccer) 55%, transparent); }
+    .spark i.game { background: color-mix(in srgb, var(--game) 55%, transparent); }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
     .grid-2 > *,
@@ -243,6 +253,7 @@
     }
     .sess-chip.fit { border-left: 3px solid var(--fitness); }
     .sess-chip.soc { border-left: 3px solid var(--soccer); }
+    .sess-chip.game { border-left: 3px solid var(--game); }
     .sess-chip .t { font-weight: 700; color: var(--text-primary); }
     .sess-chip .m { color: var(--text-tertiary); margin-top: 2px; }
     .sess-chip.drag-over { outline: 1px dashed var(--accent); }
@@ -384,6 +395,7 @@
     }
     .chart-bar.fit { background: color-mix(in srgb, var(--fitness) 45%, transparent); }
     .chart-bar.soc { background: color-mix(in srgb, var(--soccer) 45%, transparent); }
+    .chart-bar.game { background: color-mix(in srgb, var(--game) 45%, transparent); }
     .heat {
       display: grid; grid-template-columns: repeat(14, 1fr); gap: 3px;
     }
@@ -530,13 +542,14 @@
             <option value="all">Domain: All</option>
             <option value="fitness">Fitness</option>
             <option value="soccer">Soccer</option>
+            <option value="game">Game</option>
           </select>
           <select class="select" id="fGoal" aria-label="Goal">
             <option value="all">Goal: All</option>
             <option>strength</option><option>hypertrophy</option><option>conditioning</option>
             <option>speed</option><option>agility</option><option>endurance</option>
             <option>technical</option><option>tactical</option><option>finishing</option>
-            <option>ball mastery</option><option>recovery/mobility</option>
+            <option>ball mastery</option><option>recovery/mobility</option><option>match</option>
           </select>
           <select class="select" id="fStatus" aria-label="Status">
             <option value="all">Status: All</option>
@@ -642,9 +655,10 @@
           </div>
           <div class="video-toolbar" id="videoToolbar">
             <select class="select" id="videoFilterDomain" aria-label="Filter by domain">
-              <option value="all">All domains</option>
-              <option value="fitness">fitness</option>
-              <option value="soccer">soccer</option>
+            <option value="all">All domains</option>
+            <option value="fitness">fitness</option>
+            <option value="soccer">soccer</option>
+            <option value="game">game</option>
             </select>
             <select class="select" id="videoFilterLinked" aria-label="Filter by linked name">
               <option value="all">All linked names</option>
@@ -1134,11 +1148,29 @@
     return out;
   }
 
+  function domainChipClass(domain) {
+    if (domain === 'fitness') return 'fit';
+    if (domain === 'game') return 'game';
+    return 'soc';
+  }
+
+  function domainBadgeClass(domain) {
+    return domainChipClass(domain);
+  }
+
+  function sessionTitleForDomain(domain, isAdd) {
+    var prefix = isAdd ? 'Add' : 'Edit';
+    if (domain === 'fitness') return prefix + ' fitness workout';
+    if (domain === 'game') return prefix + ' game / match';
+    return prefix + ' soccer session';
+  }
+
   /* —— KPI —— */
   function renderKpis() {
     var ws = weekSessions();
     var fit = ws.filter(function (s) { return s.domain === 'fitness'; });
     var soc = ws.filter(function (s) { return s.domain === 'soccer'; });
+    var games = ws.filter(function (s) { return s.domain === 'game'; });
     var mins = ws.reduce(function (a, s) { return a + (Number(s.duration) || 0); }, 0);
     var planned = ws.filter(function (s) { return s.status === 'planned'; }).length;
     var completed = ws.filter(function (s) { return s.status === 'completed'; }).length;
@@ -1147,9 +1179,9 @@
       { label: 'Sessions this week', value: ws.length, delta: '+2 vs last', up: true, spark: [2,3,4,3,5,4, ws.length] },
       { label: 'Fitness workouts', value: fit.length, delta: '+1', up: true, spark: [1,2,1,2,2,1, fit.length], cls: 'fit' },
       { label: 'Soccer sessions', value: soc.length, delta: '+1', up: true, spark: [1,1,2,1,2,1, soc.length], cls: 'soc' },
+      { label: 'Games / matches', value: games.length, delta: 'this week', up: true, spark: [0,1,0,0,1,0, games.length], cls: 'game' },
       { label: 'Training minutes', value: mins, delta: '+40', up: true, spark: [40,55,30,60,45,50, Math.min(90, mins / 10)] },
       { label: 'Current streak', value: store.streak + 'd', delta: 'best 12d', up: true, spark: [1,1,1,0,1,1,1] },
-      { label: 'PRs this month', value: store.prs.length, delta: '2 logged', up: true, spark: [0,1,0,1,0,0,2] },
       { label: 'Planned vs done', value: completed + '/' + (planned + completed), delta: planned + ' left', up: completed >= planned, spark: [1,2,2,3,2,3, completed] },
       { label: 'Drill volume', value: drillVol, delta: 'soccer', up: true, spark: [1,2,1,3,2,2, drillVol], cls: 'soc' }
     ];
@@ -1170,23 +1202,35 @@
     var today = todayIso();
     var list = store.sessions.filter(function (s) { return s.date === today && sessionMatches(s); });
     var s = list[0] || store.sessions.filter(function (x) { return x.status === 'planned' && sessionMatches(x); })[0];
-      if (!s) {
+    if (!s) {
       $('todayCard').innerHTML = '<div class="card-head"><h3>Today\'s Training</h3></div><div class="empty-state"><strong>No planned training</strong>Schedule a workout template or add a session.</div>';
       return;
     }
-    var count = s.domain === 'fitness' ? (s.exercises || []).length : (s.drills || []).length;
+    var metaBits = [];
+    if (s.domain === 'game') {
+      if (s.opponent) metaBits.push('vs ' + s.opponent);
+      if (s.competition) metaBits.push(s.competition);
+      if (s.result) metaBits.push(s.result);
+      if (s.score) metaBits.push(s.score);
+      metaBits.push((s.duration || 90) + ' min');
+    } else {
+      metaBits.push(s.type || s.goal || '—');
+      metaBits.push(s.focus || '—');
+      metaBits.push((s.duration || 0) + ' min');
+      metaBits.push((s.domain === 'fitness' ? (s.exercises || []).length : (s.drills || []).length) + ' items');
+    }
     $('todayCard').innerHTML =
-      '<div class="card-head"><h3>Today\'s Training</h3><span class="badge ' + (s.domain === 'fitness' ? 'fit' : 'soc') + '">' + esc(s.domain) + '</span></div>' +
+      '<div class="card-head"><h3>Today\'s Training</h3><span class="badge ' + domainBadgeClass(s.domain) + '">' + esc(s.domain) + '</span></div>' +
       '<div class="mini-stat" style="margin-bottom:6px">' + esc(s.name) + '</div>' +
-      '<p class="card-meta">' + esc(s.type || s.goal) + ' · ' + esc(s.focus || '—') + ' · ' + esc(s.duration) + ' min · ' + count + ' items</p>' +
+      '<p class="card-meta">' + esc(metaBits.join(' · ')) + '</p>' +
       '<div class="split">' +
-        '<button type="button" class="btn primary" id="startSessionBtn">Start session</button>' +
+        '<button type="button" class="btn primary" id="startSessionBtn">' + (s.domain === 'game' ? 'Mark played' : 'Start session') + '</button>' +
         '<button type="button" class="btn" data-edit-sess="' + esc(s.id) + '">Edit</button>' +
         '<button type="button" class="btn" data-dup-sess="' + esc(s.id) + '">Duplicate</button>' +
       '</div>';
     $('startSessionBtn').onclick = function () {
       s.status = 'completed';
-      saveData(); renderAll(); toast('Session completed');
+      saveData(); renderAll(); toast(s.domain === 'game' ? 'Match logged as played' : 'Session completed');
     };
     var ed = $('todayCard').querySelector('[data-edit-sess]');
     if (ed) ed.onclick = function () { editSession(s); };
@@ -1204,10 +1248,12 @@
         '<div class="day-h' + (isToday ? ' today' : '') + '">' + d + (isRest ? ' · Rest' : '') + '</div>';
       if (!daySess.length && isRest) html += '<div class="card-meta">Recovery day</div>';
       daySess.forEach(function (s) {
-        html += '<div class="sess-chip ' + (s.domain === 'fitness' ? 'fit' : 'soc') + '" draggable="true" data-id="' + esc(s.id) + '">' +
+        html += '<div class="sess-chip ' + domainChipClass(s.domain) + '" draggable="true" data-id="' + esc(s.id) + '">' +
           '<div class="t">' + esc(s.name) + '</div>' +
-          '<div class="m">' + esc(s.status) + ' · ' + esc(s.duration) + 'm' + (s.videoIds && s.videoIds.length ? ' · ▶' : '') +
-          ((s.exercises || []).length ? ' · ' + s.exercises.length + ' ex' : '') + '</div></div>';
+          '<div class="m">' + esc(s.status) + ' · ' + esc(s.duration) + 'm' +
+          (s.domain === 'game' && s.opponent ? ' · vs ' + esc(s.opponent) : '') +
+          (s.domain === 'fitness' && (s.exercises || []).length ? ' · ' + s.exercises.length + ' ex' : '') +
+          (s.videoIds && s.videoIds.length ? ' · ▶' : '') + '</div></div>';
       });
       html += '<button type="button" class="btn" style="margin-top:auto;font-size:11px;padding:4px 8px" data-add-day="' + i + '">+</button></div>';
     });
@@ -1494,21 +1540,19 @@
   function openAddSessionChooser(dateIso) {
     openEdit({
       title: 'Add Session',
-      lead: 'Choose a domain to start planning.',
+      lead: 'Choose Fitness, Soccer training, or a Game / match.',
       mode: 'add',
       fields: [
         { key: 'domain', label: 'Session type', type: 'select', value: 'fitness', full: true,
-          options: [{ value: 'fitness', label: 'Fitness Workout' }, { value: 'soccer', label: 'Soccer Training Session' }] },
+          options: [
+            { value: 'fitness', label: 'Fitness Workout' },
+            { value: 'soccer', label: 'Soccer Training Session' },
+            { value: 'game', label: 'Game / Match' }
+          ] },
         { key: 'date', label: 'Date', type: 'date', value: dateIso || todayIso() }
       ],
-      save: function (v) {
-        closeEdit();
-        if (v.domain === 'soccer') editSession(null, { domain: 'soccer', date: v.date });
-        else editSession(null, { domain: 'fitness', date: v.date });
-        return false; // keep closed; we reopen
-      }
+      save: function () { return false; }
     });
-    // Override save to reopen - handle specially
     $('editSave').onclick = function () {
       var v = readFields();
       closeEdit();
@@ -1524,48 +1568,79 @@
     var domain = s ? s.domain : (seed.domain || 'fitness');
     var draft = s ? JSON.parse(JSON.stringify(s)) : {
       id: uid(), domain: domain, name: '', date: seed.date || todayIso(), status: 'planned',
-      goal: domain === 'fitness' ? 'strength' : 'technical', type: '', focus: '', duration: 45,
+      goal: domain === 'fitness' ? 'strength' : (domain === 'game' ? 'match' : 'technical'),
+      type: domain === 'game' ? 'Game' : '',
+      focus: '', duration: domain === 'game' ? 90 : 45,
       tags: '', notes: '', exercises: [], drills: [], videoIds: [], checklist: [],
       pinned: false, favorite: false, location: '', equipment: '', intensity: 'moderate',
-      warmup: '', cooldown: ''
+      warmup: '', cooldown: '',
+      opponent: '', competition: '', result: '', score: '', position: ''
     };
 
-    var fields = [
-      { key: 'name', label: 'Session name', value: draft.name, full: true },
-      { key: 'date', label: 'Date', type: 'date', value: draft.date },
-      { key: 'status', label: 'Status', type: 'select', value: draft.status, options: ['planned', 'completed', 'skipped'] },
-      { key: 'goal', label: 'Goal / objective', value: draft.goal },
-      { key: 'type', label: 'Type', value: draft.type },
-      { key: 'focus', label: 'Focus area', value: draft.focus },
-      { key: 'duration', label: 'Duration (min)', type: 'number', value: draft.duration },
-      { key: 'tags', label: 'Tags', value: draft.tags },
-      { key: 'notes', label: 'Notes', type: 'textarea', value: draft.notes, full: true }
-    ];
-    if (domain === 'soccer') {
-      fields.splice(6, 0,
-        { key: 'location', label: 'Location', value: draft.location },
-        { key: 'equipment', label: 'Equipment', value: draft.equipment },
-        { key: 'intensity', label: 'Intensity', type: 'select', value: draft.intensity || 'moderate', options: ['low', 'moderate', 'high'] }
-      );
+    var fields;
+    if (domain === 'game') {
+      fields = [
+        { key: 'name', label: 'Match title', value: draft.name, full: true, placeholder: 'e.g. vs Riverside FC' },
+        { key: 'date', label: 'Date', type: 'date', value: draft.date },
+        { key: 'status', label: 'Status', type: 'select', value: draft.status, options: ['planned', 'completed', 'skipped'] },
+        { key: 'opponent', label: 'Opponent', value: draft.opponent || '', full: true },
+        { key: 'competition', label: 'Competition', value: draft.competition || '', placeholder: 'League / Cup / Friendly' },
+        { key: 'location', label: 'Location / venue', value: draft.location || '' },
+        { key: 'position', label: 'Your position / role', value: draft.position || '' },
+        { key: 'duration', label: 'Duration (min)', type: 'number', value: draft.duration || 90 },
+        { key: 'result', label: 'Result', type: 'select', value: draft.result || '', options: [
+          { value: '', label: '—' },
+          { value: 'Win', label: 'Win' },
+          { value: 'Draw', label: 'Draw' },
+          { value: 'Loss', label: 'Loss' }
+        ] },
+        { key: 'score', label: 'Score', value: draft.score || '', placeholder: 'e.g. 2–1' },
+        { key: 'notes', label: 'Match notes', type: 'textarea', value: draft.notes, full: true },
+        { key: 'pinned', label: 'Pinned', type: 'checkbox', value: draft.pinned, checkLabel: 'Pin match' },
+        { key: 'favorite', label: 'Favorite', type: 'checkbox', value: draft.favorite, checkLabel: 'Favorite' }
+      ];
     } else {
+      fields = [
+        { key: 'name', label: 'Session name', value: draft.name, full: true },
+        { key: 'date', label: 'Date', type: 'date', value: draft.date },
+        { key: 'status', label: 'Status', type: 'select', value: draft.status, options: ['planned', 'completed', 'skipped'] },
+        { key: 'goal', label: 'Goal / objective', value: draft.goal },
+        { key: 'type', label: 'Type', value: draft.type },
+        { key: 'focus', label: 'Focus area', value: draft.focus },
+        { key: 'duration', label: 'Duration (min)', type: 'number', value: draft.duration },
+        { key: 'tags', label: 'Tags', value: draft.tags },
+        { key: 'notes', label: 'Notes', type: 'textarea', value: draft.notes, full: true }
+      ];
+      if (domain === 'soccer') {
+        fields.splice(6, 0,
+          { key: 'location', label: 'Location', value: draft.location },
+          { key: 'equipment', label: 'Equipment', value: draft.equipment },
+          { key: 'intensity', label: 'Intensity', type: 'select', value: draft.intensity || 'moderate', options: ['low', 'moderate', 'high'] }
+        );
+      } else {
+        fields.push(
+          { key: 'warmup', label: 'Warm-up notes', type: 'textarea', value: draft.warmup || '', full: true },
+          { key: 'cooldown', label: 'Cooldown notes', type: 'textarea', value: draft.cooldown || '', full: true }
+        );
+      }
       fields.push(
-        { key: 'warmup', label: 'Warm-up notes', type: 'textarea', value: draft.warmup || '', full: true },
-        { key: 'cooldown', label: 'Cooldown notes', type: 'textarea', value: draft.cooldown || '', full: true }
+        { key: 'pinned', label: 'Pinned', type: 'checkbox', value: draft.pinned, checkLabel: 'Pin session' },
+        { key: 'favorite', label: 'Favorite', type: 'checkbox', value: draft.favorite, checkLabel: 'Favorite routine' }
       );
     }
-    fields.push(
-      { key: 'pinned', label: 'Pinned', type: 'checkbox', value: draft.pinned, checkLabel: 'Pin session' },
-      { key: 'favorite', label: 'Favorite', type: 'checkbox', value: draft.favorite, checkLabel: 'Favorite routine' }
-    );
 
-    var extra = '<div class="card" style="margin-top:8px"><div class="card-head"><h3>' +
-      (domain === 'fitness' ? 'Exercises' : 'Drills') + '</h3>' +
-      '<button type="button" class="btn" id="addLineBtn">+ Add</button></div><div id="linesMount"></div></div>';
+    var extra = '';
+    if (domain === 'fitness' || domain === 'soccer') {
+      extra = '<div class="card" style="margin-top:8px"><div class="card-head"><h3>' +
+        (domain === 'fitness' ? 'Exercises' : 'Drills') + '</h3>' +
+        '<button type="button" class="btn" id="addLineBtn">+ Add</button></div><div id="linesMount"></div></div>';
+    }
 
     openEdit({
-      title: (isAdd ? 'Add' : 'Edit') + (domain === 'fitness' ? ' fitness workout' : ' soccer session'),
+      title: sessionTitleForDomain(domain, isAdd),
       mode: isAdd ? 'add' : 'edit', canDelete: !isAdd, fields: fields, extraHtml: extra,
       afterOpen: function () {
+        if (domain !== 'fitness' && domain !== 'soccer') return;
         renderLinesEditor(domain, draft);
         $('addLineBtn').onclick = function () {
           if (domain === 'fitness') draft.exercises.push({ name: '', sets: '3', reps: '8', weight: '', rpe: '', rest: '90s', tempo: '', notes: '', timeDistance: '' });
@@ -1576,6 +1651,12 @@
       save: function (v) {
         if (!v.name.trim()) { toast('Name required'); return false; }
         Object.assign(draft, v);
+        draft.domain = domain;
+        if (domain === 'game') {
+          draft.goal = 'match';
+          draft.type = 'Game';
+          draft.focus = draft.position || draft.focus || '';
+        }
         draft.duration = Number(v.duration) || 0;
         draft.pinned = !!v.pinned;
         draft.favorite = !!v.favorite;
@@ -1584,7 +1665,7 @@
           var idx = store.sessions.findIndex(function (x) { return x.id === draft.id; });
           if (idx >= 0) store.sessions[idx] = draft;
         }
-        saveData(); renderAll(); toast(isAdd ? 'Session added' : 'Session updated');
+        saveData(); renderAll(); toast(isAdd ? (domain === 'game' ? 'Game scheduled' : 'Session added') : 'Session updated');
       },
       remove: function () {
         if (!confirm('Delete this session?')) return false;
@@ -2035,7 +2116,7 @@
       title: 'Video details', mode: 'edit', canDelete: true,
       fields: [
         { key: 'title', label: 'Title', value: v.title, full: true },
-        { key: 'domain', label: 'Domain', type: 'select', value: v.domain, options: ['fitness', 'soccer'] },
+        { key: 'domain', label: 'Domain', type: 'select', value: v.domain, options: ['fitness', 'soccer', 'game'] },
         { key: 'linkedType', label: 'Linked type', type: 'select', value: v.linkedType, options: ['session', 'workout', 'exercise', 'drill'] },
         { key: 'linkedName', label: 'Linked name', value: v.linkedName, full: true },
         { key: 'tags', label: 'Tags', value: v.tags, full: true }
@@ -2126,7 +2207,7 @@
       title: (isAdd ? 'Add' : 'Edit') + ' note',
       mode: isAdd ? 'add' : 'edit', canDelete: !isAdd,
       fields: [
-        { key: 'domain', label: 'Domain', type: 'select', value: n ? n.domain : 'soccer', options: ['fitness', 'soccer'] },
+        { key: 'domain', label: 'Domain', type: 'select', value: n ? n.domain : 'soccer', options: ['fitness', 'soccer', 'game'] },
         { key: 'category', label: 'Category', value: n ? n.category : 'session takeaways', full: true, placeholder: 'match reflections / form notes / …' },
         { key: 'title', label: 'Title', value: n ? n.title : '', full: true },
         { key: 'body', label: 'Body', type: 'textarea', rows: 5, value: n ? n.body : '', full: true },
@@ -2164,7 +2245,7 @@
       return '<tr data-id="' + esc(s.id) + '">' +
         '<td>' + esc(s.date) + '</td>' +
         '<td>' + esc(s.name) + (media ? ' <span class="badge ok">media</span>' : '') + (notes ? ' <span class="badge">notes</span>' : '') + '</td>' +
-        '<td><span class="badge ' + (s.domain === 'fitness' ? 'fit' : 'soc') + '">' + esc(s.domain) + '</span></td>' +
+        '<td><span class="badge ' + domainBadgeClass(s.domain) + '">' + esc(s.domain) + '</span></td>' +
         '<td>' + esc(s.type || '—') + '</td>' +
         '<td>' + esc(s.duration) + 'm</td>' +
         '<td>' + esc(s.status) + '</td>' +
@@ -2443,11 +2524,15 @@
   openAddSessionChooser = function (dateIso) {
     openEdit({
       title: 'Add Session',
-      lead: 'Choose Fitness Workout or Soccer Training Session.',
+      lead: 'Choose Fitness Workout, Soccer Training, or Game / Match.',
       mode: 'add',
       fields: [
         { key: 'domain', label: 'Session type', type: 'select', value: 'fitness', full: true,
-          options: [{ value: 'fitness', label: 'Fitness Workout' }, { value: 'soccer', label: 'Soccer Training Session' }] },
+          options: [
+            { value: 'fitness', label: 'Fitness Workout' },
+            { value: 'soccer', label: 'Soccer Training Session' },
+            { value: 'game', label: 'Game / Match' }
+          ] },
         { key: 'date', label: 'Date', type: 'date', value: dateIso || todayIso() }
       ],
       save: function () { return false; }
