@@ -1495,12 +1495,18 @@
         if (date >= active) return;
         const old = getGoals(key);
         const undone = old.filter(function (g) { return !g.done; });
+        const done = old.filter(function (g) { return g.done; });
         undone.forEach(function (g) {
-          if (!todayGoals.some(function (t) { return t.text === g.text; })) {
+          if (!todayGoals.some(function (t) {
+            return (t.id && g.id && String(t.id) === String(g.id)) || t.text === g.text;
+          })) {
             todayGoals.push({ id: g.id || goalUid(), text: g.text, done: false, queued: !!g.queued });
           }
         });
-        storeDelete(key);
+        // Keep completed tasks on the past day key so they leave Main "Today"
+        // at the 6 AM boundary but remain available to the To Do List record.
+        const pastStore = getGoalsStore(key);
+        storeSet(key, { items: done, tombstones: pastStore.tombstones || {} });
       });
       setGoals(activeKey, todayGoals);
     }
@@ -2421,9 +2427,11 @@
     }
 
     /* —— Init —— */
-    runRollover();
+    // Streak must run before rollover rewrites past days to completed-only.
     normalizeStoredGoalIds();
     runStreakCheck();
+    runRollover();
+    normalizeStoredGoalIds();
     makeAddHandlers(
       document.getElementById('goalInput'),
       document.getElementById('goalAddBtn'),
