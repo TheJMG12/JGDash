@@ -596,6 +596,53 @@
     return merged;
   }
 
+  function looksLikeMediaSeedItem(it) {
+    if (!it) return false;
+    var t = String(it.title || '').trim().toLowerCase();
+    return t === 'how elite midfielders scan before receiving' ||
+      t === 'zero trust architecture explained' ||
+      t === 'index funds vs stock picking' ||
+      t === 'interesting cve discussion in r/netsec' ||
+      t === 'the ottoman siege logistics essay' ||
+      t === 'dashboard density patterns' ||
+      /example\.com\/dashboard-density/i.test(String(it.url || ''));
+  }
+
+  function looksLikeMediaSeedVisual(v) {
+    if (!v) return false;
+    var t = String(v.title || '').trim().toLowerCase();
+    return t === 'dense ops dashboard mock' ||
+      t === 'stadium night lights' ||
+      t === 'minimal desk setup' ||
+      t === 'mountain travel frame' ||
+      t === 'ui card spacing study' ||
+      t === 'plated recipe inspo' ||
+      t === 'archive fashion look' ||
+      t === 'history map texture';
+  }
+
+  /** Strip stock Media filler and tombstone those ids so sync cannot resurrect them. */
+  function purgeMediaSeedBlob(obj) {
+    if (!obj || typeof obj !== 'object') return 0;
+    if (!obj.tombstones || typeof obj.tombstones !== 'object') obj.tombstones = {};
+    var n = 0;
+    var now = new Date().toISOString();
+    function purge(field, pred) {
+      if (!Array.isArray(obj[field])) return;
+      var keep = [];
+      obj[field].forEach(function (row) {
+        if (pred(row)) {
+          if (row && row.id != null) obj.tombstones[String(row.id)] = now;
+          n += 1;
+        } else keep.push(row);
+      });
+      obj[field] = keep;
+    }
+    purge('items', looksLikeMediaSeedItem);
+    purge('visuals', looksLikeMediaSeedVisual);
+    return n;
+  }
+
   function mergeKey(key, localVal, remoteVal, opts) {
     opts = opts || {};
     // Habits + Projects: { items, tombstones } (legacy bare arrays migrated).
@@ -671,6 +718,11 @@
           localVal && localVal.tombstones,
           remoteVal && remoteVal.tombstones
         );
+      }
+      // Media: strip stock filler bookmarks / MyMind samples so they cannot resurrect via sync.
+      purgeMediaSeedBlob(mergedObj);
+      if (global.JGMedia && typeof global.JGMedia.purgeSeedContent === 'function') {
+        global.JGMedia.purgeSeedContent(mergedObj);
       }
       stripTombstoned(mergedObj, MERGE_ARRAY_FIELDS[key], mergedObj.tombstones);
       return mergedObj;
@@ -850,7 +902,11 @@
               }
             } else if (localVal == null && remoteVal != null) {
               finalVal = remoteVal;
-              applyRemoteRow(key, finalVal, remote.updated_at);
+              if (key === 'jg_media_data_v1') {
+                finalVal = typeof remoteVal === 'object' ? JSON.parse(JSON.stringify(remoteVal)) : remoteVal;
+                if (purgeMediaSeedBlob(finalVal)) shouldPush = true;
+              }
+              applyRemoteRow(key, finalVal, shouldPush ? pushIso : remote.updated_at);
               applied.push(key);
               meta = readMeta();
             } else if (localVal != null && remoteVal != null && canMerge) {

@@ -31,138 +31,84 @@
     ];
   }
 
+  /** Known filler titles shipped in older builds — purged from local + cloud so only real user saves remain. */
+  var SEED_ITEM_TITLES = {
+    'how elite midfielders scan before receiving': 1,
+    'zero trust architecture explained': 1,
+    'index funds vs stock picking': 1,
+    'interesting cve discussion in r/netsec': 1,
+    'the ottoman siege logistics essay': 1,
+    'dashboard density patterns': 1
+  };
+  var SEED_VISUAL_TITLES = {
+    'dense ops dashboard mock': 1,
+    'stadium night lights': 1,
+    'minimal desk setup': 1,
+    'mountain travel frame': 1,
+    'ui card spacing study': 1,
+    'plated recipe inspo': 1,
+    'archive fashion look': 1,
+    'history map texture': 1
+  };
+
+  function isSeedItem(it) {
+    if (!it) return false;
+    var t = String(it.title || '').trim().toLowerCase();
+    if (SEED_ITEM_TITLES[t]) return true;
+    var url = String(it.url || '');
+    if (/example\.com\/dashboard-density/i.test(url)) return true;
+    if (/images\.unsplash\.com/i.test(String(it.image || '')) && SEED_ITEM_TITLES[t]) return true;
+    return false;
+  }
+
+  function isSeedVisual(v) {
+    if (!v) return false;
+    var t = String(v.title || '').trim().toLowerCase();
+    if (SEED_VISUAL_TITLES[t]) return true;
+    if (/images\.unsplash\.com/i.test(String(v.src || '')) && SEED_VISUAL_TITLES[t]) return true;
+    if (String(v.sourceLabel || '') === 'Unsplash' && SEED_VISUAL_TITLES[t]) return true;
+    return false;
+  }
+
+  /** Empty Media blob — no stock bookmarks / MyMind filler. */
   function defaultData() {
     return {
-      items: [
-        {
-          id: uid(), title: 'How elite midfielders scan before receiving', type: 'article',
-          source: 'The Athletic', url: 'https://theathletic.com/', status: 'library', priority: 'medium',
-          tags: 'soccer, analysis', collection: 'Soccer', estimatedMinutes: 12, savedAt: daysAgo(1),
-          author: 'Tactical Desk', description: 'Scanning habits before the ball arrives.',
-          image: 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=640&q=80',
-          notes: '', archived: false, inbox: false
-        },
-        {
-          id: uid(), title: 'Zero Trust architecture explained', type: 'article',
-          source: 'Cloudflare Blog', url: 'https://blog.cloudflare.com/', status: 'library', priority: 'high',
-          tags: 'cybersecurity', collection: 'Security', estimatedMinutes: 18, savedAt: daysAgo(3),
-          author: 'Cloudflare', description: 'Identity-first network security model.',
-          image: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=640&q=80',
-          notes: '', archived: false, inbox: false
-        },
-        {
-          id: uid(), title: 'Index funds vs stock picking', type: 'video',
-          source: 'YouTube', url: 'https://www.youtube.com/watch?v=VhgMzI1tC4U', status: 'library', priority: 'medium',
-          tags: 'finance, investing', collection: 'Finance', estimatedMinutes: 24, savedAt: daysAgo(2),
-          author: 'YouTube', description: 'Long-form investing primer.',
-          image: 'https://i.ytimg.com/vi/VhgMzI1tC4U/hqdefault.jpg',
-          notes: '', archived: false, inbox: false
-        },
-        {
-          id: uid(), title: 'Interesting CVE discussion in r/netsec', type: 'reddit',
-          source: 'Reddit', url: 'https://www.reddit.com/r/netsec/', status: 'inbox', priority: 'low',
-          tags: 'cybersecurity', collection: 'Security', estimatedMinutes: 8, savedAt: daysAgo(0),
-          author: 'r/netsec', description: 'Community thread — review later.',
-          image: '',
-          notes: '', archived: false, inbox: true
-        },
-        {
-          id: uid(), title: 'The Ottoman siege logistics essay', type: 'article',
-          source: 'History Today', url: 'https://www.historytoday.com/', status: 'library', priority: 'low',
-          tags: 'history', collection: 'History', estimatedMinutes: 22, savedAt: daysAgo(20),
-          author: 'H. Reed', description: 'Logistics behind early modern siege warfare.',
-          image: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?w=640&q=80',
-          notes: '', archived: false, inbox: false
-        },
-        {
-          id: uid(), title: 'Dashboard density patterns', type: 'link',
-          source: 'Personal reference', url: 'https://example.com/dashboard-density', status: 'library', priority: 'high',
-          tags: 'design, dashboard', collection: 'Dashboard Inspiration', estimatedMinutes: 6, savedAt: daysAgo(5),
-          author: '', description: 'Reference for JGDash card density.',
-          image: 'https://images.unsplash.com/photo-1551281049-01b386ae3b14?w=640&q=80',
-          notes: '', archived: false, inbox: false
-        }
-      ],
-      visuals: [
-        {
-          id: uid(), title: 'Dense ops dashboard mock', caption: 'Calm dark surfaces',
-          src: 'https://images.unsplash.com/photo-1551281049-01b386ae3b14?w=800&q=80',
-          sourceUrl: 'https://unsplash.com', sourceLabel: 'Unsplash', savedAt: daysAgo(2),
-          tags: 'dashboard, ui', collection: 'Dashboard Inspiration', vibe: 'dark', favorite: true,
-          note: 'Like the KPI density here', archived: false
-        },
-        {
-          id: uid(), title: 'Stadium night lights', caption: '',
-          src: 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=800&q=80',
-          sourceUrl: 'https://unsplash.com', sourceLabel: 'Unsplash', savedAt: daysAgo(4),
-          tags: 'soccer', collection: 'Soccer', vibe: 'night', favorite: false,
-          note: 'Mood for training page accents', archived: false
-        },
-        {
-          id: uid(), title: 'Minimal desk setup', caption: 'Warm wood + matte black',
-          src: 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?w=800&q=80',
-          sourceUrl: 'https://unsplash.com', sourceLabel: 'Unsplash', savedAt: daysAgo(6),
-          tags: 'interiors, desk', collection: 'Interiors', vibe: 'warm', favorite: true,
-          note: '', archived: false
-        },
-        {
-          id: uid(), title: 'Mountain travel frame', caption: '',
-          src: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80',
-          sourceUrl: 'https://unsplash.com', sourceLabel: 'Unsplash', savedAt: daysAgo(8),
-          tags: 'travel', collection: 'Travel', vibe: 'cool', favorite: false,
-          note: 'Trip moodboard', archived: false
-        },
-        {
-          id: uid(), title: 'UI card spacing study', caption: 'Soft borders',
-          src: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&q=80',
-          sourceUrl: 'https://unsplash.com', sourceLabel: 'Unsplash', savedAt: daysAgo(1),
-          tags: 'ui, design', collection: 'UI Ideas', vibe: 'clean', favorite: false,
-          note: 'Spacing rhythm', archived: false
-        },
-        {
-          id: uid(), title: 'Plated recipe inspo', caption: '',
-          src: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&q=80',
-          sourceUrl: 'https://unsplash.com', sourceLabel: 'Unsplash', savedAt: daysAgo(9),
-          tags: 'recipes', collection: 'Recipes', vibe: 'fresh', favorite: false,
-          note: 'High protein bowl vibe', archived: false
-        },
-        {
-          id: uid(), title: 'Archive fashion look', caption: '',
-          src: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&q=80',
-          sourceUrl: 'https://unsplash.com', sourceLabel: 'Unsplash', savedAt: daysAgo(15),
-          tags: 'fashion', collection: 'Fashion', vibe: 'neutral', favorite: false,
-          note: '', archived: false
-        },
-        {
-          id: uid(), title: 'History map texture', caption: '',
-          src: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?w=800&q=80',
-          sourceUrl: 'https://unsplash.com', sourceLabel: 'Unsplash', savedAt: daysAgo(11),
-          tags: 'history', collection: 'History', vibe: 'aged', favorite: true,
-          note: 'Cover idea for reading notes', archived: false
-        }
-      ],
-      watchlist: [
-        { id: uid(), title: 'Moneyball', type: 'movie', genre: 'Drama', year: 2011, runtime: '133m', service: 'Netflix', status: 'Want to Watch', priority: 'medium', rating: 0, note: 'Process over narrative', tags: 'sports, strategy', poster: 'https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=400&q=80', why: 'Ops mindset', addedAt: daysAgo(10), progress: '' },
-        { id: uid(), title: 'The Last Dance', type: 'show', genre: 'Documentary', year: 2020, runtime: '10 ep', service: 'Netflix', status: 'Watching', priority: 'high', rating: 0, note: 'Ep 4', tags: 'sports', poster: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=400&q=80', why: 'Leadership under pressure', addedAt: daysAgo(20), progress: 'S1E4' },
-        { id: uid(), title: 'Arrival', type: 'movie', genre: 'Sci-Fi', year: 2016, runtime: '116m', service: 'Prime', status: 'Watched', priority: 'low', rating: 5, note: 'Language shapes thought', tags: 'sci-fi', poster: 'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=400&q=80', why: '', addedAt: daysAgo(60), progress: '' },
-        { id: uid(), title: 'Slow Horses', type: 'show', genre: 'Thriller', year: 2022, runtime: 'S3', service: 'Apple TV+', status: 'Paused', priority: 'medium', rating: 0, note: 'Resume later', tags: 'spy', poster: 'https://images.unsplash.com/photo-1485846234645-a62644f84728?w=400&q=80', why: 'Twisty spy craft', addedAt: daysAgo(30), progress: 'S2E3' },
-        { id: uid(), title: 'Dune: Part Two', type: 'movie', genre: 'Sci-Fi', year: 2024, runtime: '166m', service: 'Max', status: 'Want to Watch', priority: 'high', rating: 0, note: '', tags: 'epic', poster: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&q=80', why: 'Visual spectacle', addedAt: daysAgo(5), progress: '' },
-        { id: uid(), title: 'Chernobyl', type: 'show', genre: 'Drama', year: 2019, runtime: '5 ep', service: 'Max', status: 'Watched', priority: 'low', rating: 5, note: 'Systems failure study', tags: 'history', poster: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400&q=80', why: '', addedAt: daysAgo(90), progress: '' }
-      ],
-      books: [
-        { id: uid(), title: 'The Psychology of Money', author: 'Morgan Housel', cover: 'https://images.unsplash.com/photo-1553729459-efe14ef6055d?w=400&q=80', genre: 'Finance', pages: 256, format: 'ebook', status: 'Finished', priority: 'medium', rating: 5, notes: 'Behavior > formulas', tags: 'finance', progressPct: 100, why: 'Investing mindset', addedAt: daysAgo(100), startDate: daysAgo(80), finishDate: daysAgo(40), quotes: ['Room for error matters.'] },
-        { id: uid(), title: 'Atomic Habits', author: 'James Clear', cover: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&q=80', genre: 'Productivity', pages: 320, format: 'physical', status: 'Reading', priority: 'high', rating: 0, notes: 'Identity-based habits', tags: 'productivity', progressPct: 42, why: 'Habit tracker alignment', addedAt: daysAgo(25), startDate: daysAgo(20), finishDate: '', quotes: [] },
-        { id: uid(), title: 'The Guns of August', author: 'Barbara Tuchman', cover: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400&q=80', genre: 'History', pages: 511, format: 'physical', status: 'Want to Read', priority: 'medium', rating: 0, notes: '', tags: 'history', progressPct: 0, why: 'WWI decision cascades', addedAt: daysAgo(14), startDate: '', finishDate: '', quotes: [] },
-        { id: uid(), title: 'Project Hail Mary', author: 'Andy Weir', cover: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400&q=80', genre: 'Fiction', pages: 476, format: 'audiobook', status: 'Want to Read', priority: 'high', rating: 0, notes: '', tags: 'fiction', progressPct: 0, why: 'Fun recovery read', addedAt: daysAgo(7), startDate: '', finishDate: '', quotes: [] },
-        { id: uid(), title: 'Security Engineering', author: 'Ross Anderson', cover: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=400&q=80', genre: 'Cybersecurity', pages: 1232, format: 'ebook', status: 'Reference', priority: 'low', rating: 5, notes: 'Keep as desk reference', tags: 'cybersecurity', progressPct: 15, why: 'Deep systems security', addedAt: daysAgo(200), startDate: daysAgo(180), finishDate: '', quotes: [] },
-        { id: uid(), title: 'Deep Work', author: 'Cal Newport', cover: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=400&q=80', genre: 'Productivity', pages: 296, format: 'ebook', status: 'Paused', priority: 'medium', rating: 0, notes: 'Resume after travel week', tags: 'productivity', progressPct: 55, why: 'Focus blocks', addedAt: daysAgo(50), startDate: daysAgo(45), finishDate: '', quotes: [] }
-      ],
-      collections: ['Soccer', 'Security', 'Finance', 'History', 'Recipes', 'Dashboard Inspiration', 'UI Ideas', 'Travel', 'Fashion', 'Interiors', 'Design', 'Memes'],
-      readingGoal: { year: 2026, target: 24, completed: 1 },
+      items: [],
+      visuals: [],
+      watchlist: [],
+      books: [],
+      collections: [],
+      readingGoal: { year: new Date().getFullYear(), target: 24, completed: 0 },
       feeds: defaultFeeds(),
+      pinnedTags: [],
+      tagMeta: {},
       // Sync delete ledger: { [id]: ISO timestamp }. Merge keeps tombstones so removals stick across devices.
       tombstones: {}
     };
+  }
+
+  /** Tombstone + drop stock filler from items/visuals. Returns number removed. */
+  function purgeSeedContent(store) {
+    if (!store) return 0;
+    if (!store.tombstones || typeof store.tombstones !== 'object') store.tombstones = {};
+    var n = 0;
+    var now = new Date().toISOString();
+    function purge(field, pred) {
+      if (!Array.isArray(store[field])) return;
+      var keep = [];
+      store[field].forEach(function (row) {
+        if (pred(row)) {
+          if (row && row.id != null) store.tombstones[String(row.id)] = now;
+          n += 1;
+        } else {
+          keep.push(row);
+        }
+      });
+      store[field] = keep;
+    }
+    purge('items', isSeedItem);
+    purge('visuals', isSeedVisual);
+    return n;
   }
 
   function load() {
@@ -176,7 +122,13 @@
       // Empty feeds is a valid user state — do not re-seed defaults after delete-all.
       if (!base.feeds.length && parsed.feeds == null) base.feeds = defaultFeeds();
       if (!Array.isArray(base.items)) base.items = [];
+      if (!Array.isArray(base.visuals)) base.visuals = [];
+      if (!Array.isArray(base.watchlist)) base.watchlist = [];
+      if (!Array.isArray(base.books)) base.books = [];
+      if (!Array.isArray(base.collections)) base.collections = [];
       if (!base.tombstones || typeof base.tombstones !== 'object') base.tombstones = {};
+      if (!Array.isArray(base.pinnedTags)) base.pinnedTags = [];
+      if (!base.tagMeta || typeof base.tagMeta !== 'object') base.tagMeta = {};
       base.items.forEach(function (it) {
         if (it.inbox == null) it.inbox = it.status === 'inbox';
         if (!it.status) it.status = it.inbox ? 'inbox' : 'library';
@@ -191,7 +143,9 @@
           return !(it && it.id != null && base.tombstones[String(it.id)]);
         });
       });
+      var purged = purgeSeedContent(base);
       try { localStorage.setItem(DATA_KEY, JSON.stringify(base)); } catch (e) { /* quota */ }
+      if (purged) base._purgedSeed = purged;
       return base;
     } catch (e) {
       return defaultData();
@@ -201,7 +155,32 @@
   function save(store) {
     try {
       localStorage.setItem(DATA_KEY, JSON.stringify(store));
-    } catch (e) { /* ignore quota */ }
+      return true;
+    } catch (e) {
+      // Quota: drop large data: URLs (cloud/IDB still hold bytes) and retry.
+      try {
+        var lean = JSON.parse(JSON.stringify(store));
+        (lean.visuals || []).forEach(function (v) {
+          if (!v) return;
+          if (String(v.src || '').indexOf('data:') === 0 && String(v.src).length > 12000) {
+            v.src = '';
+            v.srcOmitted = true;
+          }
+        });
+        localStorage.setItem(DATA_KEY, JSON.stringify(lean));
+        if (store && Array.isArray(store.visuals)) {
+          store.visuals.forEach(function (v, i) {
+            if (lean.visuals[i] && lean.visuals[i].srcOmitted) {
+              v.src = '';
+              v.srcOmitted = true;
+            }
+          });
+        }
+        return true;
+      } catch (e2) {
+        return false;
+      }
+    }
   }
 
   /** Record a cross-device delete and remove the row from the given collection(s). */
@@ -313,15 +292,40 @@
   }
 
   /**
-   * Ingest an uploaded image: store original in IndexedDB + durable data URL in src.
-   * Returns { blobId, src, sourceLabel }.
+   * Ingest an uploaded image: IndexedDB + durable data URL (+ cloud upload when signed in).
+   * Returns { blobId, src, sourceLabel, cloud, file }.
    */
   function ingestImageFile(file) {
     var blobId = uid();
     return idbPut(blobId, file).catch(function () { /* IDB optional */ }).then(function () {
       return resizeImageFile(file, 1400, 0.82).then(function (dataUrl) {
-        return { blobId: blobId, src: dataUrl, sourceLabel: 'Upload' };
+        var result = { blobId: blobId, src: dataUrl, sourceLabel: 'Upload', cloud: false, file: file };
+        if (!global.JGMediaBlobs || typeof global.JGMediaBlobs.upload !== 'function') {
+          return result;
+        }
+        // Prefer uploading the compressed preview so other devices get a fast durable image.
+        return dataUrlToBlob(dataUrl).then(function (compressed) {
+          var blob = compressed || file;
+          return global.JGMediaBlobs.upload(blobId, blob).then(function (up) {
+            if (up && up.ok) result.cloud = true;
+            return result;
+          }).catch(function () { return result; });
+        }).catch(function () { return result; });
       });
+    });
+  }
+
+  function dataUrlToBlob(dataUrl) {
+    return new Promise(function (resolve) {
+      try {
+        if (!dataUrl || String(dataUrl).indexOf('data:') !== 0) {
+          resolve(null);
+          return;
+        }
+        fetch(dataUrl).then(function (r) { return r.blob(); }).then(resolve).catch(function () { resolve(null); });
+      } catch (e) {
+        resolve(null);
+      }
     });
   }
 
@@ -331,24 +335,51 @@
   }
 
   /**
-   * Resolve a visual's displayable src. Rehydrates from IndexedDB when src is a dead blob: URL.
-   * Returns Promise<string>.
+   * Resolve a visual's displayable src.
+   * Order: durable http/data URL → IndexedDB → Supabase Storage (when signed in).
    */
   function resolveVisualSrc(visual) {
     if (!visual) return Promise.resolve('');
     var src = String(visual.src || '');
     var blobId = visual.blobId || blobIdFromNote(visual.note);
-    var needsHydrate = !src || src.indexOf('blob:') === 0;
+    var needsHydrate = !src || src.indexOf('blob:') === 0 || visual.srcOmitted;
     if (!needsHydrate) return Promise.resolve(src);
-    if (!blobId) return Promise.resolve(src.indexOf('blob:') === 0 ? '' : src);
-    return idbGet(blobId).then(function (blob) {
-      if (!blob) return '';
-      return URL.createObjectURL(blob);
-    }).catch(function () { return ''; });
+
+    function fromIdb() {
+      if (!blobId) return Promise.resolve('');
+      return idbGet(blobId).then(function (blob) {
+        if (!blob) return '';
+        return URL.createObjectURL(blob);
+      }).catch(function () { return ''; });
+    }
+
+    function fromCloud() {
+      if (!blobId || !global.JGMediaBlobs || typeof global.JGMediaBlobs.download !== 'function') {
+        return Promise.resolve('');
+      }
+      return global.JGMediaBlobs.download(blobId).then(function (blob) {
+        if (!blob) return '';
+        return idbPut(blobId, blob).catch(function () {}).then(function () {
+          return resizeImageFile(blob, 1400, 0.82).then(function (dataUrl) {
+            visual.src = dataUrl;
+            visual.srcOmitted = false;
+            visual.cloud = true;
+            return dataUrl;
+          }).catch(function () {
+            return URL.createObjectURL(blob);
+          });
+        });
+      }).catch(function () { return ''; });
+    }
+
+    return fromIdb().then(function (local) {
+      if (local) return local;
+      return fromCloud();
+    });
   }
 
   /**
-   * Repair visuals that still have dead blob: src by rebuilding a data URL from IndexedDB.
+   * Repair visuals that still have dead blob: src / missing preview via IDB or cloud.
    * Persists repaired src + blobId. Returns Promise<number> of repaired count.
    */
   function repairVisualBlobs(store) {
@@ -357,11 +388,10 @@
       if (!v) return Promise.resolve(false);
       var src = String(v.src || '');
       var blobId = v.blobId || blobIdFromNote(v.note);
-      if (src && src.indexOf('blob:') !== 0) {
+      if (src && src.indexOf('blob:') !== 0 && !v.srcOmitted) {
         if (blobId && !v.blobId) { v.blobId = blobId; return Promise.resolve(true); }
         return Promise.resolve(false);
       }
-      // Dead blob: URL with no IndexedDB id — clear so UI shows a placeholder instead of "?"
       if (!blobId) {
         if (src.indexOf('blob:') === 0) {
           v.src = '';
@@ -371,17 +401,36 @@
       }
       v.blobId = blobId;
       return idbGet(blobId).then(function (blob) {
-        if (!blob) {
+        if (blob) {
+          return resizeImageFile(blob, 1400, 0.82).then(function (dataUrl) {
+            v.src = dataUrl;
+            v.srcOmitted = false;
+            return true;
+          }).catch(function () {
+            v.src = URL.createObjectURL(blob);
+            return true;
+          });
+        }
+        if (!global.JGMediaBlobs || typeof global.JGMediaBlobs.download !== 'function') {
           if (src.indexOf('blob:') === 0) { v.src = ''; return true; }
           return false;
         }
-        return resizeImageFile(blob, 1400, 0.82).then(function (dataUrl) {
-          v.src = dataUrl;
-          return true;
+        return global.JGMediaBlobs.download(blobId).then(function (cloudBlob) {
+          if (!cloudBlob) {
+            if (src.indexOf('blob:') === 0) { v.src = ''; return true; }
+            return false;
+          }
+          return idbPut(blobId, cloudBlob).catch(function () {}).then(function () {
+            return resizeImageFile(cloudBlob, 1400, 0.82).then(function (dataUrl) {
+              v.src = dataUrl;
+              v.srcOmitted = false;
+              v.cloud = true;
+              return true;
+            });
+          });
         }).catch(function () {
-          // Last resort session object URL — still better than a dead blob: string
-          v.src = URL.createObjectURL(blob);
-          return true;
+          if (src.indexOf('blob:') === 0) { v.src = ''; return true; }
+          return false;
         });
       }).catch(function () {
         if (src.indexOf('blob:') === 0) { v.src = ''; return true; }
@@ -393,6 +442,52 @@
       if (n) save(store);
       return n;
     });
+  }
+
+  /** Upload local visuals that have blobId but are not yet marked cloud. */
+  function backfillCloudImages(store) {
+    if (!store || !Array.isArray(store.visuals)) return Promise.resolve(0);
+    if (!global.JGMediaBlobs || typeof global.JGMediaBlobs.upload !== 'function') {
+      return Promise.resolve(0);
+    }
+    var pending = store.visuals.filter(function (v) {
+      return v && v.blobId && !v.cloud && (v.sourceLabel === 'Upload' || String(v.src || '').indexOf('data:') === 0 || v.srcOmitted);
+    });
+    if (!pending.length) return Promise.resolve(0);
+    var n = 0;
+    var chain = Promise.resolve();
+    pending.forEach(function (v) {
+      chain = chain.then(function () {
+        return idbGet(v.blobId).then(function (blob) {
+          if (!blob && String(v.src || '').indexOf('data:') === 0) {
+            return dataUrlToBlob(v.src);
+          }
+          return blob;
+        }).then(function (blob) {
+          if (!blob) return;
+          return global.JGMediaBlobs.upload(v.blobId, blob).then(function (up) {
+            if (up && up.ok) {
+              v.cloud = true;
+              n += 1;
+            }
+          });
+        }).catch(function () {});
+      });
+    });
+    return chain.then(function () {
+      if (n) save(store);
+      return n;
+    });
+  }
+
+  /** After ingest, mark visual.cloud and persist. */
+  function markVisualCloud(store, visualId, cloud) {
+    if (!store || !Array.isArray(store.visuals)) return;
+    var v = store.visuals.find(function (x) { return x && x.id === visualId; });
+    if (!v) return;
+    v.cloud = !!cloud;
+    if (cloud) v.updatedAt = new Date().toISOString();
+    save(store);
   }
 
   function hostnameOf(url) {
@@ -601,6 +696,9 @@
     load: load,
     save: save,
     removeById: removeById,
+    purgeSeedContent: purgeSeedContent,
+    isSeedItem: isSeedItem,
+    isSeedVisual: isSeedVisual,
     idbPut: idbPut,
     idbGet: idbGet,
     idbDel: idbDel,
@@ -608,6 +706,8 @@
     ingestImageFile: ingestImageFile,
     resolveVisualSrc: resolveVisualSrc,
     repairVisualBlobs: repairVisualBlobs,
+    backfillCloudImages: backfillCloudImages,
+    markVisualCloud: markVisualCloud,
     detectType: detectType,
     guessMeta: guessMeta,
     enrichMeta: enrichMeta,
