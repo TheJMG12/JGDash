@@ -191,9 +191,6 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
 .sheet-media img{width:100%;max-height:52vh;object-fit:contain;display:block;background:#111}
 .sheet-media.note-mode{min-height:160px;padding:24px;align-items:flex-start;background:linear-gradient(160deg,#1a1820,#0d0d10)}
 .sheet-media .lb-note-body{color:var(--text-secondary);font-size:15px;line-height:1.55;white-space:pre-wrap}
-.color-row{display:flex;gap:0;padding:12px 16px 4px;justify-content:flex-start}
-.color-swatch{width:28px;height:28px;border-radius:50%;border:2px solid var(--bg);margin-left:-6px;box-shadow:0 0 0 1px rgba(255,255,255,0.08)}
-.color-swatch:first-child{margin-left:0}
 .sheet-body{padding:8px 16px 24px}
 .sheet-sec{margin-top:16px}
 .sheet-sec-label{font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
@@ -298,7 +295,7 @@ body.sheet-open .main-scroll{overflow:hidden!important;touch-action:none}
   <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Item detail">
     <div class="sheet" id="detailSheet">
       <div class="sheet-head">
-        <button type="button" class="icon-btn" id="lbClose" aria-label="Close">∨</button>
+        <button type="button" class="icon-btn" id="lbClose" aria-label="Close">✕</button>
         <div class="sheet-title" id="lbTitle">Untitled</div>
         <button type="button" class="icon-btn" id="lbMore" aria-label="More" title="Open source">⋯</button>
       </div>
@@ -307,7 +304,6 @@ body.sheet-open .main-scroll{overflow:hidden!important;touch-action:none}
           <img id="lbImg" alt="" />
           <div id="lbNoteBody" class="lb-note-body hidden"></div>
         </div>
-        <div class="color-row" id="lbColors" aria-label="Colors"></div>
         <div class="sheet-body">
           <div class="sheet-sec">
             <div class="sheet-sec-label">TLDR</div>
@@ -552,21 +548,6 @@ body.sheet-open .main-scroll{overflow:hidden!important;touch-action:none}
     });
   }
 
-  function vibeColors(vibe) {
-    var map = {
-      dark: ['#2a2a2e', '#5c5a54', '#a78bfa', '#1a1a1c', '#76746e'],
-      warm: ['#c4841a', '#f2c063', '#8a5a2b', '#3a2a18', '#e8d5b5'],
-      cool: ['#0284c7', '#7dd3fc', '#1e3a5f', '#0b1220', '#b8b6b0'],
-      night: ['#0b1020', '#3b82f6', '#a78bfa', '#111827', '#6b7280'],
-      fresh: ['#1f9d62', '#6be3a4', '#14532d', '#052e16', '#b8b6b0'],
-      clean: ['#e5e5e5', '#a78bfa', '#6d28d9', '#fafafa', '#76746e'],
-      neutral: ['#8a8780', '#d4d0c8', '#3f3d39', '#f4f3f0', '#5c5a54'],
-      aged: ['#8b7355', '#c4a574', '#3e2f1c', '#1a1410', '#b8a88a']
-    };
-    var key = String(vibe || '').toLowerCase();
-    return map[key] || ['#a78bfa', '#6be3a4', '#f2c063', '#7dd3fc', '#b8b6b0'];
-  }
-
   function buildTldr(v) {
     if (v.caption && String(v.caption).trim()) return String(v.caption).trim();
     if (v.note && String(v.note).trim()) return String(v.note).trim().slice(0, 180);
@@ -612,9 +593,6 @@ body.sheet-open .main-scroll{overflow:hidden!important;touch-action:none}
     document.getElementById('lbTitle').textContent = v.title || 'Untitled';
     document.getElementById('lbTldr').textContent = buildTldr(v);
     document.getElementById('lbNoteInput').value = v.note || '';
-    document.getElementById('lbColors').innerHTML = vibeColors(v.vibe).map(function (c) {
-      return '<span class="color-swatch" style="background:' + esc(c) + '" title="' + esc(c) + '"></span>';
-    }).join('');
     document.getElementById('lbTags').innerHTML = (v.tags || '').split(',').map(function (t) { return t.trim(); }).filter(Boolean).map(function (t) {
       return '<span class="tag-pill">' + esc(t) + '</span>';
     }).join('') || '<span class="card-meta">No tags yet</span>';
