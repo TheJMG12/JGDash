@@ -204,6 +204,7 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
       <div class="sidebar-section">On this page</div>
       
       <button type="button" class="nav-link" id="navSave">+ Save to MyMind</button>
+      <button type="button" class="nav-link" id="navTop">Top of Mind</button>
       <button type="button" class="nav-link" id="navFav">Favorites</button>
       <button type="button" class="nav-link" id="navInspire">Serendipity</button>
 
@@ -219,7 +220,7 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
         <div class="page-header">
           <div class="page-title-block">
             <h1 class="page-title">MyMind</h1>
-            <p class="page-sub">Save images, notes, articles, and inspiration — find them later without folders.</p>
+            <p class="page-sub">Remember everything. Organize nothing — images, memes, notes, articles, products, and videos in one private vault.</p>
           </div>
           <div class="toolbar">
             <input type="search" class="search-input" id="searchInput" placeholder="Search titles, tags, notes…" aria-label="Search MyMind" />
@@ -250,7 +251,7 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
 
         <div class="placeholder-card">
           <strong style="color:var(--text-secondary)">Tip</strong><br/>
-          Drop screenshots with Upload, tag them lightly, and use Serendipity when you want a random spark from your vault.
+          Drop screenshots with Upload — previews are stored as durable images so they still show after reload. Use Spaces lightly, pin Top of Mind, and Serendipity when you want a random spark.
         </div>
       </div>
     </div>
@@ -270,6 +271,7 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
         <div class="field"><label>Space</label><div id="lbCollection" style="font-size:13px"></div></div>
         <div class="field"><label>Related (same space)</label><div id="lbRelated" class="tags"></div></div>
         <div class="split" style="margin-top:12px">
+          <button type="button" class="btn" id="lbTop">Top of Mind</button>
           <button type="button" class="btn" id="lbFav">Favorite</button>
           <button type="button" class="btn" id="lbArchive">Archive</button>
           <a class="btn" id="lbSource" target="_blank" rel="noopener">Open source</a>
@@ -341,6 +343,7 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
   var pendingUpload = null; // { blobId, src } from modal upload
   var MODES = [
     { id: 'everything', label: 'Everything' },
+    { id: 'top', label: 'Top of Mind' },
     { id: 'image', label: 'Images' },
     { id: 'note', label: 'Notes' },
     { id: 'article', label: 'Articles' },
@@ -412,11 +415,12 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
     var list = visuals().filter(function (v) {
       if (!showArch && v.archived) return false;
       if (favOnly && !v.favorite) return false;
+      if (activeMode === 'top' && !v.topOfMind) return false;
       if (col !== 'all' && v.collection !== col) return false;
       if (vibe !== 'all' && v.vibe !== vibe) return false;
       if (src !== 'all' && v.sourceLabel !== src) return false;
       if (tag !== 'all' && !(v.tags || '').toLowerCase().split(',').map(function (t) { return t.trim(); }).includes(tag.toLowerCase())) return false;
-      if (activeMode !== 'everything' && activeMode !== 'favorites' && activeMode !== 'serendipity') {
+      if (activeMode !== 'everything' && activeMode !== 'favorites' && activeMode !== 'serendipity' && activeMode !== 'top') {
         if (visualKind(v) !== activeMode) return false;
       }
       if (q) {
@@ -472,7 +476,8 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
         mediaHtml +
         '<div class="body">' +
           '<div class="split" style="justify-content:space-between"><strong style="font-size:13px">' + esc(v.title || 'Untitled') + '</strong>' +
-          (v.favorite ? '<span class="fav-star" aria-label="Favorite">★</span>' : '') + '</div>' +
+          '<span>' + (v.topOfMind ? '<span title="Top of Mind" style="color:var(--accent);margin-right:4px">◉</span>' : '') +
+          (v.favorite ? '<span class="fav-star" aria-label="Favorite">★</span>' : '') + '</span></div>' +
           '<div class="meta" style="font-size:11px;color:var(--text-tertiary);margin-top:4px"><span class="kind-badge">' + esc(kind) + '</span> · ' + esc(v.collection || 'Unfiled') + ' · ' + esc(v.savedAt || '') + '</div>' +
           (v.note ? '<div style="font-size:11px;color:var(--text-secondary);margin-top:4px">' + esc(v.note.slice(0, 80)) + '</div>' : '') +
         '</div></article>';
@@ -524,6 +529,7 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
       return '<span class="tag-pill">' + esc(t.trim()) + '</span>';
     }).join('') || '<span class="card-meta">No tags</span>';
     document.getElementById('lbFav').textContent = v.favorite ? 'Unfavorite' : 'Favorite';
+    document.getElementById('lbTop').textContent = v.topOfMind ? 'Unpin Top of Mind' : 'Pin Top of Mind';
     document.getElementById('lbArchive').textContent = v.archived ? 'Unarchive' : 'Archive';
     var src = document.getElementById('lbSource');
     if (v.sourceUrl) { src.href = v.sourceUrl; src.classList.remove('hidden'); } else { src.classList.add('hidden'); }
@@ -654,6 +660,13 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
     if (!v) return;
     v.favorite = !v.favorite;
     persist(); openLightbox(activeId); render();
+  });
+  document.getElementById('lbTop').addEventListener('click', function () {
+    var v = store.visuals.find(function (x) { return x.id === activeId; });
+    if (!v) return;
+    v.topOfMind = !v.topOfMind;
+    persist(); openLightbox(activeId); render();
+    toast(v.topOfMind ? 'Pinned to Top of Mind' : 'Removed from Top of Mind');
   });
   document.getElementById('lbArchive').addEventListener('click', function () {
     var v = store.visuals.find(function (x) { return x.id === activeId; });
@@ -787,6 +800,12 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
     activeMode = 'favorites';
     document.getElementById('fFav').checked = true;
     render();
+  });
+  document.getElementById('navTop').addEventListener('click', function () {
+    activeMode = 'top';
+    document.getElementById('fFav').checked = false;
+    render();
+    openSidebar(false);
   });
   document.getElementById('navInspire').addEventListener('click', function () {
     activeMode = 'serendipity';
