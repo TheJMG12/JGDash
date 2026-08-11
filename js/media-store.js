@@ -361,18 +361,32 @@
         if (blobId && !v.blobId) { v.blobId = blobId; return Promise.resolve(true); }
         return Promise.resolve(false);
       }
-      if (!blobId) return Promise.resolve(false);
+      // Dead blob: URL with no IndexedDB id — clear so UI shows a placeholder instead of "?"
+      if (!blobId) {
+        if (src.indexOf('blob:') === 0) {
+          v.src = '';
+          return Promise.resolve(true);
+        }
+        return Promise.resolve(false);
+      }
       v.blobId = blobId;
       return idbGet(blobId).then(function (blob) {
-        if (!blob) return false;
+        if (!blob) {
+          if (src.indexOf('blob:') === 0) { v.src = ''; return true; }
+          return false;
+        }
         return resizeImageFile(blob, 1400, 0.82).then(function (dataUrl) {
           v.src = dataUrl;
           return true;
         }).catch(function () {
+          // Last resort session object URL — still better than a dead blob: string
           v.src = URL.createObjectURL(blob);
           return true;
         });
-      }).catch(function () { return false; });
+      }).catch(function () {
+        if (src.indexOf('blob:') === 0) { v.src = ''; return true; }
+        return false;
+      });
     });
     return Promise.all(jobs).then(function (flags) {
       var n = flags.filter(Boolean).length;
