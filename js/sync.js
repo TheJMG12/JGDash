@@ -177,6 +177,53 @@
     return 'text:' + text;
   }
 
+  /** Collapse same-text duplicates; completed wins over open. */
+  function dedupeGoalItemsByText(items) {
+    if (!Array.isArray(items) || items.length < 2) return items || [];
+    var doneByText = {};
+    var result = [];
+    var seenDone = {};
+    var seenOpen = {};
+
+    items.forEach(function (it) {
+      if (!it || typeof it !== 'object' || !it.done) return;
+      var tk = String(it.text || '').trim().toLowerCase();
+      if (!tk) return;
+      if (!doneByText[tk]) doneByText[tk] = it;
+      else {
+        doneByText[tk] = {
+          id: doneByText[tk].id || it.id,
+          text: doneByText[tk].text || it.text,
+          done: true,
+          queued: !!(doneByText[tk].queued || it.queued)
+        };
+      }
+    });
+
+    items.forEach(function (it) {
+      if (!it || typeof it !== 'object') {
+        result.push(it);
+        return;
+      }
+      var tk = String(it.text || '').trim().toLowerCase();
+      if (!tk) {
+        result.push(it);
+        return;
+      }
+      if (it.done) {
+        if (seenDone[tk]) return;
+        seenDone[tk] = true;
+        result.push(doneByText[tk] || it);
+        return;
+      }
+      if (doneByText[tk]) return;
+      if (seenOpen[tk]) return;
+      seenOpen[tk] = true;
+      result.push(it);
+    });
+    return result;
+  }
+
   function mergeGoalsArray(localArr, remoteArr) {
     var map = {};
     var order = [];
@@ -211,14 +258,14 @@
     ingest(remoteArr);
     ingest(localArr);
 
-    return order.map(function (key) {
+    return dedupeGoalItemsByText(order.map(function (key) {
       var g = map[key];
       if (!g.id) {
         // Stable-ish id from text so future merges use id path
         g.id = 'g_' + key.replace(/^text:/, '').replace(/[^a-z0-9]+/g, '_').slice(0, 40);
       }
       return g;
-    });
+    }));
   }
 
   function mergeStringList(localArr, remoteArr) {

@@ -11,6 +11,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>JGDash — Welcome Justin</title>
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
+  <script src="js/goals-rollover.js?v=1"></script>
   <style>
     :root {
       --text-primary: #FAFAFA;
@@ -1490,65 +1491,16 @@
        Migrated incompletes are tombstoned on the source day so cloud sync
        cannot put them back and recreate them every day. */
     function runRollover() {
-      const active = getActiveDateString();
-      const activeKey = 'goals:' + active;
-      let todayGoals = getGoals(activeKey);
-      const keys = storeListKeys('goals:');
-      const nowIso = new Date().toISOString();
-
-      keys.forEach(function (key) {
-        const date = key.slice(6);
-        if (date >= active) return;
-        const pastStore = getGoalsStore(key);
-        const old = pastStore.items.filter(function (g) {
-          return !(g && g.id != null && pastStore.tombstones[String(g.id)]);
-        });
-        const undone = old.filter(function (g) { return !g.done; });
-        const done = old.filter(function (g) { return g.done; });
-        const tombs = Object.assign({}, pastStore.tombstones || {});
-
-        undone.forEach(function (g) {
-          if (!g) return;
-          // Leave a tombstone on the past day so sync cannot resurrect this incomplete there.
-          if (g.id != null && g.id !== '') tombs[String(g.id)] = nowIso;
-
-          const text = String(g.text || '').trim();
-          const alreadyOpenToday = todayGoals.some(function (t) {
-            if (!t || t.done) return false;
-            if (t.id && g.id && String(t.id) === String(g.id)) return true;
-            return String(t.text || '').trim() === text;
-          });
-          if (alreadyOpenToday) return;
-
-          // New id so the past-day tombstone does not strip today's open copy.
-          todayGoals.push({
-            id: goalUid(),
-            text: g.text,
-            done: false,
-            queued: !!g.queued,
-            rolledFrom: date
-          });
-        });
-
-        storeSet(key, { items: done, tombstones: tombs });
+      if (!window.JGDash || !JGDash.goalsRollover) return;
+      JGDash.goalsRollover.runRollover({
+        getActiveDateString: getActiveDateString,
+        storeListKeys: storeListKeys,
+        getGoalsStore: getGoalsStore,
+        getGoals: getGoals,
+        setGoals: setGoals,
+        storeSet: storeSet,
+        goalUid: goalUid
       });
-
-      // Legacy rollover reused ids; if a past day now has that id completed, drop the stale open copy from Today.
-      const completedPastIds = {};
-      keys.forEach(function (key) {
-        const date = key.slice(6);
-        if (date >= active) return;
-        getGoals(key).forEach(function (g) {
-          if (g && g.done && g.id != null) completedPastIds[String(g.id)] = true;
-        });
-      });
-      todayGoals = todayGoals.filter(function (t) {
-        if (!t || t.done) return true;
-        if (t.id != null && completedPastIds[String(t.id)]) return false;
-        return true;
-      });
-
-      setGoals(activeKey, todayGoals);
     }
 
     /* —— Streak —— */
@@ -2527,7 +2479,7 @@
   <script src="js/config.js?v=2"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/lock.js"></script>
-  <script src="js/sync.js?v=16"></script>
+  <script src="js/sync.js?v=19"></script>
   <script src="js/theme.js?v=3"></script>
   <script src="js/topbar.js?v=12"></script>
   <script>
