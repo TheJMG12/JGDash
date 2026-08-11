@@ -14,7 +14,7 @@ Media items (and other list data) are **merged by id**, so adding different arti
 4. Keep using the app — sync is automatic. Use the topbar **Sync** button anytime for an immediate pass.
 5. If Sync says “Sign in…”, you are not authenticated on that device yet.
 
-Synced: goals, habits, projects, finance, training, health, media (including Visual Bookmarks / Watchlist / Reading List). Training `.mp4` blobs sync via Supabase Storage bucket `training-videos` (run `supabase/migrations/002_training_videos_storage.sql`). Not synced: uploaded Media image blobs in IndexedDB, theme preference, health PIN.
+Synced: goals, habits, projects, finance, training, health, media (including MyMind / Watchlist / Reading List). Training `.mp4` blobs sync via Supabase Storage bucket `training-videos` (run `supabase/migrations/002_training_videos_storage.sql`). MyMind image uploads sync via bucket `media-images` (run `supabase/migrations/003_media_images_storage.sql`). Not synced: theme preference, health PIN.
 
 ## WHOOP (Health)
 

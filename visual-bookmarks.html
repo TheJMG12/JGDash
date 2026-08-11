@@ -13,11 +13,12 @@
   <script src="js/config.js?v=2"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/lock.js"></script>
-  <script src="js/sync.js?v=16"></script>
+  <script src="js/sync.js?v=17"></script>
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
   <script src="js/theme.js?v=3"></script>
   <script src="js/topbar.js?v=12"></script>
-  <script src="js/media-store.js?v=4"></script>
+  <script src="js/media-blobs.js?v=1"></script>
+  <script src="js/media-store.js?v=5"></script>
   <style>
 
 :root {
@@ -450,9 +451,15 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
       img.src = durable;
       return;
     }
-    if (String(v.src || '').indexOf('blob:') === 0 || v.blobId) {
+    if (String(v.src || '').indexOf('blob:') === 0 || v.blobId || v.srcOmitted) {
       JGMedia.resolveVisualSrc(v).then(function (resolved) {
-        if (resolved) img.src = resolved;
+        if (!resolved) return;
+        img.src = resolved;
+        if (String(resolved).indexOf('data:') === 0) {
+          v.src = resolved;
+          v.srcOmitted = false;
+          persist();
+        }
       });
     }
   }
@@ -466,11 +473,15 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
     document.getElementById('empty').classList.toggle('hidden', list.length > 0);
     root.innerHTML = slice.map(function (v) {
       var kind = visualKind(v);
+      var durable = displaySrc(v);
+      var canHydrate = !durable && (!!v.blobId || String(v.src || '').indexOf('blob:') === 0);
       var mediaHtml;
-      if (kind === 'note' && !displaySrc(v) && !(v.src && String(v.src).indexOf('blob:') === 0) && !v.blobId) {
+      if (kind === 'note' && !durable && !canHydrate) {
         mediaHtml = '<div class="note-preview">' + esc((v.note || v.caption || v.title || 'Note').slice(0, 160)) + '</div>';
+      } else if (!durable && !canHydrate) {
+        mediaHtml = '<div class="note-preview" style="min-height:100px;display:flex;align-items:center;justify-content:center;color:var(--text-tertiary);font-size:12px">No preview — re-upload to restore</div>';
       } else {
-        mediaHtml = '<img data-vid="' + esc(v.id) + '" src="' + esc(displaySrc(v) || '') + '" alt="' + esc(v.title || '') + '" loading="lazy" onerror="this.style.opacity=0.3;this.alt=\'Broken preview\'" />';
+        mediaHtml = '<img data-vid="' + esc(v.id) + '" src="' + esc(durable || '') + '" alt="' + esc(v.title || '') + '" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement(\'div\'),{className:\'note-preview\',style:\'min-height:100px;display:flex;align-items:center;justify-content:center;color:var(--text-tertiary);font-size:12px\',textContent:\'No preview\'}))" />';
       }
       return '<article class="vcard" data-id="' + esc(v.id) + '" tabindex="0" role="button" aria-label="' + esc(v.title || 'Item') + '">' +
         mediaHtml +
@@ -589,12 +600,14 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
       caption: partial.caption || '',
       src: src,
       blobId: partial.blobId || '',
+      cloud: !!partial.cloud,
       kind: partial.kind || 'image',
       sourceUrl: partial.sourceUrl || '',
       sourceLabel: partial.sourceLabel || 'Manual',
       savedAt: JGMedia.today(),
+      updatedAt: new Date().toISOString(),
       tags: partial.tags || '',
-      collection: partial.collection || 'Design',
+      collection: partial.collection || '',
       vibe: partial.vibe || '',
       favorite: false,
       note: partial.note || '',
@@ -604,7 +617,7 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
     if (item.collection && store.collections.indexOf(item.collection) === -1) store.collections.push(item.collection);
     persist();
     render();
-    toast('Saved to MyMind');
+    toast(item.cloud ? 'Saved to MyMind · syncing to your devices' : 'Saved to MyMind');
     return item;
   }
 
@@ -686,6 +699,9 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
     if (blobId && typeof JGMedia.idbDel === 'function') {
       JGMedia.idbDel(blobId).catch(function () {});
     }
+    if (blobId && window.JGMediaBlobs && typeof JGMediaBlobs.remove === 'function') {
+      JGMediaBlobs.remove(blobId).catch(function () {});
+    }
     persist(); closeLightbox(); render(); toast('Deleted');
   });
 
@@ -745,6 +761,7 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
     saveVisual({
       src: src,
       blobId: blobId,
+      cloud: !!(pendingUpload && pendingUpload.cloud),
       kind: kind,
       title: document.getElementById('vTitle').value.trim(),
       caption: document.getElementById('vCaption').value.trim(),
@@ -762,7 +779,7 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
     files.forEach(function (file) {
       JGMedia.ingestImageFile(file).then(function (result) {
         if (document.getElementById('modal').classList.contains('open')) {
-          pendingUpload = { blobId: result.blobId, src: result.src };
+          pendingUpload = { blobId: result.blobId, src: result.src, cloud: !!result.cloud };
           document.getElementById('vSrc').value = '';
           if (!document.getElementById('vTitle').value.trim()) {
             document.getElementById('vTitle').value = file.name.replace(/\.[^.]+$/, '');
@@ -771,16 +788,17 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
             document.getElementById('vKind').value = 'image';
             syncKindUi();
           }
-          toast('Image ready — hit Save');
+          toast(result.cloud ? 'Image ready · will sync to your other devices' : 'Image ready — hit Save (sign in to sync across devices)');
           return;
         }
         saveVisual({
           src: result.src,
           blobId: result.blobId,
+          cloud: !!result.cloud,
           kind: 'image',
           title: file.name.replace(/\.[^.]+$/, ''),
           sourceLabel: result.sourceLabel || 'Upload',
-          collection: 'Design'
+          collection: ''
         });
       }).catch(function () {
         toast('Could not process image');
@@ -826,7 +844,13 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
   });
 
   JGMedia.repairVisualBlobs(store).then(function () {
+    store = JGMedia.load();
     render();
+    if (typeof JGMedia.backfillCloudImages === 'function') {
+      JGMedia.backfillCloudImages(store).then(function (n) {
+        if (n) { store = JGMedia.load(); render(); }
+      }).catch(function () {});
+    }
   }).catch(function () {
     render();
   });
@@ -836,7 +860,13 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
     var keys = [].concat(detail.applied || [], detail.merged || []);
     if (!keys.some(function (k) { return k === 'jg_media_data_v1'; })) return;
     store = JGMedia.load();
-    JGMedia.repairVisualBlobs(store).then(function () { render(); }).catch(function () { render(); });
+    JGMedia.repairVisualBlobs(store).then(function () {
+      store = JGMedia.load();
+      render();
+      if (typeof JGMedia.backfillCloudImages === 'function') {
+        JGMedia.backfillCloudImages(store).catch(function () {});
+      }
+    }).catch(function () { render(); });
   });
   </script>
 </body>

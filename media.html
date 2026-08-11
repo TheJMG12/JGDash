@@ -13,11 +13,12 @@
   <script src="js/config.js?v=2"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/lock.js"></script>
-  <script src="js/sync.js?v=16"></script>
+  <script src="js/sync.js?v=17"></script>
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
   <script src="js/theme.js?v=3"></script>
   <script src="js/topbar.js?v=12"></script>
-  <script src="js/media-store.js?v=4"></script>
+  <script src="js/media-blobs.js?v=1"></script>
+  <script src="js/media-store.js?v=5"></script>
   <style>
 
 :root {
@@ -231,7 +232,22 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
 #libraryMount.view-table table.t{width:100%}
 #libraryMount.view-table .lib-actions{display:inline-flex}
 .lib-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
-@media(max-width:860px){.lib-layout{grid-template-columns:1fr}.tag-panel{position:static;max-height:none}.tag-list{max-height:160px;flex-direction:row;flex-wrap:wrap}.tag-list button{width:auto}}
+.sidebar-tags-drop{padding:0 4px 8px}
+.sidebar-tags-drop summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--input-bg);font-size:12px;font-weight:650;color:var(--text-secondary);user-select:none}
+.sidebar-tags-drop summary::-webkit-details-marker{display:none}
+.sidebar-tags-drop summary::after{content:'▾';font-size:11px;color:var(--text-tertiary)}
+.sidebar-tags-drop[open] summary{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 40%,transparent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
+.sidebar-tags-drop[open] summary::after{content:'▴'}
+.sidebar-tags-drop .tag-drop-body{margin-top:8px;padding:8px;border-radius:12px;border:1px solid var(--border);background:var(--card-bg);max-height:42vh;overflow-y:auto}
+.sidebar-tags-drop .tag-search{margin-bottom:8px;width:100%}
+.sidebar-tags-drop .tag-tools{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.sidebar-tags-drop .tag-tools label{font-size:11px;color:var(--text-tertiary);display:inline-flex;align-items:center;gap:4px;cursor:pointer}
+.sidebar-tags-drop .tag-list{list-style:none;display:flex;flex-direction:column;gap:4px}
+.sidebar-tags-drop .tag-list button{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:7px 10px;border-radius:10px;border:1px solid transparent;background:transparent;color:var(--text-secondary);font-size:12px;font-weight:600;text-align:left}
+.sidebar-tags-drop .tag-list button:hover{background:rgba(255,255,255,0.05);color:var(--text-primary)}
+.sidebar-tags-drop .tag-list button.active{background:color-mix(in srgb,var(--accent) 16%,transparent);border-color:color-mix(in srgb,var(--accent) 40%,transparent);color:var(--accent)}
+.sidebar-tags-drop .tag-list .count{font-family:var(--mono);font-size:10px;color:var(--text-tertiary)}
+@media(max-width:860px){.lib-layout{grid-template-columns:1fr}}
 
   </style>
 </head>
@@ -244,7 +260,16 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
       <button type="button" class="nav-link" data-section="library">Bookmark Library</button>
       <button type="button" class="nav-link" data-section="feeds">RSS Feeds</button>
       <div class="sidebar-section">Library tags</div>
-      <div id="sidebarTags" style="padding:0 4px 8px;display:flex;flex-direction:column;gap:4px;max-height:28vh;overflow-y:auto"></div>
+      <details class="sidebar-tags-drop" id="libraryTagsDrop" open>
+        <summary>Tags <span id="sidebarTagSummary" class="count" style="font-weight:500;color:var(--text-tertiary)"></span></summary>
+        <div class="tag-drop-body">
+          <input type="search" class="search-input tag-search" id="tagSearch" placeholder="Filter tags…" aria-label="Filter tags" />
+          <div class="tag-tools">
+            <label><input type="checkbox" id="tagRollup" checked /> Include child tags</label>
+          </div>
+          <ul class="tag-list" id="sidebarTags"></ul>
+        </div>
+      </details>
       <div class="sidebar-section">Spaces</div>
       <a class="nav-link" href="visual-bookmarks.html">MyMind</a>
       <a class="nav-link" href="watchlist.html">Watchlist</a>
@@ -287,7 +312,7 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
         <section class="section" id="sec-library">
           <div class="section-head">
             <h2 class="section-title">Bookmark Library</h2>
-            <span class="section-sub">Tagged cards · click to open · filter from the tag panel or hamburger tags</span>
+            <span class="section-sub">Tagged cards · filter from Library tags in the sidebar / hamburger</span>
             <select class="select" id="filterType" style="width:auto;margin-left:auto">
               <option value="all">Type: All</option>
               <option value="article">article</option>
@@ -309,25 +334,13 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
               <button type="button" data-view="table" title="Table">Table</button>
             </div>
           </div>
-          <div class="lib-layout">
-            <aside class="tag-panel" aria-label="Tags">
-              <h3>Tags</h3>
-              <input type="search" class="search-input tag-search" id="tagSearch" placeholder="Filter tags…" aria-label="Filter tags" />
-              <div class="tag-tools">
-                <label><input type="checkbox" id="tagRollup" checked /> Include child tags</label>
-              </div>
-              <ul class="tag-list" id="tagList"></ul>
-            </aside>
-            <div>
-              <div class="lib-toolbar">
-                <span class="section-sub" id="libCountLabel"></span>
-                <button type="button" class="btn" id="bulkTagBtn" style="margin-left:auto" hidden>Tag selected</button>
-                <button type="button" class="btn danger" id="bulkDelBtn" hidden>Delete selected</button>
-              </div>
-              <div class="media-grid" id="libraryMount"></div>
-              <div id="libraryEmpty" class="empty-state hidden"><strong>Library is empty</strong>Tap Capture to save your first bookmark.</div>
-            </div>
+          <div class="lib-toolbar">
+            <span class="section-sub" id="libCountLabel"></span>
+            <button type="button" class="btn" id="bulkTagBtn" style="margin-left:auto" hidden>Tag selected</button>
+            <button type="button" class="btn danger" id="bulkDelBtn" hidden>Delete selected</button>
           </div>
+          <div class="media-grid" id="libraryMount"></div>
+          <div id="libraryEmpty" class="empty-state hidden"><strong>Library is empty</strong>Tap Capture to save your first bookmark.</div>
         </section>
 
         <section class="section" id="sec-feeds">
@@ -581,9 +594,9 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
     if (!tags.length) {
       html += '<li><span class="card-meta" style="padding:6px 10px;display:block">No tags yet — use nested tags like Design/UI when capturing.</span></li>';
     }
-    if ($('tagList')) $('tagList').innerHTML = html;
-    if ($('sidebarTags')) {
-      $('sidebarTags').innerHTML = '<div class="tag-list">' + html.replace(/<\/?li>/g, '') + '</div>';
+    if ($('sidebarTags')) $('sidebarTags').innerHTML = html;
+    if ($('sidebarTagSummary')) {
+      $('sidebarTagSummary').textContent = tags.length ? ('· ' + tags.length) : '';
     }
   }
 
@@ -610,7 +623,6 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
     var lib = $('sec-library');
     if (lib) lib.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
-  if ($('tagList')) $('tagList').addEventListener('click', onTagClick);
   if ($('sidebarTags')) $('sidebarTags').addEventListener('click', onTagClick);
   if ($('tagSearch')) $('tagSearch').addEventListener('input', renderTagPanels);
   if ($('tagRollup')) $('tagRollup').addEventListener('change', function () { renderTagPanels(); renderLibrary(); });
@@ -1137,6 +1149,9 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
     renderFeeds();
   }
 
+  if (store._purgedSeed && window.JGDash && JGDash.sync && typeof JGDash.sync.syncNow === 'function') {
+    try { JGDash.sync.syncNow({ skipReload: true, quiet: true }); } catch (e) {}
+  }
   render();
 
   window.addEventListener('jg-sync-complete', function (e) {

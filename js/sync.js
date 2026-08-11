@@ -672,6 +672,10 @@
           remoteVal && remoteVal.tombstones
         );
       }
+      // Media: strip stock filler bookmarks / MyMind samples so they cannot resurrect via sync.
+      if (key === 'jg_media_data_v1' && global.JGMedia && typeof global.JGMedia.purgeSeedContent === 'function') {
+        global.JGMedia.purgeSeedContent(mergedObj);
+      }
       stripTombstoned(mergedObj, MERGE_ARRAY_FIELDS[key], mergedObj.tombstones);
       return mergedObj;
     }
