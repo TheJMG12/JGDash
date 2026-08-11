@@ -8,7 +8,7 @@
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>JGDash — Visual Bookmarks</title>
+  <title>JGDash — MyMind</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/config.js?v=2"></script>
   <script src="js/supabase-client.js"></script>
@@ -17,7 +17,7 @@
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
   <script src="js/theme.js?v=3"></script>
   <script src="js/topbar.js?v=12"></script>
-  <script src="js/media-store.js?v=2"></script>
+  <script src="js/media-store.js?v=4"></script>
   <style>
 
 :root {
@@ -164,12 +164,15 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
 .masonry .vcard{break-inside:avoid;margin-bottom:12px;border-radius:14px;border:1px solid var(--border);background:var(--card-bg);overflow:hidden;cursor:pointer;transition:transform .15s,border-color .15s}
 .masonry .vcard:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--accent) 40%,transparent)}
 .masonry .vcard img{width:100%;display:block;background:#111}
+.masonry .vcard .note-preview{padding:28px 16px;min-height:120px;background:linear-gradient(160deg,rgba(167,139,250,0.12),rgba(255,255,255,0.02));font-size:14px;line-height:1.45;color:var(--text-secondary)}
 .masonry .vcard .body{padding:10px 12px 12px}
 .lightbox{display:none;position:fixed;inset:0;z-index:55;background:rgba(0,0,0,0.82);padding:24px;align-items:center;justify-content:center}
 .lightbox.open{display:flex}
 .lightbox-inner{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;width:min(1100px,100%);max-height:90vh}
 .lightbox-img{border-radius:14px;overflow:hidden;background:#000;display:flex;align-items:center;justify-content:center}
 .lightbox-img img{max-width:100%;max-height:85vh;object-fit:contain}
+.lightbox-img.note-mode{background:linear-gradient(160deg,#1a1820,#0d0d10);padding:24px;align-items:flex-start}
+.lightbox-img .lb-note-body{color:var(--text-secondary);font-size:15px;line-height:1.55;white-space:pre-wrap}
 .lightbox-meta{overflow-y:auto;padding:16px;border-radius:14px;background:#121214;border:1px solid var(--border)}
 [data-theme="light"] .lightbox-meta{background:#fff}
 @media(max-width:1200px){.kpi-row{grid-template-columns:repeat(3,1fr)}.poster-grid{grid-template-columns:repeat(4,1fr)}.book-grid{grid-template-columns:repeat(3,1fr)}.masonry{column-count:3}}
@@ -181,26 +184,29 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
 .chip-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
 .chip{padding:5px 10px;border-radius:999px;border:1px solid var(--border);font-size:12px;color:var(--text-tertiary);background:var(--input-bg)}
 .chip.active{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 45%,transparent);background:color-mix(in srgb,var(--accent) 14%,transparent)}
+.mode-chips{margin-bottom:10px}
 .fav-star{color:var(--warning)}
 .placeholder-card{padding:16px;border:1px dashed var(--border);border-radius:14px;color:var(--text-tertiary);font-size:12px;line-height:1.5;margin-top:16px}
+.kind-badge{font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-tertiary)}
 
   </style>
 </head>
 
-<body data-page-title="Visual Bookmarks">
+<body data-page-title="MyMind">
 <div class="app">
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-brand">Media</div>
       <a class="nav-link" href="media.html">Media Hub</a>
-      <a class="nav-link active" href="visual-bookmarks.html">Visual Bookmarks</a>
+      <a class="nav-link active" href="visual-bookmarks.html">MyMind</a>
       <a class="nav-link" href="watchlist.html">Watchlist</a>
       <a class="nav-link" href="reading-list.html">Reading List</a>
       <div class="sidebar-section">On this page</div>
       
-      <button type="button" class="nav-link" id="navSave">+ Save image</button>
+      <button type="button" class="nav-link" id="navSave">+ Save to MyMind</button>
+      <button type="button" class="nav-link" id="navTop">Top of Mind</button>
       <button type="button" class="nav-link" id="navFav">Favorites</button>
-      <button type="button" class="nav-link" id="navInspire">Surprise me</button>
+      <button type="button" class="nav-link" id="navInspire">Serendipity</button>
 
       <div class="sidebar-back"><a href="index.html">← Dashboard</a></div>
     </aside>
@@ -208,24 +214,26 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
     <div class="main">
       <div class="mobile-bar">
         <button type="button" class="hamburger" id="hamburger" aria-label="Open menu">☰</button>
-        <strong style="font-size:15px">Visual Bookmarks</strong>
+        <strong style="font-size:15px">MyMind</strong>
       </div>
       <div class="main-scroll" id="mainScroll">
         <div class="page-header">
           <div class="page-title-block">
-            <h1 class="page-title">Visual Bookmarks</h1>
-            <p class="page-sub">A private scrapbook for images, screenshots, and inspiration — browse, save, retrieve.</p>
+            <h1 class="page-title">MyMind</h1>
+            <p class="page-sub">Remember everything. Organize nothing — images, memes, notes, articles, products, and videos in one private vault.</p>
           </div>
           <div class="toolbar">
-            <input type="search" class="search-input" id="searchInput" placeholder="Search captions, tags, notes…" aria-label="Search visuals" />
+            <input type="search" class="search-input" id="searchInput" placeholder="Search titles, tags, notes…" aria-label="Search MyMind" />
             <button type="button" class="btn" id="uploadBtn">Upload</button>
-            <button type="button" class="btn primary" id="saveBtn">+ Save image</button>
+            <button type="button" class="btn primary" id="saveBtn">+ Save</button>
             <input type="file" id="fileInput" accept="image/*" class="hidden" multiple />
           </div>
         </div>
 
+        <div class="chip-row mode-chips" id="modeChips" role="tablist" aria-label="MyMind modes"></div>
+
         <div class="filters">
-          <select class="select" id="fCollection"><option value="all">Collection: All</option></select>
+          <select class="select" id="fCollection"><option value="all">Space: All</option></select>
           <select class="select" id="fTag"><option value="all">Tag: All</option></select>
           <select class="select" id="fVibe"><option value="all">Vibe: All</option></select>
           <select class="select" id="fSource"><option value="all">Source: All</option></select>
@@ -238,20 +246,20 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
         <div class="chip-row" id="collectionChips"></div>
 
         <div id="masonry" class="masonry" aria-live="polite"></div>
-        <div id="empty" class="empty-state hidden"><strong>No visual bookmarks yet</strong>Save an image URL or upload a screenshot to start your vault.</div>
+        <div id="empty" class="empty-state hidden"><strong>Nothing in MyMind yet</strong>Save an image, note, or link — or upload a screenshot to start.</div>
         <div id="sentinel" style="height:24px"></div>
 
         <div class="placeholder-card">
-          <strong style="color:var(--text-secondary)">Coming soon</strong><br/>
-          OCR / search text in image · smart tags · similar vibe · browser extension right-click save · random mood resurfacing
+          <strong style="color:var(--text-secondary)">Tip</strong><br/>
+          Drop screenshots with Upload — previews are stored as durable images so they still show after reload. Use Spaces lightly, pin Top of Mind, and Serendipity when you want a random spark.
         </div>
       </div>
     </div>
   </div>
 
-  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Image detail">
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Item detail">
     <div class="lightbox-inner">
-      <div class="lightbox-img"><img id="lbImg" alt="" /></div>
+      <div class="lightbox-img" id="lbImgWrap"><img id="lbImg" alt="" /><div id="lbNoteBody" class="lb-note-body hidden"></div></div>
       <div class="lightbox-meta">
         <div class="split" style="justify-content:space-between;margin-bottom:10px">
           <h2 id="lbTitle" style="font-size:18px;margin:0"></h2>
@@ -260,9 +268,10 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
         <p class="card-meta" id="lbMeta"></p>
         <p id="lbNote" style="font-size:13px;line-height:1.5;margin-bottom:12px;color:var(--text-secondary)"></p>
         <div class="tags" id="lbTags" style="margin-bottom:14px"></div>
-        <div class="field"><label>Collection</label><div id="lbCollection" style="font-size:13px"></div></div>
-        <div class="field"><label>Related (same collection)</label><div id="lbRelated" class="tags"></div></div>
+        <div class="field"><label>Space</label><div id="lbCollection" style="font-size:13px"></div></div>
+        <div class="field"><label>Related (same space)</label><div id="lbRelated" class="tags"></div></div>
         <div class="split" style="margin-top:12px">
+          <button type="button" class="btn" id="lbTop">Top of Mind</button>
           <button type="button" class="btn" id="lbFav">Favorite</button>
           <button type="button" class="btn" id="lbArchive">Archive</button>
           <a class="btn" id="lbSource" target="_blank" rel="noopener">Open source</a>
@@ -274,17 +283,28 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
 
   <div class="modal-backdrop" id="modal">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-      <h2 id="modalTitle">Save image</h2>
-      <p class="modal-lead">Paste an image URL or use Upload. Extension capture is a future hook.</p>
+      <h2 id="modalTitle">Save to MyMind</h2>
+      <p class="modal-lead">Capture an image, note, article, product, video, or meme. Uploads store a durable preview so they survive reload.</p>
       <div class="modal-grid">
-        <div class="field full"><label for="vSrc">Image URL</label><input id="vSrc" type="url" placeholder="https://…" /></div>
+        <div class="field"><label for="vKind">Kind</label>
+          <select id="vKind">
+            <option value="image">Image</option>
+            <option value="note">Note</option>
+            <option value="article">Article</option>
+            <option value="product">Product</option>
+            <option value="video">Video</option>
+            <option value="meme">Meme</option>
+          </select>
+        </div>
+        <div class="field"><label for="vCollection">Space</label><input id="vCollection" list="colList" placeholder="Design, Inspiration…" /></div>
+        <div class="field full" id="vSrcField"><label for="vSrc">Image URL</label><input id="vSrc" type="url" placeholder="https://…" /></div>
+        <div class="field full" id="vUploadHint"><label>Or upload</label><button type="button" class="btn" id="modalUploadBtn" style="width:auto">Choose image…</button></div>
         <div class="field"><label for="vTitle">Title</label><input id="vTitle" type="text" /></div>
-        <div class="field"><label for="vCaption">Caption</label><input id="vCaption" type="text" /></div>
-        <div class="field"><label for="vCollection">Collection</label><input id="vCollection" list="colList" /></div>
         <div class="field"><label for="vTags">Tags</label><input id="vTags" placeholder="ui, soccer" /></div>
+        <div class="field full"><label for="vNote">Note / body</label><textarea id="vNote" placeholder="Thoughts, quote, why you saved this…"></textarea></div>
+        <div class="field full"><label for="vSourceUrl">Source URL</label><input id="vSourceUrl" type="url" placeholder="https://…" /></div>
+        <div class="field"><label for="vCaption">Caption</label><input id="vCaption" type="text" /></div>
         <div class="field"><label for="vVibe">Vibe / color</label><input id="vVibe" placeholder="dark, warm, cool…" /></div>
-        <div class="field"><label for="vSourceUrl">Source URL</label><input id="vSourceUrl" type="url" /></div>
-        <div class="field full"><label for="vNote">Note</label><textarea id="vNote"></textarea></div>
       </div>
       <datalist id="colList"></datalist>
       <div class="modal-actions">
@@ -319,11 +339,36 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
   var store = JGMedia.load();
   var activeId = null;
   var visibleLimit = 24;
+  var activeMode = 'everything';
+  var pendingUpload = null; // { blobId, src } from modal upload
+  var MODES = [
+    { id: 'everything', label: 'Everything' },
+    { id: 'top', label: 'Top of Mind' },
+    { id: 'image', label: 'Images' },
+    { id: 'note', label: 'Notes' },
+    { id: 'article', label: 'Articles' },
+    { id: 'product', label: 'Products' },
+    { id: 'video', label: 'Videos' },
+    { id: 'meme', label: 'Memes' },
+    { id: 'favorites', label: 'Favorites' },
+    { id: 'serendipity', label: 'Serendipity' }
+  ];
 
   function persist() { JGMedia.save(store); }
 
   function visuals() {
     return (store.visuals || []).slice();
+  }
+
+  function visualKind(v) {
+    return (v && v.kind) || 'image';
+  }
+
+  function renderModeChips() {
+    var root = document.getElementById('modeChips');
+    root.innerHTML = MODES.map(function (m) {
+      return '<button type="button" class="chip' + (activeMode === m.id ? ' active' : '') + '" data-mode="' + m.id + '" role="tab" aria-selected="' + (activeMode === m.id) + '">' + m.label + '</button>';
+    }).join('');
   }
 
   function fillFilters() {
@@ -343,7 +388,7 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
       }).join('');
       el.value = map[cur] || cur === 'all' ? cur : 'all';
     }
-    fill('fCollection', cols, 'Collection');
+    fill('fCollection', cols, 'Space');
     fill('fTag', tags, 'Tag');
     fill('fVibe', vibes, 'Vibe');
     fill('fSource', sources, 'Source');
@@ -352,7 +397,7 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
     }).join('');
     var chips = document.getElementById('collectionChips');
     var activeCol = document.getElementById('fCollection').value;
-    chips.innerHTML = '<button type="button" class="chip' + (activeCol === 'all' ? ' active' : '') + '" data-col="all">All</button>' +
+    chips.innerHTML = '<button type="button" class="chip' + (activeCol === 'all' ? ' active' : '') + '" data-col="all">All spaces</button>' +
       Object.keys(cols).sort().map(function (c) {
         return '<button type="button" class="chip' + (activeCol === c ? ' active' : '') + '" data-col="' + esc(c) + '">' + esc(c) + '</button>';
       }).join('');
@@ -364,18 +409,22 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
     var tag = document.getElementById('fTag').value;
     var vibe = document.getElementById('fVibe').value;
     var src = document.getElementById('fSource').value;
-    var favOnly = document.getElementById('fFav').checked;
+    var favOnly = document.getElementById('fFav').checked || activeMode === 'favorites';
     var showArch = document.getElementById('fArchived').checked;
     var sort = document.getElementById('fSort').value;
     var list = visuals().filter(function (v) {
       if (!showArch && v.archived) return false;
       if (favOnly && !v.favorite) return false;
+      if (activeMode === 'top' && !v.topOfMind) return false;
       if (col !== 'all' && v.collection !== col) return false;
       if (vibe !== 'all' && v.vibe !== vibe) return false;
       if (src !== 'all' && v.sourceLabel !== src) return false;
       if (tag !== 'all' && !(v.tags || '').toLowerCase().split(',').map(function (t) { return t.trim(); }).includes(tag.toLowerCase())) return false;
+      if (activeMode !== 'everything' && activeMode !== 'favorites' && activeMode !== 'serendipity' && activeMode !== 'top') {
+        if (visualKind(v) !== activeMode) return false;
+      }
       if (q) {
-        var blob = [v.title, v.caption, v.note, v.tags, v.collection, v.vibe].join(' ').toLowerCase();
+        var blob = [v.title, v.caption, v.note, v.tags, v.collection, v.vibe, visualKind(v)].join(' ').toLowerCase();
         if (blob.indexOf(q) === -1) return false;
       }
       return true;
@@ -388,44 +437,105 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
     return list;
   }
 
+  function displaySrc(v) {
+    var src = String((v && v.src) || '');
+    if (!src || src.indexOf('blob:') === 0) return '';
+    return src;
+  }
+
+  function hydrateCardImg(img, v) {
+    if (!img || !v) return;
+    var durable = displaySrc(v);
+    if (durable) {
+      img.src = durable;
+      return;
+    }
+    if (String(v.src || '').indexOf('blob:') === 0 || v.blobId) {
+      JGMedia.resolveVisualSrc(v).then(function (resolved) {
+        if (resolved) img.src = resolved;
+      });
+    }
+  }
+
   function render() {
+    renderModeChips();
     fillFilters();
     var list = filtered();
     var slice = list.slice(0, visibleLimit);
     var root = document.getElementById('masonry');
     document.getElementById('empty').classList.toggle('hidden', list.length > 0);
     root.innerHTML = slice.map(function (v) {
-      return '<article class="vcard" data-id="' + esc(v.id) + '" tabindex="0" role="button" aria-label="' + esc(v.title || 'Image') + '">' +
-        '<img src="' + esc(v.src) + '" alt="' + esc(v.title || '') + '" loading="lazy" onerror="this.style.opacity=0.3;this.alt=\'Broken preview\'" />' +
+      var kind = visualKind(v);
+      var mediaHtml;
+      if (kind === 'note' && !displaySrc(v) && !(v.src && String(v.src).indexOf('blob:') === 0) && !v.blobId) {
+        mediaHtml = '<div class="note-preview">' + esc((v.note || v.caption || v.title || 'Note').slice(0, 160)) + '</div>';
+      } else {
+        mediaHtml = '<img data-vid="' + esc(v.id) + '" src="' + esc(displaySrc(v) || '') + '" alt="' + esc(v.title || '') + '" loading="lazy" onerror="this.style.opacity=0.3;this.alt=\'Broken preview\'" />';
+      }
+      return '<article class="vcard" data-id="' + esc(v.id) + '" tabindex="0" role="button" aria-label="' + esc(v.title || 'Item') + '">' +
+        mediaHtml +
         '<div class="body">' +
           '<div class="split" style="justify-content:space-between"><strong style="font-size:13px">' + esc(v.title || 'Untitled') + '</strong>' +
-          (v.favorite ? '<span class="fav-star" aria-label="Favorite">★</span>' : '') + '</div>' +
-          '<div class="meta" style="font-size:11px;color:var(--text-tertiary);margin-top:4px">' + esc(v.collection || 'Unfiled') + ' · ' + esc(v.savedAt || '') + '</div>' +
+          '<span>' + (v.topOfMind ? '<span title="Top of Mind" style="color:var(--accent);margin-right:4px">◉</span>' : '') +
+          (v.favorite ? '<span class="fav-star" aria-label="Favorite">★</span>' : '') + '</span></div>' +
+          '<div class="meta" style="font-size:11px;color:var(--text-tertiary);margin-top:4px"><span class="kind-badge">' + esc(kind) + '</span> · ' + esc(v.collection || 'Unfiled') + ' · ' + esc(v.savedAt || '') + '</div>' +
           (v.note ? '<div style="font-size:11px;color:var(--text-secondary);margin-top:4px">' + esc(v.note.slice(0, 80)) + '</div>' : '') +
         '</div></article>';
     }).join('');
+    slice.forEach(function (v) {
+      var img = root.querySelector('img[data-vid="' + v.id + '"]');
+      if (img && (!img.getAttribute('src') || String(v.src || '').indexOf('blob:') === 0)) {
+        hydrateCardImg(img, v);
+      }
+    });
   }
 
   function openLightbox(id) {
     var v = visuals().find(function (x) { return x.id === id; });
     if (!v) return;
     activeId = id;
-    document.getElementById('lbImg').src = v.src;
-    document.getElementById('lbImg').alt = v.title || '';
+    var kind = visualKind(v);
+    var wrap = document.getElementById('lbImgWrap');
+    var img = document.getElementById('lbImg');
+    var noteBody = document.getElementById('lbNoteBody');
+    var durable = displaySrc(v);
+    if (kind === 'note' && !durable && !v.blobId && String(v.src || '').indexOf('blob:') !== 0) {
+      wrap.classList.add('note-mode');
+      img.classList.add('hidden');
+      img.removeAttribute('src');
+      noteBody.classList.remove('hidden');
+      noteBody.textContent = v.note || v.caption || '';
+    } else {
+      wrap.classList.remove('note-mode');
+      img.classList.remove('hidden');
+      noteBody.classList.add('hidden');
+      if (durable) {
+        img.src = durable;
+      } else if (String(v.src || '').indexOf('blob:') === 0 || v.blobId) {
+        img.removeAttribute('src');
+        JGMedia.resolveVisualSrc(v).then(function (resolved) {
+          if (activeId === id && resolved) img.src = resolved;
+        });
+      } else {
+        img.src = v.src || '';
+      }
+    }
+    img.alt = v.title || '';
     document.getElementById('lbTitle').textContent = v.title || 'Untitled';
-    document.getElementById('lbMeta').textContent = (v.sourceLabel || 'Local') + ' · ' + (v.savedAt || '') + (v.vibe ? ' · ' + v.vibe : '');
-    document.getElementById('lbNote').textContent = v.note || v.caption || 'No note yet.';
+    document.getElementById('lbMeta').textContent = kind + ' · ' + (v.sourceLabel || 'Local') + ' · ' + (v.savedAt || '') + (v.vibe ? ' · ' + v.vibe : '');
+    document.getElementById('lbNote').textContent = kind === 'note' ? (v.caption || '') : (v.note || v.caption || 'No note yet.');
     document.getElementById('lbCollection').textContent = v.collection || 'Unfiled';
     document.getElementById('lbTags').innerHTML = (v.tags || '').split(',').filter(Boolean).map(function (t) {
       return '<span class="tag-pill">' + esc(t.trim()) + '</span>';
     }).join('') || '<span class="card-meta">No tags</span>';
     document.getElementById('lbFav').textContent = v.favorite ? 'Unfavorite' : 'Favorite';
+    document.getElementById('lbTop').textContent = v.topOfMind ? 'Unpin Top of Mind' : 'Pin Top of Mind';
     document.getElementById('lbArchive').textContent = v.archived ? 'Unarchive' : 'Archive';
     var src = document.getElementById('lbSource');
     if (v.sourceUrl) { src.href = v.sourceUrl; src.classList.remove('hidden'); } else { src.classList.add('hidden'); }
     var related = visuals().filter(function (x) { return x.id !== v.id && x.collection === v.collection && !x.archived; }).slice(0, 4);
     document.getElementById('lbRelated').innerHTML = related.length ? related.map(function (r) {
-      return '<button type="button" class="tag-pill" data-rel="' + esc(r.id) + '">' + esc(r.title || 'Image') + '</button>';
+      return '<button type="button" class="tag-pill" data-rel="' + esc(r.id) + '">' + esc(r.title || 'Item') + '</button>';
     }).join('') : '<span class="card-meta">No related yet</span>';
     document.getElementById('lightbox').classList.add('open');
   }
@@ -435,7 +545,23 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
     activeId = null;
   }
 
+  function syncKindUi() {
+    var kind = document.getElementById('vKind').value;
+    var srcLabel = document.querySelector('label[for="vSrc"]');
+    if (kind === 'note') {
+      if (srcLabel) srcLabel.textContent = 'Image URL (optional)';
+      document.getElementById('vNote').placeholder = 'Write your note…';
+    } else {
+      if (srcLabel) srcLabel.textContent = 'Image URL';
+      document.getElementById('vNote').placeholder = 'Thoughts, quote, why you saved this…';
+    }
+  }
+
   function openModal() {
+    pendingUpload = null;
+    document.getElementById('vKind').value = activeMode === 'note' || activeMode === 'article' || activeMode === 'product' || activeMode === 'video' || activeMode === 'meme' || activeMode === 'image'
+      ? activeMode
+      : 'image';
     document.getElementById('vSrc').value = '';
     document.getElementById('vTitle').value = '';
     document.getElementById('vCaption').value = '';
@@ -444,18 +570,26 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
     document.getElementById('vVibe').value = '';
     document.getElementById('vSourceUrl').value = '';
     document.getElementById('vNote').value = '';
+    syncKindUi();
     document.getElementById('modal').classList.add('open');
-    document.getElementById('vSrc').focus();
+    document.getElementById('vTitle').focus();
   }
 
-  function closeModal() { document.getElementById('modal').classList.remove('open'); }
+  function closeModal() { document.getElementById('modal').classList.remove('open'); pendingUpload = null; }
 
   function saveVisual(partial) {
+    var src = partial.src || '';
+    if (src.indexOf('blob:') === 0) {
+      toast('Upload still processing — try again');
+      return null;
+    }
     var item = {
       id: JGMedia.uid(),
       title: partial.title || 'Untitled',
       caption: partial.caption || '',
-      src: partial.src,
+      src: src,
+      blobId: partial.blobId || '',
+      kind: partial.kind || 'image',
       sourceUrl: partial.sourceUrl || '',
       sourceLabel: partial.sourceLabel || 'Manual',
       savedAt: JGMedia.today(),
@@ -470,9 +604,40 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
     if (item.collection && store.collections.indexOf(item.collection) === -1) store.collections.push(item.collection);
     persist();
     render();
-    toast('Saved to Visual Bookmarks');
+    toast('Saved to MyMind');
     return item;
   }
+
+  function runSerendipity() {
+    var pool = filtered().filter(function (v) { return !v.archived; });
+    if (activeMode === 'serendipity') {
+      pool = visuals().filter(function (v) { return !v.archived; });
+    }
+    if (!pool.length) { toast('Nothing to resurface'); return; }
+    var pick = pool[Math.floor(Math.random() * pool.length)];
+    openLightbox(pick.id);
+    toast('Serendipity: ' + (pick.title || 'untitled'));
+  }
+
+  document.getElementById('modeChips').addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-mode]');
+    if (!btn) return;
+    var mode = btn.getAttribute('data-mode');
+    if (mode === 'serendipity') {
+      activeMode = 'serendipity';
+      renderModeChips();
+      runSerendipity();
+      return;
+    }
+    activeMode = mode;
+    if (mode === 'favorites') {
+      document.getElementById('fFav').checked = true;
+    } else {
+      document.getElementById('fFav').checked = false;
+    }
+    visibleLimit = 24;
+    render();
+  });
 
   document.getElementById('masonry').addEventListener('click', function (e) {
     var card = e.target.closest('.vcard');
@@ -496,6 +661,13 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
     v.favorite = !v.favorite;
     persist(); openLightbox(activeId); render();
   });
+  document.getElementById('lbTop').addEventListener('click', function () {
+    var v = store.visuals.find(function (x) { return x.id === activeId; });
+    if (!v) return;
+    v.topOfMind = !v.topOfMind;
+    persist(); openLightbox(activeId); render();
+    toast(v.topOfMind ? 'Pinned to Top of Mind' : 'Removed from Top of Mind');
+  });
   document.getElementById('lbArchive').addEventListener('click', function () {
     var v = store.visuals.find(function (x) { return x.id === activeId; });
     if (!v) return;
@@ -503,11 +675,16 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
     persist(); closeLightbox(); render(); toast(v.archived ? 'Archived' : 'Restored');
   });
   document.getElementById('lbDelete').addEventListener('click', function () {
-    if (!confirm('Delete this visual bookmark?')) return;
+    if (!confirm('Delete this item from MyMind?')) return;
+    var doomed = store.visuals.find(function (x) { return x.id === activeId; });
+    var blobId = doomed && (doomed.blobId || '');
     if (window.JGMedia && typeof JGMedia.removeById === 'function') {
       JGMedia.removeById(store, activeId, 'visuals');
     } else {
       store.visuals = store.visuals.filter(function (x) { return x.id !== activeId; });
+    }
+    if (blobId && typeof JGMedia.idbDel === 'function') {
+      JGMedia.idbDel(blobId).catch(function () {});
     }
     persist(); closeLightbox(); render(); toast('Deleted');
   });
@@ -522,6 +699,7 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
     document.getElementById('fSort').value = 'recent';
     document.getElementById('fFav').checked = false;
     document.getElementById('fArchived').checked = false;
+    activeMode = 'everything';
     render();
   });
   document.getElementById('collectionChips').addEventListener('click', function (e) {
@@ -531,57 +709,108 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
     render();
   });
 
+  document.getElementById('vKind').addEventListener('change', syncKindUi);
   document.getElementById('saveBtn').addEventListener('click', openModal);
   document.getElementById('navSave').addEventListener('click', openModal);
   document.getElementById('modalCancel').addEventListener('click', closeModal);
   document.getElementById('modal').addEventListener('click', function (e) { if (e.target.id === 'modal') closeModal(); });
+  document.getElementById('modalUploadBtn').addEventListener('click', function () {
+    document.getElementById('fileInput').click();
+  });
   document.getElementById('modalSave').addEventListener('click', function () {
+    var kind = document.getElementById('vKind').value || 'image';
     var src = document.getElementById('vSrc').value.trim();
-    if (!src) { toast('Image URL required (or use Upload)'); return; }
-    try { new URL(src); } catch (e) { toast('Enter a valid image URL'); return; }
+    var note = document.getElementById('vNote').value.trim();
+    var blobId = '';
+    if (pendingUpload) {
+      src = pendingUpload.src;
+      blobId = pendingUpload.blobId || '';
+    }
+    if (kind === 'note') {
+      if (!note && !document.getElementById('vTitle').value.trim()) {
+        toast('Add a note or title');
+        return;
+      }
+    } else if (!src) {
+      toast('Image URL required (or upload)');
+      return;
+    }
+    if (src && src.indexOf('data:') !== 0 && src.indexOf('blob:') !== 0) {
+      try { new URL(src); } catch (e) { toast('Enter a valid image URL'); return; }
+    }
+    if (src.indexOf('blob:') === 0) {
+      toast('Wait for upload to finish');
+      return;
+    }
     saveVisual({
       src: src,
+      blobId: blobId,
+      kind: kind,
       title: document.getElementById('vTitle').value.trim(),
       caption: document.getElementById('vCaption').value.trim(),
       collection: document.getElementById('vCollection').value.trim(),
       tags: document.getElementById('vTags').value.trim(),
       vibe: document.getElementById('vVibe').value.trim(),
       sourceUrl: document.getElementById('vSourceUrl').value.trim(),
-      note: document.getElementById('vNote').value.trim(),
-      sourceLabel: 'URL'
+      note: note,
+      sourceLabel: pendingUpload ? 'Upload' : (src ? 'URL' : 'Note')
     });
     closeModal();
   });
+
+  function ingestFiles(files) {
+    files.forEach(function (file) {
+      JGMedia.ingestImageFile(file).then(function (result) {
+        if (document.getElementById('modal').classList.contains('open')) {
+          pendingUpload = { blobId: result.blobId, src: result.src };
+          document.getElementById('vSrc').value = '';
+          if (!document.getElementById('vTitle').value.trim()) {
+            document.getElementById('vTitle').value = file.name.replace(/\.[^.]+$/, '');
+          }
+          if (document.getElementById('vKind').value === 'note') {
+            document.getElementById('vKind').value = 'image';
+            syncKindUi();
+          }
+          toast('Image ready — hit Save');
+          return;
+        }
+        saveVisual({
+          src: result.src,
+          blobId: result.blobId,
+          kind: 'image',
+          title: file.name.replace(/\.[^.]+$/, ''),
+          sourceLabel: result.sourceLabel || 'Upload',
+          collection: 'Design'
+        });
+      }).catch(function () {
+        toast('Could not process image');
+      });
+    });
+  }
 
   document.getElementById('uploadBtn').addEventListener('click', function () { document.getElementById('fileInput').click(); });
   document.getElementById('fileInput').addEventListener('change', function (e) {
     var files = Array.prototype.slice.call(e.target.files || []);
     if (!files.length) return;
-    files.forEach(function (file) {
-      var id = JGMedia.uid();
-      JGMedia.idbPut(id, file).then(function () {
-        var url = URL.createObjectURL(file);
-        saveVisual({ src: url, title: file.name.replace(/\.[^.]+$/, ''), sourceLabel: 'Upload', collection: 'Design', note: 'Uploaded locally (IndexedDB blob id ' + id + ')' });
-      }).catch(function () {
-        var reader = new FileReader();
-        reader.onload = function () {
-          saveVisual({ src: reader.result, title: file.name.replace(/\.[^.]+$/, ''), sourceLabel: 'Upload', collection: 'Design' });
-        };
-        reader.readAsDataURL(file);
-      });
-    });
+    ingestFiles(files);
     e.target.value = '';
   });
 
   document.getElementById('navFav').addEventListener('click', function () {
-    document.getElementById('fFav').checked = true; render();
+    activeMode = 'favorites';
+    document.getElementById('fFav').checked = true;
+    render();
+  });
+  document.getElementById('navTop').addEventListener('click', function () {
+    activeMode = 'top';
+    document.getElementById('fFav').checked = false;
+    render();
+    openSidebar(false);
   });
   document.getElementById('navInspire').addEventListener('click', function () {
-    var pool = filtered().filter(function (v) { return !v.archived; });
-    if (!pool.length) { toast('Nothing to resurface'); return; }
-    var pick = pool[Math.floor(Math.random() * pool.length)];
-    openLightbox(pick.id);
-    toast('Inspiration: ' + (pick.title || 'untitled'));
+    activeMode = 'serendipity';
+    renderModeChips();
+    runSerendipity();
   });
 
   var io = new IntersectionObserver(function (entries) {
@@ -596,13 +825,18 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
     if (e.key === 'Escape') { closeLightbox(); closeModal(); }
   });
 
-  render();
+  JGMedia.repairVisualBlobs(store).then(function () {
+    render();
+  }).catch(function () {
+    render();
+  });
+
   window.addEventListener('jg-sync-complete', function (e) {
     var detail = (e && e.detail) || {};
     var keys = [].concat(detail.applied || [], detail.merged || []);
     if (!keys.some(function (k) { return k === 'jg_media_data_v1'; })) return;
     store = JGMedia.load();
-    render();
+    JGMedia.repairVisualBlobs(store).then(function () { render(); }).catch(function () { render(); });
   });
   </script>
 </body>

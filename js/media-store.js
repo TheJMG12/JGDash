@@ -251,6 +251,150 @@
     });
   }
 
+  function idbDel(id) {
+    return openDb().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction('images', 'readwrite');
+        tx.objectStore('images').delete(id);
+        tx.oncomplete = function () { resolve(); };
+        tx.onerror = function () { reject(tx.error); };
+      });
+    });
+  }
+
+  /** Resize / compress an image File into a durable data URL (survives reload + sync). */
+  function resizeImageFile(file, maxDim, quality) {
+    maxDim = maxDim || 1400;
+    quality = quality == null ? 0.82 : quality;
+    return new Promise(function (resolve, reject) {
+      if (!file) {
+        reject(new Error('No file'));
+        return;
+      }
+      var isImage = file.type && file.type.indexOf('image/') === 0;
+      if (!isImage) {
+        var reader = new FileReader();
+        reader.onload = function () { resolve(reader.result); };
+        reader.onerror = function () { reject(reader.error); };
+        reader.readAsDataURL(file);
+        return;
+      }
+      var objUrl = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function () {
+        try {
+          var w = img.naturalWidth || img.width;
+          var h = img.naturalHeight || img.height;
+          var scale = Math.min(1, maxDim / Math.max(w, h || 1));
+          var cw = Math.max(1, Math.round(w * scale));
+          var ch = Math.max(1, Math.round(h * scale));
+          var canvas = document.createElement('canvas');
+          canvas.width = cw;
+          canvas.height = ch;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          URL.revokeObjectURL(objUrl);
+          var mime = /png/i.test(file.type) ? 'image/png' : 'image/jpeg';
+          resolve(canvas.toDataURL(mime, quality));
+        } catch (err) {
+          URL.revokeObjectURL(objUrl);
+          reject(err);
+        }
+      };
+      img.onerror = function () {
+        URL.revokeObjectURL(objUrl);
+        var reader = new FileReader();
+        reader.onload = function () { resolve(reader.result); };
+        reader.onerror = function () { reject(reader.error); };
+        reader.readAsDataURL(file);
+      };
+      img.src = objUrl;
+    });
+  }
+
+  /**
+   * Ingest an uploaded image: store original in IndexedDB + durable data URL in src.
+   * Returns { blobId, src, sourceLabel }.
+   */
+  function ingestImageFile(file) {
+    var blobId = uid();
+    return idbPut(blobId, file).catch(function () { /* IDB optional */ }).then(function () {
+      return resizeImageFile(file, 1400, 0.82).then(function (dataUrl) {
+        return { blobId: blobId, src: dataUrl, sourceLabel: 'Upload' };
+      });
+    });
+  }
+
+  function blobIdFromNote(note) {
+    var m = String(note || '').match(/IndexedDB blob id\s+(m_[a-z0-9]+)/i);
+    return m ? m[1] : '';
+  }
+
+  /**
+   * Resolve a visual's displayable src. Rehydrates from IndexedDB when src is a dead blob: URL.
+   * Returns Promise<string>.
+   */
+  function resolveVisualSrc(visual) {
+    if (!visual) return Promise.resolve('');
+    var src = String(visual.src || '');
+    var blobId = visual.blobId || blobIdFromNote(visual.note);
+    var needsHydrate = !src || src.indexOf('blob:') === 0;
+    if (!needsHydrate) return Promise.resolve(src);
+    if (!blobId) return Promise.resolve(src.indexOf('blob:') === 0 ? '' : src);
+    return idbGet(blobId).then(function (blob) {
+      if (!blob) return '';
+      return URL.createObjectURL(blob);
+    }).catch(function () { return ''; });
+  }
+
+  /**
+   * Repair visuals that still have dead blob: src by rebuilding a data URL from IndexedDB.
+   * Persists repaired src + blobId. Returns Promise<number> of repaired count.
+   */
+  function repairVisualBlobs(store) {
+    if (!store || !Array.isArray(store.visuals)) return Promise.resolve(0);
+    var jobs = store.visuals.map(function (v) {
+      if (!v) return Promise.resolve(false);
+      var src = String(v.src || '');
+      var blobId = v.blobId || blobIdFromNote(v.note);
+      if (src && src.indexOf('blob:') !== 0) {
+        if (blobId && !v.blobId) { v.blobId = blobId; return Promise.resolve(true); }
+        return Promise.resolve(false);
+      }
+      // Dead blob: URL with no IndexedDB id — clear so UI shows a placeholder instead of "?"
+      if (!blobId) {
+        if (src.indexOf('blob:') === 0) {
+          v.src = '';
+          return Promise.resolve(true);
+        }
+        return Promise.resolve(false);
+      }
+      v.blobId = blobId;
+      return idbGet(blobId).then(function (blob) {
+        if (!blob) {
+          if (src.indexOf('blob:') === 0) { v.src = ''; return true; }
+          return false;
+        }
+        return resizeImageFile(blob, 1400, 0.82).then(function (dataUrl) {
+          v.src = dataUrl;
+          return true;
+        }).catch(function () {
+          // Last resort session object URL — still better than a dead blob: string
+          v.src = URL.createObjectURL(blob);
+          return true;
+        });
+      }).catch(function () {
+        if (src.indexOf('blob:') === 0) { v.src = ''; return true; }
+        return false;
+      });
+    });
+    return Promise.all(jobs).then(function (flags) {
+      var n = flags.filter(Boolean).length;
+      if (n) save(store);
+      return n;
+    });
+  }
+
   function hostnameOf(url) {
     try { return new URL(url).hostname.replace(/^www\./, ''); } catch (e) { return ''; }
   }
@@ -459,6 +603,11 @@
     removeById: removeById,
     idbPut: idbPut,
     idbGet: idbGet,
+    idbDel: idbDel,
+    resizeImageFile: resizeImageFile,
+    ingestImageFile: ingestImageFile,
+    resolveVisualSrc: resolveVisualSrc,
+    repairVisualBlobs: repairVisualBlobs,
     detectType: detectType,
     guessMeta: guessMeta,
     enrichMeta: enrichMeta,

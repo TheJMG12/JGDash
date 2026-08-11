@@ -17,7 +17,7 @@
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
   <script src="js/theme.js?v=3"></script>
   <script src="js/topbar.js?v=12"></script>
-  <script src="js/media-store.js?v=2"></script>
+  <script src="js/media-store.js?v=4"></script>
   <style>
 
 :root {
@@ -205,6 +205,33 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
 .meta-status.ok{color:var(--success)}
 .meta-status.err{color:var(--warning)}
 .inbox-row{display:flex;gap:10px;align-items:stretch}
+.lib-layout{display:grid;grid-template-columns:200px 1fr;gap:14px;align-items:start}
+.tag-panel{position:sticky;top:8px;padding:12px;border-radius:14px;border:1px solid var(--border);background:var(--card-bg)}
+.tag-panel h3{font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-tertiary);margin-bottom:10px}
+.tag-panel .tag-search{margin-bottom:8px}
+.tag-list{list-style:none;display:flex;flex-direction:column;gap:4px;max-height:55vh;overflow-y:auto}
+.tag-list button{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:7px 10px;border-radius:10px;border:1px solid transparent;background:transparent;color:var(--text-secondary);font-size:12px;font-weight:600;text-align:left}
+.tag-list button:hover{background:rgba(255,255,255,0.05);color:var(--text-primary)}
+.tag-list button.active{background:color-mix(in srgb,var(--accent) 16%,transparent);border-color:color-mix(in srgb,var(--accent) 40%,transparent);color:var(--accent)}
+.tag-list .count{font-family:var(--mono);font-size:10px;color:var(--text-tertiary)}
+.tag-list button.active .count{color:var(--accent)}
+.capture-cta{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.capture-cta .lead{font-size:13px;color:var(--text-secondary);line-height:1.45;max-width:520px}
+.lib-card .foot .tag-pill{font-size:10px;padding:1px 6px}
+.tag-list button .tag-label{display:flex;align-items:center;gap:6px;min-width:0;flex:1}
+.tag-list button .nest{opacity:0.45;font-family:var(--mono);font-size:10px}
+.tag-list button .pin{opacity:0.35;font-size:10px;padding:0 2px}
+.tag-list button .pin.on,.tag-list button.pinned .pin{opacity:1;color:var(--warning)}
+.tag-panel .tag-tools{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.tag-panel .tag-tools label{font-size:11px;color:var(--text-tertiary);display:inline-flex;align-items:center;gap:4px;cursor:pointer}
+#libraryMount.view-list{display:flex;flex-direction:column;gap:8px}
+#libraryMount.view-list .lib-card{display:grid;grid-template-columns:96px 1fr;align-items:stretch}
+#libraryMount.view-list .lib-card .media{aspect-ratio:auto;min-height:72px}
+#libraryMount.view-table{display:block;overflow-x:auto}
+#libraryMount.view-table table.t{width:100%}
+#libraryMount.view-table .lib-actions{display:inline-flex}
+.lib-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+@media(max-width:860px){.lib-layout{grid-template-columns:1fr}.tag-panel{position:static;max-height:none}.tag-list{max-height:160px;flex-direction:row;flex-wrap:wrap}.tag-list button{width:auto}}
 
   </style>
 </head>
@@ -214,10 +241,12 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-brand">Media</div>
       <button type="button" class="nav-link active" data-section="capture">Capture / Inbox</button>
-      <button type="button" class="nav-link" data-section="library">Library</button>
+      <button type="button" class="nav-link" data-section="library">Bookmark Library</button>
       <button type="button" class="nav-link" data-section="feeds">RSS Feeds</button>
+      <div class="sidebar-section">Library tags</div>
+      <div id="sidebarTags" style="padding:0 4px 8px;display:flex;flex-direction:column;gap:4px;max-height:28vh;overflow-y:auto"></div>
       <div class="sidebar-section">Spaces</div>
-      <a class="nav-link" href="visual-bookmarks.html">Visual Bookmarks</a>
+      <a class="nav-link" href="visual-bookmarks.html">MyMind</a>
       <a class="nav-link" href="watchlist.html">Watchlist</a>
       <a class="nav-link" href="reading-list.html">Reading List</a>
       <div class="sidebar-back"><a href="index.html">← Dashboard</a></div>
@@ -231,63 +260,34 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
         <div class="page-header">
           <div class="page-title-block">
             <h1 class="page-title">Media</h1>
-            <p class="page-sub">Paste a link — metadata fills in. Click a card to open the article. Spaces keep visuals, watch, and reading separate.</p>
+            <p class="page-sub">Capture links into a Faved-style Bookmark Library. MyMind holds your visual saves. RSS stays for feeds.</p>
           </div>
           <div class="toolbar">
             <input type="search" class="search-input" id="searchInput" placeholder="Search library…" aria-label="Search library" />
+            <button type="button" class="btn primary" id="openCaptureBtn">+ Capture</button>
           </div>
         </div>
 
         <section class="section" id="sec-capture">
           <div class="section-head">
             <h2 class="section-title">Capture / Inbox</h2>
-            <span class="section-sub">Paste URL · auto-fill title, source, thumbnail · save to library</span>
+            <span class="section-sub">One button to save — fields open in a popup</span>
           </div>
-          <div class="card">
-            <div class="field" style="margin-bottom:8px">
-              <label for="captureUrl">URL</label>
-              <div class="capture-bar">
-                <input class="search-input" id="captureUrl" type="url" placeholder="https://… article, YouTube, or Reddit" aria-label="Paste URL" autocomplete="off" />
-                <button type="button" class="btn" id="lookupBtn">Lookup</button>
-                <button type="button" class="btn primary" id="saveBtn">Add to library</button>
-              </div>
-              <div class="meta-status" id="metaStatus" aria-live="polite"></div>
-            </div>
-            <div class="modal-grid">
-              <div class="field"><label for="fTitle">Title</label><input id="fTitle" /></div>
-              <div class="field"><label for="fType">Type</label>
-                <select id="fType"><option value="article">article</option><option value="video">video</option><option value="reddit">reddit</option><option value="link">link</option><option value="rss">rss</option></select>
-              </div>
-              <div class="field"><label for="fSource">Source</label><input id="fSource" /></div>
-              <div class="field"><label for="fAuthor">Author / channel</label><input id="fAuthor" /></div>
-              <div class="field"><label for="fTags">Tags</label><input id="fTags" placeholder="cybersecurity, soccer" /></div>
-              <div class="field"><label for="fCollection">Collection</label><input id="fCollection" list="colList" /></div>
-              <div class="field full"><label for="fDesc">Description</label><textarea id="fDesc" rows="2"></textarea></div>
-              <div class="field full"><label for="fImage">Thumbnail URL</label><input id="fImage" type="url" /></div>
-              <div class="field full"><label for="fNotes">Note (optional)</label><textarea id="fNotes" rows="2"></textarea></div>
-            </div>
-            <datalist id="colList"></datalist>
-            <div class="capture-preview hidden" id="capturePreview">
-              <div class="thumb" id="previewThumb"><span>No image</span></div>
-              <div>
-                <div class="title" id="previewTitle" style="font-size:14px;font-weight:650"></div>
-                <div class="card-meta" id="previewMeta"></div>
-                <div class="desc" id="previewDesc" style="font-size:12px;color:var(--text-tertiary);margin-top:4px"></div>
-              </div>
-            </div>
+          <div class="card capture-cta">
+            <div class="lead">Paste any article, YouTube, or Reddit URL. Metadata fills in the popup before you save to the Bookmark Library.</div>
+            <button type="button" class="btn primary" id="openCaptureBtn2">+ Capture</button>
           </div>
-
           <div class="section-head" style="margin-top:18px">
             <h3 class="section-title" style="font-size:14px">Inbox</h3>
-            <span class="section-sub">Recently captured — open or move to library</span>
+            <span class="section-sub">Items waiting to be filed — move to library when ready</span>
           </div>
           <div id="inboxMount"></div>
         </section>
 
         <section class="section" id="sec-library">
           <div class="section-head">
-            <h2 class="section-title">Library</h2>
-            <span class="section-sub">Click a card to open in a new tab</span>
+            <h2 class="section-title">Bookmark Library</h2>
+            <span class="section-sub">Tagged cards · click to open · filter from the tag panel or hamburger tags</span>
             <select class="select" id="filterType" style="width:auto;margin-left:auto">
               <option value="all">Type: All</option>
               <option value="article">article</option>
@@ -297,9 +297,37 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
               <option value="rss">rss</option>
             </select>
             <select class="select" id="filterSource" style="width:auto"><option value="all">Source: All</option></select>
+            <select class="select" id="filterSort" style="width:auto">
+              <option value="recent">Recent</option>
+              <option value="title">Title</option>
+              <option value="source">Source</option>
+              <option value="url">URL</option>
+            </select>
+            <div class="view-toggle" id="viewToggle" role="group" aria-label="Library layout">
+              <button type="button" data-view="cards" class="active" title="Cards">Cards</button>
+              <button type="button" data-view="list" title="List">List</button>
+              <button type="button" data-view="table" title="Table">Table</button>
+            </div>
           </div>
-          <div class="media-grid" id="libraryMount"></div>
-          <div id="libraryEmpty" class="empty-state hidden"><strong>Library is empty</strong>Paste a URL above to start saving articles, videos, and threads.</div>
+          <div class="lib-layout">
+            <aside class="tag-panel" aria-label="Tags">
+              <h3>Tags</h3>
+              <input type="search" class="search-input tag-search" id="tagSearch" placeholder="Filter tags…" aria-label="Filter tags" />
+              <div class="tag-tools">
+                <label><input type="checkbox" id="tagRollup" checked /> Include child tags</label>
+              </div>
+              <ul class="tag-list" id="tagList"></ul>
+            </aside>
+            <div>
+              <div class="lib-toolbar">
+                <span class="section-sub" id="libCountLabel"></span>
+                <button type="button" class="btn" id="bulkTagBtn" style="margin-left:auto" hidden>Tag selected</button>
+                <button type="button" class="btn danger" id="bulkDelBtn" hidden>Delete selected</button>
+              </div>
+              <div class="media-grid" id="libraryMount"></div>
+              <div id="libraryEmpty" class="empty-state hidden"><strong>Library is empty</strong>Tap Capture to save your first bookmark.</div>
+            </div>
+          </div>
         </section>
 
         <section class="section" id="sec-feeds">
@@ -315,6 +343,52 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
           <div id="feedItems"></div>
           <div id="feedEmpty" class="empty-state hidden"><strong>No feed items</strong>Enable a feed and hit Refresh. Some feeds need a public CORS/RSS proxy.</div>
         </section>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="captureModal">
+    <div class="modal wide" role="dialog" aria-modal="true" aria-labelledby="captureModalTitle">
+      <h2 id="captureModalTitle">Capture</h2>
+      <p class="modal-lead">Paste a URL — we fill title, source, and thumbnail. Edit tags before saving.</p>
+      <div class="field" style="margin-bottom:8px">
+        <label for="captureUrl">URL</label>
+        <div class="capture-bar">
+          <input class="search-input" id="captureUrl" type="url" placeholder="https://… article, YouTube, or Reddit" aria-label="Paste URL" autocomplete="off" />
+          <button type="button" class="btn" id="lookupBtn">Lookup</button>
+        </div>
+        <div class="meta-status" id="metaStatus" aria-live="polite"></div>
+      </div>
+      <div class="modal-grid">
+        <div class="field"><label for="fTitle">Title</label><input id="fTitle" /></div>
+        <div class="field"><label for="fType">Type</label>
+          <select id="fType"><option value="article">article</option><option value="video">video</option><option value="reddit">reddit</option><option value="link">link</option><option value="rss">rss</option></select>
+        </div>
+        <div class="field"><label for="fSource">Source</label><input id="fSource" /></div>
+        <div class="field"><label for="fAuthor">Author / channel</label><input id="fAuthor" /></div>
+        <div class="field"><label for="fTags">Tags</label><input id="fTags" placeholder="cybersecurity, Design/UI" /></div>
+        <div class="field"><label for="fCollection">Collection</label><input id="fCollection" list="colList" /></div>
+        <div class="field full"><label for="fDesc">Description</label><textarea id="fDesc" rows="2"></textarea></div>
+        <div class="field full"><label for="fImage">Thumbnail URL</label><input id="fImage" type="url" /></div>
+        <div class="field full"><label for="fNotes">Note (optional)</label><textarea id="fNotes" rows="2"></textarea></div>
+        <div class="field full">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="fInbox" /> Save to Inbox instead of Library
+          </label>
+        </div>
+      </div>
+      <datalist id="colList"></datalist>
+      <div class="capture-preview hidden" id="capturePreview">
+        <div class="thumb" id="previewThumb"><span>No image</span></div>
+        <div>
+          <div class="title" id="previewTitle" style="font-size:14px;font-weight:650"></div>
+          <div class="card-meta" id="previewMeta"></div>
+          <div class="desc" id="previewDesc" style="font-size:12px;color:var(--text-tertiary);margin-top:4px"></div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" id="captureCancel">Cancel</button>
+        <button type="button" class="btn primary" id="saveBtn">Save bookmark</button>
       </div>
     </div>
   </div>
@@ -343,6 +417,11 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
   var activeFeedId = null;
   var feedCache = {};
   var lookupTimer = null;
+  var activeTag = 'all';
+  var libraryView = (function () {
+    try { return localStorage.getItem('jg_media_lib_view') || 'cards'; } catch (e) { return 'cards'; }
+  })();
+  var selectedIds = {};
   var $ = function (id) { return document.getElementById(id); };
   function esc(s) {
     return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -369,6 +448,172 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
       openSidebar(false);
     });
   });
+
+  function openCaptureModal() {
+    fillCollections();
+    $('captureModal').classList.add('open');
+    setTimeout(function () { $('captureUrl').focus(); }, 30);
+  }
+  function closeCaptureModal() {
+    $('captureModal').classList.remove('open');
+  }
+  $('openCaptureBtn').addEventListener('click', openCaptureModal);
+  $('openCaptureBtn2').addEventListener('click', openCaptureModal);
+  $('captureCancel').addEventListener('click', closeCaptureModal);
+  $('captureModal').addEventListener('click', function (e) {
+    if (e.target.id === 'captureModal') closeCaptureModal();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    if ($('captureModal').classList.contains('open')) closeCaptureModal();
+    if ($('feedModal').classList.contains('open')) $('feedModal').classList.remove('open');
+  });
+
+  function parseTags(str) {
+    return String(str || '').split(',').map(function (t) { return t.trim(); }).filter(Boolean);
+  }
+
+  function ensureTagMeta() {
+    if (!store.tagMeta || typeof store.tagMeta !== 'object') store.tagMeta = {};
+    if (!Array.isArray(store.pinnedTags)) store.pinnedTags = [];
+  }
+
+  function normalizeTagPath(t) {
+    return String(t || '').replace(/^\/+|\/+$/g, '').replace(/\/+/g, '/');
+  }
+
+  function expandTagKeys(tag) {
+    var parts = normalizeTagPath(tag).split('/').filter(Boolean);
+    var out = [];
+    var acc = '';
+    parts.forEach(function (p) {
+      acc = acc ? acc + '/' + p : p;
+      out.push(acc.toLowerCase());
+    });
+    return out;
+  }
+
+  function itemTagKeys(it) {
+    var keys = {};
+    parseTags(it.tags).forEach(function (t) {
+      expandTagKeys(t).forEach(function (k) { keys[k] = true; });
+    });
+    return keys;
+  }
+
+  function itemMatchesTag(it, tagKey, rollup) {
+    if (!tagKey || tagKey === 'all') return true;
+    var keys = itemTagKeys(it);
+    if (keys[tagKey]) return true;
+    if (!rollup) return false;
+    return Object.keys(keys).some(function (k) {
+      return k === tagKey || k.indexOf(tagKey + '/') === 0;
+    });
+  }
+
+  function collectTagCounts() {
+    ensureTagMeta();
+    var counts = {};
+    var rollup = !($('tagRollup') && !$('tagRollup').checked);
+    (store.items || []).forEach(function (it) {
+      if (it.archived) return;
+      if (it.inbox || it.status === 'inbox') return;
+      parseTags(it.tags).forEach(function (t) {
+        var path = normalizeTagPath(t);
+        if (!path) return;
+        expandTagKeys(path).forEach(function (key) {
+          var label = key.split('/').map(function (seg) {
+            return seg.charAt(0).toUpperCase() + seg.slice(1);
+          }).join('/');
+          // Prefer original casing from deepest tag when exact
+          var exact = normalizeTagPath(t).toLowerCase() === key ? path : label;
+          if (!counts[key]) counts[key] = { key: key, label: exact, count: 0, depth: key.split('/').length - 1 };
+          counts[key].count += 1;
+        });
+      });
+    });
+    // When rollup off, recount only direct tags
+    if (!rollup) {
+      Object.keys(counts).forEach(function (k) { counts[k].count = 0; });
+      (store.items || []).forEach(function (it) {
+        if (it.archived) return;
+        if (it.inbox || it.status === 'inbox') return;
+        parseTags(it.tags).forEach(function (t) {
+          var key = normalizeTagPath(t).toLowerCase();
+          if (counts[key]) counts[key].count += 1;
+        });
+      });
+    }
+    return Object.keys(counts).sort(function (a, b) {
+      var ap = (store.pinnedTags || []).indexOf(a) !== -1 ? 0 : 1;
+      var bp = (store.pinnedTags || []).indexOf(b) !== -1 ? 0 : 1;
+      if (ap !== bp) return ap - bp;
+      return a.localeCompare(b);
+    }).map(function (k) { return counts[k]; });
+  }
+
+  function tagButtonHtml(t, libCount) {
+    if (t === 'all') {
+      return '<button type="button" data-tag="all" class="' + (activeTag === 'all' ? 'active' : '') + '"><span class="tag-label">All bookmarks</span><span class="count">' +
+        libCount + '</span></button>';
+    }
+    var pinned = (store.pinnedTags || []).indexOf(t.key) !== -1;
+    var nest = t.depth ? '<span class="nest">' + Array(t.depth + 1).join('·') + '</span>' : '';
+    var leaf = t.label.split('/').pop();
+    return '<button type="button" data-tag="' + esc(t.key) + '" class="' + (activeTag === t.key ? 'active' : '') + (pinned ? ' pinned' : '') + '">' +
+      '<span class="tag-label">' + nest + '<span>' + esc(leaf) + '</span></span>' +
+      '<span class="count">' + t.count + '</span>' +
+      '<span class="pin' + (pinned ? ' on' : '') + '" data-pin="' + esc(t.key) + '" title="Pin tag">★</span>' +
+      '</button>';
+  }
+
+  function renderTagPanels() {
+    ensureTagMeta();
+    var q = ($('tagSearch') && $('tagSearch').value || '').trim().toLowerCase();
+    var tags = collectTagCounts().filter(function (t) {
+      return !q || t.label.toLowerCase().indexOf(q) !== -1 || t.key.indexOf(q) !== -1;
+    });
+    var libCount = (store.items || []).filter(function (it) {
+      return !it.archived && !(it.inbox || it.status === 'inbox');
+    }).length;
+    var html = '<li>' + tagButtonHtml('all', libCount) + '</li>';
+    html += tags.map(function (t) { return '<li>' + tagButtonHtml(t) + '</li>'; }).join('');
+    if (!tags.length) {
+      html += '<li><span class="card-meta" style="padding:6px 10px;display:block">No tags yet — use nested tags like Design/UI when capturing.</span></li>';
+    }
+    if ($('tagList')) $('tagList').innerHTML = html;
+    if ($('sidebarTags')) {
+      $('sidebarTags').innerHTML = '<div class="tag-list">' + html.replace(/<\/?li>/g, '') + '</div>';
+    }
+  }
+
+  function onTagClick(e) {
+    var pin = e.target.closest('[data-pin]');
+    if (pin) {
+      e.preventDefault();
+      e.stopPropagation();
+      ensureTagMeta();
+      var key = pin.getAttribute('data-pin');
+      var idx = store.pinnedTags.indexOf(key);
+      if (idx === -1) store.pinnedTags.push(key);
+      else store.pinnedTags.splice(idx, 1);
+      persist();
+      renderTagPanels();
+      return;
+    }
+    var btn = e.target.closest('[data-tag]');
+    if (!btn) return;
+    activeTag = btn.getAttribute('data-tag') || 'all';
+    renderTagPanels();
+    renderLibrary();
+    openSidebar(false);
+    var lib = $('sec-library');
+    if (lib) lib.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  if ($('tagList')) $('tagList').addEventListener('click', onTagClick);
+  if ($('sidebarTags')) $('sidebarTags').addEventListener('click', onTagClick);
+  if ($('tagSearch')) $('tagSearch').addEventListener('input', renderTagPanels);
+  if ($('tagRollup')) $('tagRollup').addEventListener('change', function () { renderTagPanels(); renderLibrary(); });
 
   function setStatus(msg, kind) {
     var el = $('metaStatus');
@@ -492,15 +737,18 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
     if (duplicateUrl(f.url)) {
       if (!confirm('That URL is already in your library. Save anyway?')) return;
     }
-    addItem(f, false);
-    toast('Added to library');
+    var toInbox = !!( $('fInbox') && $('fInbox').checked );
+    addItem(f, toInbox);
+    toast(toInbox ? 'Saved to Inbox' : 'Saved to Bookmark Library');
     $('captureUrl').value = '';
     ['fTitle','fSource','fAuthor','fTags','fCollection','fDesc','fImage','fNotes'].forEach(function (id) { $(id).value = ''; });
     $('fType').value = 'article';
+    if ($('fInbox')) $('fInbox').checked = false;
     setStatus('');
     updatePreview();
+    closeCaptureModal();
     render();
-    $('sec-library').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (!toInbox) $('sec-library').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   function typeBadge(t) {
@@ -513,6 +761,9 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
     var img = it.image
       ? '<img src="' + esc(it.image) + '" alt="" loading="lazy" onerror="this.remove()" />'
       : '<span style="font-size:11px;color:var(--text-tertiary)">' + esc(it.type || 'link') + '</span>';
+    var tagPills = parseTags(it.tags).slice(0, 3).map(function (t) {
+      return '<span class="tag-pill">' + esc(t) + '</span>';
+    }).join('');
     var actions = '<div class="lib-actions" data-stop="1">' +
       (opts.inbox
         ? '<button type="button" class="icon-btn" data-act="to-lib" data-id="' + esc(it.id) + '" title="Move to library">↓</button>'
@@ -526,6 +777,7 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
         (it.description || it.notes ? '<div class="desc">' + esc(it.description || it.notes || '') + '</div>' : '') +
         '<div class="foot">' + typeBadge(it.type) +
           '<span class="badge">' + esc(it.source || '') + '</span>' +
+          tagPills +
           actions +
         '</div>' +
       '</div></a>';
@@ -535,17 +787,27 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
     var q = $('searchInput').value.trim().toLowerCase();
     var type = $('filterType').value;
     var source = $('filterSource').value;
-    return (store.items || []).filter(function (it) {
+    var sort = ($('filterSort') && $('filterSort').value) || 'recent';
+    var rollup = !($('tagRollup') && !$('tagRollup').checked);
+    var list = (store.items || []).filter(function (it) {
       if (it.archived) return false;
       if (it.inbox || it.status === 'inbox') return false;
       if (type !== 'all' && it.type !== type) return false;
       if (source !== 'all' && it.source !== source) return false;
+      if (!itemMatchesTag(it, activeTag, rollup)) return false;
       if (q) {
-        var hay = [it.title, it.source, it.author, it.tags, it.description, it.notes].join(' ').toLowerCase();
+        var hay = [it.title, it.source, it.author, it.tags, it.description, it.notes, it.url].join(' ').toLowerCase();
         if (hay.indexOf(q) === -1) return false;
       }
       return true;
     });
+    list.sort(function (a, b) {
+      if (sort === 'title') return String(a.title || '').localeCompare(String(b.title || ''));
+      if (sort === 'source') return String(a.source || '').localeCompare(String(b.source || ''));
+      if (sort === 'url') return String(a.url || '').localeCompare(String(b.url || ''));
+      return String(b.savedAt || '').localeCompare(String(a.savedAt || ''));
+    });
+    return list;
   }
 
   function renderInbox() {
@@ -569,7 +831,38 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
 
     var list = filteredLibrary();
     $('libraryEmpty').classList.toggle('hidden', list.length > 0);
-    $('libraryMount').innerHTML = list.map(function (it) { return cardHtml(it); }).join('');
+    if ($('libCountLabel')) {
+      $('libCountLabel').textContent = list.length + ' bookmark' + (list.length === 1 ? '' : 's') +
+        (activeTag !== 'all' ? ' · tag: ' + activeTag : '');
+    }
+    var mount = $('libraryMount');
+    mount.className = libraryView === 'list' ? 'view-list' : libraryView === 'table' ? 'view-table' : 'media-grid';
+    document.querySelectorAll('#viewToggle [data-view]').forEach(function (b) {
+      b.classList.toggle('active', b.getAttribute('data-view') === libraryView);
+    });
+    if (libraryView === 'table') {
+      mount.innerHTML = '<table class="t"><thead><tr><th></th><th>Title</th><th>Type</th><th>Source</th><th>Tags</th><th></th></tr></thead><tbody>' +
+        list.map(function (it) {
+          var checked = selectedIds[it.id] ? ' checked' : '';
+          return '<tr data-id="' + esc(it.id) + '">' +
+            '<td><input type="checkbox" data-sel="' + esc(it.id) + '"' + checked + ' /></td>' +
+            '<td><a href="' + esc(it.url || '#') + '" target="_blank" rel="noopener">' + esc(it.title || 'Untitled') + '</a></td>' +
+            '<td>' + typeBadge(it.type) + '</td>' +
+            '<td>' + esc(it.source || '') + '</td>' +
+            '<td>' + esc(it.tags || '') + '</td>' +
+            '<td><button type="button" class="icon-btn danger" data-act="del" data-id="' + esc(it.id) + '">✕</button></td>' +
+            '</tr>';
+        }).join('') + '</tbody></table>';
+    } else {
+      mount.innerHTML = list.map(function (it) { return cardHtml(it); }).join('');
+    }
+    syncBulkUi();
+  }
+
+  function syncBulkUi() {
+    var n = Object.keys(selectedIds).length;
+    if ($('bulkTagBtn')) $('bulkTagBtn').hidden = n === 0;
+    if ($('bulkDelBtn')) $('bulkDelBtn').hidden = n === 0;
   }
 
   function onCardAction(e) {
@@ -600,6 +893,53 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
   }
   $('inboxMount').addEventListener('click', onCardAction);
   $('libraryMount').addEventListener('click', onCardAction);
+  $('libraryMount').addEventListener('change', function (e) {
+    var cb = e.target.closest('[data-sel]');
+    if (!cb) return;
+    var id = cb.getAttribute('data-sel');
+    if (cb.checked) selectedIds[id] = true;
+    else delete selectedIds[id];
+    syncBulkUi();
+  });
+  if ($('viewToggle')) {
+    $('viewToggle').addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-view]');
+      if (!btn) return;
+      libraryView = btn.getAttribute('data-view') || 'cards';
+      try { localStorage.setItem('jg_media_lib_view', libraryView); } catch (err) {}
+      renderLibrary();
+    });
+  }
+  if ($('bulkDelBtn')) {
+    $('bulkDelBtn').addEventListener('click', function () {
+      var ids = Object.keys(selectedIds);
+      if (!ids.length) return;
+      if (!confirm('Delete ' + ids.length + ' bookmark' + (ids.length === 1 ? '' : 's') + '?')) return;
+      ids.forEach(function (id) {
+        if (window.JGMedia && typeof JGMedia.removeById === 'function') JGMedia.removeById(store, id, 'items');
+        else store.items = store.items.filter(function (x) { return x.id !== id; });
+      });
+      selectedIds = {};
+      persist(); render(); toast('Deleted');
+    });
+  }
+  if ($('bulkTagBtn')) {
+    $('bulkTagBtn').addEventListener('click', function () {
+      var ids = Object.keys(selectedIds);
+      if (!ids.length) return;
+      var tag = prompt('Add tag to selected (supports nested like Design/UI):');
+      if (!tag) return;
+      tag = normalizeTagPath(tag);
+      ids.forEach(function (id) {
+        var it = store.items.find(function (x) { return x.id === id; });
+        if (!it) return;
+        var tags = parseTags(it.tags);
+        if (tags.map(function (t) { return t.toLowerCase(); }).indexOf(tag.toLowerCase()) === -1) tags.push(tag);
+        it.tags = tags.join(', ');
+      });
+      persist(); render(); toast('Tagged ' + ids.length);
+    });
+  }
 
   var manageOpen = false;
 
@@ -787,9 +1127,11 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
   $('searchInput').addEventListener('input', renderLibrary);
   $('filterType').addEventListener('change', renderLibrary);
   $('filterSource').addEventListener('change', renderLibrary);
+  if ($('filterSort')) $('filterSort').addEventListener('change', renderLibrary);
 
   function render() {
     fillCollections();
+    renderTagPanels();
     renderInbox();
     renderLibrary();
     renderFeeds();
@@ -802,6 +1144,7 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
     var keys = [].concat(detail.applied || [], detail.merged || []);
     if (!keys.some(function (k) { return k === 'jg_media_data_v1'; })) return;
     store = JGMedia.load();
+    selectedIds = {};
     render();
   });
 })();
