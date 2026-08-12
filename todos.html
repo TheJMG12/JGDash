@@ -13,7 +13,8 @@
   <script src="js/config.js?v=2"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/lock.js"></script>
-  <script src="js/sync.js?v=16"></script>
+  <script src="js/goals-rollover.js?v=1"></script>
+  <script src="js/sync.js?v=19"></script>
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
   <script src="js/theme.js?v=3"></script>
   <script src="js/topbar.js?v=12"></script>
@@ -417,62 +418,17 @@
     storeSet(key, store);
   }
 
-  /** Same rules as Main: only incomplete tasks roll to Today; completed stay on their day. */
   function runRollover() {
-    var active = getActiveDateString();
-    var activeKey = 'goals:' + active;
-    var todayGoals = getGoals(activeKey);
-    var keys = storeListKeys('goals:');
-    var nowIso = new Date().toISOString();
-
-    keys.forEach(function (key) {
-      var date = key.slice(6);
-      if (date >= active) return;
-      var pastStore = getGoalsStore(key);
-      var old = pastStore.items.filter(function (g) {
-        return !(g && g.id != null && pastStore.tombstones[String(g.id)]);
-      });
-      var undone = old.filter(function (g) { return !g.done; });
-      var done = old.filter(function (g) { return g.done; });
-      var tombs = Object.assign({}, pastStore.tombstones || {});
-
-      undone.forEach(function (g) {
-        if (!g) return;
-        if (g.id != null && g.id !== '') tombs[String(g.id)] = nowIso;
-        var text = String(g.text || '').trim();
-        var alreadyOpenToday = todayGoals.some(function (t) {
-          if (!t || t.done) return false;
-          if (t.id && g.id && String(t.id) === String(g.id)) return true;
-          return String(t.text || '').trim() === text;
-        });
-        if (alreadyOpenToday) return;
-        todayGoals.push({
-          id: goalUid(),
-          text: g.text,
-          done: false,
-          queued: !!g.queued,
-          rolledFrom: date
-        });
-      });
-
-      storeSet(key, { items: done, tombstones: tombs });
+    if (!window.JGDash || !JGDash.goalsRollover) return;
+    JGDash.goalsRollover.runRollover({
+      getActiveDateString: getActiveDateString,
+      storeListKeys: storeListKeys,
+      getGoalsStore: getGoalsStore,
+      getGoals: getGoals,
+      setGoals: setGoals,
+      storeSet: storeSet,
+      goalUid: goalUid
     });
-
-    var completedPastIds = {};
-    keys.forEach(function (key) {
-      var date = key.slice(6);
-      if (date >= active) return;
-      getGoals(key).forEach(function (g) {
-        if (g && g.done && g.id != null) completedPastIds[String(g.id)] = true;
-      });
-    });
-    todayGoals = todayGoals.filter(function (t) {
-      if (!t || t.done) return true;
-      if (t.id != null && completedPastIds[String(t.id)]) return false;
-      return true;
-    });
-
-    setGoals(activeKey, todayGoals);
   }
 
   function collectDays() {
