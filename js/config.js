@@ -6,6 +6,10 @@ window.JGDASH_CONFIG = {
   SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpZGNhcWNvbHVocWxmcmxzb3l1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxNTY5MjAsImV4cCI6MjEwMDczMjkyMH0.kXHappMMfvKFoH3lle3NrtOM_F6Ivch9j4PJ9kzOfP8',
   // Used for magic-link / confirm-email redirects (must also be Site URL + Redirect URLs in Supabase).
   SITE_URL: 'https://jg-dash-nine.vercel.app',
+  // Only these accounts can open app pages or keep local/cloud data on this browser.
+  // Add your Supabase Auth user UUID(s) under OWNER_USER_IDS for extra lock (Authentication → Users).
+  OWNER_EMAILS: ['justin.gosine17@stjohns.edu'],
+  OWNER_USER_IDS: [],
   // Optional Finnhub key for live quotes / stock analyzer on finance.html (leave empty for sample mode).
   FINNHUB_API_KEY: '',
   MARKET_DATA_PROVIDER: 'finnhub',

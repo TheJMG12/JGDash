@@ -349,7 +349,14 @@
       }
       btn.addEventListener('click', async function () {
         if (hasSession && api && api.isConfigured()) {
-          try { await api.getClient().auth.signOut(); } catch (e) { /* ignore */ }
+          try {
+            if (global.JGDash && global.JGDash.lock && typeof global.JGDash.lock.clearSensitiveLocalData === 'function') {
+              global.JGDash.lock.clearSensitiveLocalData();
+            }
+            await api.getClient().auth.signOut();
+          } catch (e) { /* ignore */ }
+        } else if (global.JGDash && global.JGDash.lock && typeof global.JGDash.lock.clearSensitiveLocalData === 'function') {
+          global.JGDash.lock.clearSensitiveLocalData();
         }
         location.href = 'signin.html';
       });
