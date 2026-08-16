@@ -19,7 +19,7 @@ In [Supabase Dashboard](https://supabase.com/dashboard) → your JGDash project:
 1. **Authentication → Providers → Email**
    - Turn **OFF** “Enable sign ups” (or equivalent “Allow new users / Sign ups”) so strangers cannot create accounts even if they hit the API.
 2. **Authentication → Users**
-   - Confirm only your user exists (`justin.gosine17@stjohns.edu`). Delete unknown users.
+   - Confirm only your owner Gmail account exists (see `OWNER_EMAILS` in `js/config.js`). Delete unknown users.
    - Copy your **User UID** into `OWNER_USER_IDS` in `js/config.js` (recommended).
 3. **SQL Editor** — run in order if not already applied:
    - `supabase/migrations/001_user_kv.sql`

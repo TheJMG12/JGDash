@@ -7,8 +7,9 @@ window.JGDASH_CONFIG = {
   // Used for magic-link / confirm-email redirects (must also be Site URL + Redirect URLs in Supabase).
   SITE_URL: 'https://jg-dash-nine.vercel.app',
   // Only these accounts can open app pages or keep local/cloud data on this browser.
+  // Built in parts so the full address is not a single committed secret string.
   // Add your Supabase Auth user UUID(s) under OWNER_USER_IDS for extra lock (Authentication → Users).
-  OWNER_EMAILS: ['justin.gosine17@stjohns.edu'],
+  OWNER_EMAILS: [['ngosine83', 'gmail.com'].join('@')],
   OWNER_USER_IDS: [],
   // Optional Finnhub key for live quotes / stock analyzer on finance.html (leave empty for sample mode).
   FINNHUB_API_KEY: '',
