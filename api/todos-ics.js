@@ -59,6 +59,30 @@ function addMinutes(hhmm, mins) {
   return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
 }
 
+function nyTimezoneBlock() {
+  // US Eastern (EST/EDT) — matches wall-clock times users pick on JGDash.
+  return [
+    'BEGIN:VTIMEZONE',
+    'TZID:America/New_York',
+    'X-LIC-LOCATION:America/New_York',
+    'BEGIN:DAYLIGHT',
+    'TZOFFSETFROM:-0500',
+    'TZOFFSETTO:-0400',
+    'TZNAME:EDT',
+    'DTSTART:19700308T020000',
+    'RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU',
+    'END:DAYLIGHT',
+    'BEGIN:STANDARD',
+    'TZOFFSETFROM:-0400',
+    'TZOFFSETTO:-0500',
+    'TZNAME:EST',
+    'DTSTART:19701101T020000',
+    'RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU',
+    'END:STANDARD',
+    'END:VTIMEZONE'
+  ];
+}
+
 function buildIcs(events) {
   var lines = [
     'BEGIN:VCALENDAR',
@@ -67,21 +91,17 @@ function buildIcs(events) {
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     'X-WR-CALNAME:JGDash To Dos',
-    'X-WR-CALDESC:Open tasks from JGDash (subscribed feed)'
-  ];
+    'X-WR-CALDESC:Timed open tasks from JGDash (America/New_York)',
+    'X-WR-TIMEZONE:America/New_York'
+  ].concat(nyTimezoneBlock());
   var now = stampUtc();
   events.forEach(function (ev) {
     lines.push('BEGIN:VEVENT');
     lines.push('UID:' + ev.uid);
     lines.push('DTSTAMP:' + now);
-    if (ev.allDay) {
-      lines.push('DTSTART;VALUE=DATE:' + ev.start);
-      lines.push('DTEND;VALUE=DATE:' + ev.end);
-    } else {
-      // Explicit UTC so Apple Calendar validation accepts the stamps.
-      lines.push('DTSTART:' + ev.start + 'Z');
-      lines.push('DTEND:' + ev.end + 'Z');
-    }
+    // Timed only — local Eastern wall clock (4pm stays 4pm EST/EDT).
+    lines.push('DTSTART;TZID=America/New_York:' + ev.start);
+    lines.push('DTEND;TZID=America/New_York:' + ev.end);
     lines.push(foldLine('SUMMARY:' + icsEscape(ev.summary)));
     if (ev.description) lines.push(foldLine('DESCRIPTION:' + icsEscape(ev.description)));
     lines.push('STATUS:CONFIRMED');
@@ -92,13 +112,6 @@ function buildIcs(events) {
   return lines.join('\r\n') + '\r\n';
 }
 
-function nextDayYmd(ymd) {
-  var p = String(ymd).split('-').map(Number);
-  var d = new Date(Date.UTC(p[0], p[1] - 1, p[2]));
-  d.setUTCDate(d.getUTCDate() + 1);
-  function pad(n) { return n < 10 ? '0' + n : '' + n; }
-  return d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate());
-}
 
 function readQueryToken(req) {
   if (req.query && req.query.token != null) return String(req.query.token).trim();
@@ -216,29 +229,18 @@ export default async function handler(req, res) {
         if (!text) return;
         const uid = String(g.id || (text + '@' + ymd)).replace(/[^A-Za-z0-9_.@-]/g, '_') + '@jgdash.todos';
         const time = normalizeTime(g.time);
-        if (time) {
-          const end = addMinutes(time, 30);
-          // Treat wall-clock times as UTC for a stable ICS stamp (personal feed).
-          const startStamp = ymdCompact(ymd) + 'T' + time.replace(':', '') + '00';
-          const endStamp = ymdCompact(ymd) + 'T' + end.replace(':', '') + '00';
-          events.push({
-            uid: uid,
-            allDay: false,
-            start: startStamp,
-            end: endStamp,
-            summary: text,
-            description: 'JGDash To Do · ' + ymd
-          });
-        } else {
-          events.push({
-            uid: uid,
-            allDay: true,
-            start: ymdCompact(ymd),
-            end: ymdCompact(nextDayYmd(ymd)),
-            summary: text,
-            description: 'JGDash To Do · ' + ymd
-          });
-        }
+        // Only tasks with an explicit time go on the calendar (no all-day).
+        if (!time) return;
+        const end = addMinutes(time, 30);
+        const startStamp = ymdCompact(ymd) + 'T' + time.replace(':', '') + '00';
+        const endStamp = ymdCompact(ymd) + 'T' + end.replace(':', '') + '00';
+        events.push({
+          uid: uid,
+          start: startStamp,
+          end: endStamp,
+          summary: text,
+          description: 'JGDash To Do · ' + ymd + ' · America/New_York'
+        });
       });
     });
 
