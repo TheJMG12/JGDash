@@ -10,6 +10,10 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>JGDash — Welcome Justin</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js?v=4"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/lock.js?v=2"></script>
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
   <script src="js/goals-rollover.js?v=1"></script>
   <style>
@@ -2475,13 +2479,9 @@
       - Tile range: HABIT_GRID_DAYS (default 35 = 5×7). Consistency label uses a 30-day window.
     */
   </script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/config.js?v=2"></script>
-  <script src="js/supabase-client.js"></script>
-  <script src="js/lock.js"></script>
   <script src="js/sync.js?v=19"></script>
   <script src="js/theme.js?v=3"></script>
-  <script src="js/topbar.js?v=12"></script>
+  <script src="js/topbar.js?v=13"></script>
   <script>
     document.body.setAttribute('data-page-title', 'Main');
     if (window.JGDash && JGDash.topbar) JGDash.topbar.mount({ title: 'Main' });

@@ -11,9 +11,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>JGDash — Sign in</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/config.js?v=2"></script>
+  <script src="js/config.js?v=4"></script>
   <script src="js/supabase-client.js"></script>
-  <script src="js/sync.js?v=16"></script>
+  <script src="js/lock.js?v=2"></script>
+  <script src="js/sync.js?v=19"></script>
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
   <script src="js/theme.js?v=3"></script>
   <style>
@@ -238,7 +239,7 @@
       <label for="password" style="margin-top:10px">Password</label>
       <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" />
       <button type="button" class="btn btn-primary" id="passwordSignInBtn" style="margin-top:14px">Sign in with password</button>
-      <button type="button" class="btn btn-glass" id="passwordSignUpBtn">Create account</button>
+      <p class="hint" style="margin-top:10px;margin-bottom:0">New accounts are disabled. Only the owner email can sign in.</p>
     </div>
 
     <div class="divider" id="enrollDivider">Or passkey / email link</div>
@@ -370,10 +371,50 @@
 
       var sb = api.getClient();
 
+      async function assertOwnerOrReject(session) {
+        var lock = window.JGDash && window.JGDash.lock;
+        if (!lock || typeof lock.isOwnerSession !== 'function') {
+          setStatus('Auth lock missing. Hard-refresh and try again.', 'error');
+          return false;
+        }
+        if (!lock.hasOwnerAllowlist || !lock.hasOwnerAllowlist()) {
+          setStatus('Owner allowlist is empty in js/config.js (OWNER_EMAILS).', 'error');
+          try { await sb.auth.signOut(); } catch (e) { /* ignore */ }
+          return false;
+        }
+        if (!lock.isOwnerSession(session)) {
+          if (typeof lock.clearSensitiveLocalData === 'function') lock.clearSensitiveLocalData();
+          try { await sb.auth.signOut(); } catch (e2) { /* ignore */ }
+          setStatus('This account is not allowed. Only the owner can use JGDash.', 'error');
+          setSignedInUI(null);
+          showPanel('password');
+          return false;
+        }
+        return true;
+      }
+
+      (function showDenyReason() {
+        var deny = params.get('deny');
+        try {
+          if (!deny) deny = sessionStorage.getItem('jgdash_auth_deny');
+          sessionStorage.removeItem('jgdash_auth_deny');
+        } catch (e) { /* ignore */ }
+        if (!deny) return;
+        var messages = {
+          signed_out: 'Sign in with your owner account to open JGDash.',
+          not_owner: 'That account is not allowed. Only the owner can use JGDash.',
+          not_configured: 'Supabase is not configured.',
+          no_owner_allowlist: 'OWNER_EMAILS is empty in js/config.js.',
+          lock_error: 'Could not verify your session. Try signing in again.'
+        };
+        setStatus(messages[deny] || 'Sign in required.', 'error');
+      })();
+
       async function refreshSessionUI(quiet) {
         var res = await sb.auth.getSession();
         var session = res.data && res.data.session;
         if (session) {
+          if (!(await assertOwnerOrReject(session))) return null;
           setSignedInUI(session);
           if (!quiet) setStatus('Signed in. Register a passkey, then continue.', 'ok');
           else setStatus('Signed in via email link. Register a passkey next.', 'ok');
@@ -392,14 +433,17 @@
 
       sb.auth.onAuthStateChange(function (event, session) {
         if (session && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED')) {
-          setSignedInUI(session);
-          if (event === 'SIGNED_IN') {
-            setStatus('Signed in via email link. Register a passkey next.', 'ok');
-          }
+          assertOwnerOrReject(session).then(function (ok) {
+            if (!ok) return;
+            setSignedInUI(session);
+            if (event === 'SIGNED_IN') {
+              setStatus('Signed in via email link. Register a passkey next.', 'ok');
+            }
+          });
         }
         if (event === 'SIGNED_OUT') {
           setSignedInUI(null);
-          showPanel('email');
+          showPanel('password');
         }
       });
 
@@ -432,18 +476,17 @@
           setStatus('Password must be at least 6 characters.', 'error');
           return;
         }
-        setStatus(mode === 'signup' ? 'Creating account…' : 'Signing in…');
+        if (mode === 'signup') {
+          setStatus('Account creation is disabled. Sign in with the owner email.', 'error');
+          return;
+        }
+        setStatus('Signing in…');
         try {
-          var res = mode === 'signup'
-            ? await sb.auth.signUp({ email: email, password: password })
-            : await sb.auth.signInWithPassword({ email: email, password: password });
+          var res = await sb.auth.signInWithPassword({ email: email, password: password });
           if (res.error) throw res.error;
           var session = res.data && res.data.session;
-          if (!session && mode === 'signup') {
-            setStatus('Account created, but email confirmation is ON in Supabase. Open the confirm link in your inbox, then Sign in with password. (Or disable Confirm email in Authentication → Providers → Email.)', 'ok');
-            return;
-          }
           if (!session) throw new Error('No session returned. Check email/password or confirm your email first.');
+          if (!(await assertOwnerOrReject(session))) return;
           setSignedInUI(session);
           setStatus('Signed in. Syncing…', 'ok');
           redirectNext();
@@ -453,7 +496,6 @@
       }
 
       document.getElementById('passwordSignInBtn').addEventListener('click', function () { passwordAuth('signin'); });
-      document.getElementById('passwordSignUpBtn').addEventListener('click', function () { passwordAuth('signup'); });
       document.getElementById('password').addEventListener('keydown', function (e) {
         if (e.key === 'Enter') passwordAuth('signin');
       });
@@ -463,6 +505,9 @@
         try {
           var res = await sb.auth.signInWithPasskey();
           if (res.error) throw res.error;
+          var sessionRes = await sb.auth.getSession();
+          var session = sessionRes.data && sessionRes.data.session;
+          if (!(await assertOwnerOrReject(session))) return;
           setStatus('Signed in with passkey.', 'ok');
           redirectNext();
         } catch (err) {
@@ -484,7 +529,7 @@
           var res = await sb.auth.signInWithOtp({
             email: email,
             options: {
-              shouldCreateUser: true,
+              shouldCreateUser: false,
               emailRedirectTo: redirectTo
             }
           });
