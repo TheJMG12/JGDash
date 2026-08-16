@@ -1,13 +1,14 @@
 /**
  * Public Apple Calendar / ICS subscription for JGDash To Dos.
- * GET /api/todos-ics?token=...
+ * GET|HEAD /api/todos-ics?token=...
  *
  * Vercel env (required):
  *   SUPABASE_URL
  *   SUPABASE_SERVICE_ROLE_KEY
  *
  * Token is stored in user_kv key jg_calendar_feed_v1 → { token }.
- * Apple Calendar polls this URL; it cannot send Supabase JWTs.
+ * Apple Calendar probes with HEAD and requires a valid text/calendar body on GET.
+ * Prefer sharing the https:// URL (not http:// / bare webcal over http).
  */
 function icsEscape(text) {
   return String(text || '')
@@ -77,8 +78,9 @@ function buildIcs(events) {
       lines.push('DTSTART;VALUE=DATE:' + ev.start);
       lines.push('DTEND;VALUE=DATE:' + ev.end);
     } else {
-      lines.push('DTSTART:' + ev.start);
-      lines.push('DTEND:' + ev.end);
+      // Explicit UTC so Apple Calendar validation accepts the stamps.
+      lines.push('DTSTART:' + ev.start + 'Z');
+      lines.push('DTEND:' + ev.end + 'Z');
     }
     lines.push(foldLine('SUMMARY:' + icsEscape(ev.summary)));
     if (ev.description) lines.push(foldLine('DESCRIPTION:' + icsEscape(ev.description)));
@@ -98,6 +100,18 @@ function nextDayYmd(ymd) {
   return d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate());
 }
 
+function readQueryToken(req) {
+  if (req.query && req.query.token != null) return String(req.query.token).trim();
+  try {
+    var host = req.headers && (req.headers['x-forwarded-host'] || req.headers.host) || 'localhost';
+    var proto = (req.headers && req.headers['x-forwarded-proto']) || 'https';
+    var url = new URL(req.url || '/', proto + '://' + host);
+    return String(url.searchParams.get('token') || '').trim();
+  } catch (e) {
+    return '';
+  }
+}
+
 async function supabaseRest(path, serviceKey, urlBase) {
   const r = await fetch(urlBase.replace(/\/$/, '') + '/rest/v1/' + path, {
     headers: {
@@ -111,26 +125,48 @@ async function supabaseRest(path, serviceKey, urlBase) {
   try { return JSON.parse(text); } catch { return []; }
 }
 
+function sendIcs(res, body, method) {
+  const len = Buffer.byteLength(body, 'utf8');
+  res.statusCode = 200;
+  res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+  res.setHeader('Content-Disposition', 'inline; filename="jgdash-todos.ics"');
+  res.setHeader('Cache-Control', 'no-cache, max-age=60');
+  res.setHeader('Content-Length', String(len));
+  // Apple / some clients probe with HEAD before GET.
+  if (method === 'HEAD') return res.end();
+  return res.end(body);
+}
+
+function sendJson(res, status, obj) {
+  res.statusCode = status;
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  return res.end(JSON.stringify(obj));
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(204).end();
-  if (req.method !== 'GET') return res.status(405).json({ error: 'method not allowed' });
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    return sendJson(res, 405, { error: 'method not allowed' });
+  }
 
-  const token = String((req.query && req.query.token) || '').trim();
+  const token = readQueryToken(req);
   if (!token || token.length < 16) {
-    return res.status(401).json({ error: 'token required' });
+    return sendJson(res, 401, { error: 'token required' });
   }
 
   const urlBase = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!urlBase || !serviceKey) {
-    return res.status(500).json({ error: 'server not configured (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY)' });
+    return sendJson(res, 500, {
+      error: 'server not configured',
+      hint: 'Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel → Settings → Environment Variables, then Redeploy.'
+    });
   }
 
   try {
-    // Find feed owner by token (single row expected).
     const feeds = await supabaseRest(
       'user_kv?key=eq.jg_calendar_feed_v1&select=user_id,value',
       serviceKey,
@@ -145,7 +181,12 @@ export default async function handler(req, res) {
       }
       if (val && String(val.token) === token) userId = row.user_id;
     });
-    if (!userId) return res.status(404).json({ error: 'unknown feed token' });
+    if (!userId) {
+      return sendJson(res, 404, {
+        error: 'unknown feed token',
+        hint: 'Open To Do List while signed in, tap Copy subscription link (that syncs the token), then try again.'
+      });
+    }
 
     const rows = await supabaseRest(
       'user_kv?user_id=eq.' + encodeURIComponent(userId) +
@@ -173,10 +214,11 @@ export default async function handler(req, res) {
         if (g.cal === false) return;
         const text = String(g.text || '').trim();
         if (!text) return;
-        const uid = String(g.id || (text + '@' + ymd)).replace(/[^A-Za-z0-9_.@-]/g, '_') + '@jgdash';
+        const uid = String(g.id || (text + '@' + ymd)).replace(/[^A-Za-z0-9_.@-]/g, '_') + '@jgdash.todos';
         const time = normalizeTime(g.time);
         if (time) {
           const end = addMinutes(time, 30);
+          // Treat wall-clock times as UTC for a stable ICS stamp (personal feed).
           const startStamp = ymdCompact(ymd) + 'T' + time.replace(':', '') + '00';
           const endStamp = ymdCompact(ymd) + 'T' + end.replace(':', '') + '00';
           events.push({
@@ -204,13 +246,8 @@ export default async function handler(req, res) {
       return String(a.start).localeCompare(String(b.start)) || String(a.summary).localeCompare(String(b.summary));
     });
 
-    const body = buildIcs(events);
-    res.statusCode = 200;
-    res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
-    res.setHeader('Content-Disposition', 'inline; filename="jgdash-todos.ics"');
-    res.setHeader('Cache-Control', 'no-cache, max-age=300');
-    return res.send(body);
+    return sendIcs(res, buildIcs(events), req.method);
   } catch (e) {
-    return res.status(500).json({ error: 'feed failed: ' + (e.message || String(e)) });
+    return sendJson(res, 500, { error: 'feed failed: ' + (e.message || String(e)) });
   }
 }

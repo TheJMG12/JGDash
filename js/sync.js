@@ -731,6 +731,17 @@
     if (remoteVal == null) return localVal;
     if (localVal == null) return remoteVal;
 
+    // Calendar feed token: keep a single token; prefer newer createdAt.
+    if (key === 'jg_calendar_feed_v1') {
+      var lt = localVal && localVal.token;
+      var rt = remoteVal && remoteVal.token;
+      if (!lt && rt) return remoteVal;
+      if (lt && !rt) return localVal;
+      var lc = Date.parse((localVal && localVal.createdAt) || 0) || 0;
+      var rc = Date.parse((remoteVal && remoteVal.createdAt) || 0) || 0;
+      return rc > lc ? remoteVal : localVal;
+    }
+
     if (DEEP_MERGE_KEYS[key]) {
       var localTime = Number(opts.localTime) || 0;
       var remoteTime = Number(opts.remoteTime) || 0;
