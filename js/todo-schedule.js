@@ -139,9 +139,13 @@
     var base = (origin || (global.location && location.origin) || '').replace(/\/$/, '');
     var site = (global.JGDASH_CONFIG && JGDASH_CONFIG.SITE_URL) || base;
     site = String(site).replace(/\/$/, '');
+    // Always force https for Apple Calendar (http → "insecure connection" / validation failed).
+    if (/^http:/i.test(site)) site = site.replace(/^http:/i, 'https:');
+    if (!/^https:/i.test(site) && site.indexOf('://') === -1) site = 'https://' + site.replace(/^\/+/, '');
     var path = '/api/todos-ics?token=' + encodeURIComponent(token);
     var https = site + path;
-    var webcal = https.replace(/^https:/i, 'webcal:').replace(/^http:/i, 'webcal:');
+    // webcal is fine over TLS, but iOS Settings accepts https:// more reliably.
+    var webcal = https.replace(/^https:/i, 'webcal:');
     return { https: https, webcal: webcal };
   }
 

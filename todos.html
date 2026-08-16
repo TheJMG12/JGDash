@@ -14,7 +14,7 @@
   <script src="js/supabase-client.js"></script>
   <script src="js/lock.js?v=2"></script>
   <script src="js/goals-rollover.js?v=1"></script>
-  <script src="js/todo-schedule.js?v=1"></script>
+  <script src="js/todo-schedule.js?v=2"></script>
   <script src="js/sync.js?v=20"></script>
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
   <script src="js/theme.js?v=3"></script>
@@ -329,15 +329,17 @@
       <div class="cal-sub-card" id="calSubCard">
         <h3>Apple Calendar</h3>
         <p>
-          Subscribe once. Open tasks show as all-day events; add a time above and they become timed blocks (30&nbsp;min).
-          Apple refreshes subscribed calendars on its own schedule (often every hour).
+          Subscribe once with the <strong>https</strong> link below (not http).
+          Open tasks show as all-day events; add a time above for a 30&nbsp;min block.
+          Apple refreshes on its own schedule (often ~hourly).
         </p>
         <div class="cal-sub-actions">
-          <button type="button" class="btn primary" id="calCopyBtn">Copy subscription link</button>
-          <a class="btn" id="calOpenBtn" href="#" target="_blank" rel="noopener">Open webcal link</a>
+          <button type="button" class="btn primary" id="calCopyBtn">Copy https link</button>
+          <button type="button" class="btn" id="calTestBtn">Test feed</button>
           <button type="button" class="btn" id="calRotateBtn" title="Invalidates the old link">New link</button>
         </div>
         <div class="cal-sub-link" id="calSubLink"></div>
+        <div class="cal-sub-status" id="calSubStatus" style="margin-top:8px;font-size:12px;color:var(--text-secondary)"></div>
       </div>
 
       <div class="filter-pills" role="tablist" aria-label="Filter tasks">
@@ -577,41 +579,89 @@
     render();
   }
 
+  function setCalStatus(msg, kind) {
+    var el = document.getElementById('calSubStatus');
+    if (!el) return;
+    el.textContent = msg || '';
+    el.style.color = kind === 'error' ? 'var(--danger)' : (kind === 'ok' ? 'var(--success)' : 'var(--text-secondary)');
+  }
+
   function refreshCalCard() {
     if (!window.JGDash || !JGDash.todoSchedule) return;
     var meta = JGDash.todoSchedule.ensureFeedToken();
     var urls = JGDash.todoSchedule.feedUrls(meta.token);
     var linkEl = document.getElementById('calSubLink');
-    var openBtn = document.getElementById('calOpenBtn');
-    if (linkEl) linkEl.textContent = urls.webcal;
-    if (openBtn) openBtn.href = urls.webcal;
+    if (linkEl) linkEl.textContent = urls.https;
   }
 
-  document.getElementById('calCopyBtn').addEventListener('click', function () {
+  async function syncFeedToken() {
+    if (window.JGDash && JGDash.sync && JGDash.sync.syncNow) {
+      try { await JGDash.sync.syncNow({ skipReload: true }); } catch (e) { /* ignore */ }
+    }
+  }
+
+  document.getElementById('calCopyBtn').addEventListener('click', async function () {
     if (!window.JGDash || !JGDash.todoSchedule) return;
     var meta = JGDash.todoSchedule.ensureFeedToken();
     var urls = JGDash.todoSchedule.feedUrls(meta.token);
     refreshCalCard();
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(urls.webcal).then(function () {
-        alert('Copied. On iPhone: Settings → Calendar → Accounts → Add Account → Other → Add Subscribed Calendar → paste.');
-      }).catch(function () {
-        prompt('Copy this subscription link:', urls.webcal);
-      });
-    } else {
-      prompt('Copy this subscription link:', urls.webcal);
+    setCalStatus('Syncing token to the cloud…');
+    await syncFeedToken();
+    var ok = false;
+    try {
+      var r = await fetch(urls.https, { method: 'GET', cache: 'no-store' });
+      var text = await r.text();
+      ok = r.ok && /BEGIN:VCALENDAR/.test(text);
+      if (!ok) {
+        var hint = '';
+        try { hint = (JSON.parse(text).hint || JSON.parse(text).error || ''); } catch (e2) { hint = text.slice(0, 120); }
+        setCalStatus('Feed not ready yet: ' + (hint || ('HTTP ' + r.status)) + ' — set SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY on Vercel, redeploy, Sync, then retry.', 'error');
+      } else {
+        setCalStatus('Feed OK. Paste the https link in iPhone Settings → Calendar → Accounts → Add Account → Other → Add Subscribed Calendar.', 'ok');
+      }
+    } catch (err) {
+      setCalStatus('Could not reach feed: ' + ((err && err.message) || 'network error'), 'error');
     }
-    if (window.JGDash.sync && JGDash.sync.syncNow) {
-      try { JGDash.sync.syncNow({ skipReload: true }); } catch (e) { /* ignore */ }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try { await navigator.clipboard.writeText(urls.https); } catch (e3) { prompt('Copy this https link:', urls.https); }
+    } else {
+      prompt('Copy this https link:', urls.https);
+    }
+    if (ok) {
+      alert('Copied https calendar link.\n\nOn iPhone: Settings → Calendar → Accounts → Add Account → Other → Add Subscribed Calendar → paste.\n\nUse the https:// link (not http). If Apple warns about the connection, continue — the feed is HTTPS.');
     }
   });
-  document.getElementById('calRotateBtn').addEventListener('click', function () {
+
+  document.getElementById('calTestBtn').addEventListener('click', async function () {
+    if (!window.JGDash || !JGDash.todoSchedule) return;
+    var meta = JGDash.todoSchedule.ensureFeedToken();
+    var urls = JGDash.todoSchedule.feedUrls(meta.token);
+    refreshCalCard();
+    setCalStatus('Testing…');
+    await syncFeedToken();
+    try {
+      var r = await fetch(urls.https, { method: 'GET', cache: 'no-store' });
+      var text = await r.text();
+      if (r.ok && /BEGIN:VCALENDAR/.test(text)) {
+        var n = (text.match(/BEGIN:VEVENT/g) || []).length;
+        setCalStatus('Feed OK — ' + n + ' open task' + (n === 1 ? '' : 's') + ' in calendar.', 'ok');
+      } else {
+        var hint = '';
+        try { var j = JSON.parse(text); hint = j.hint || j.error || ''; } catch (e) { hint = text.slice(0, 160); }
+        setCalStatus('Validation would fail: ' + (hint || ('HTTP ' + r.status)), 'error');
+      }
+    } catch (err) {
+      setCalStatus('Test failed: ' + ((err && err.message) || 'network error'), 'error');
+    }
+  });
+
+  document.getElementById('calRotateBtn').addEventListener('click', async function () {
     if (!confirm('Create a new subscription link? Your old Apple Calendar subscription will stop updating.')) return;
     JGDash.todoSchedule.rotateFeedToken();
     refreshCalCard();
-    if (window.JGDash.sync && JGDash.sync.syncNow) {
-      try { JGDash.sync.syncNow({ skipReload: true }); } catch (e) { /* ignore */ }
-    }
+    setCalStatus('New token created — Syncing…');
+    await syncFeedToken();
+    setCalStatus('New link ready. Copy it and re-add the calendar subscription.', 'ok');
   });
   refreshCalCard();
 
