@@ -14,7 +14,8 @@
   <script src="js/supabase-client.js"></script>
   <script src="js/lock.js?v=2"></script>
   <script src="js/goals-rollover.js?v=1"></script>
-  <script src="js/sync.js?v=19"></script>
+  <script src="js/todo-schedule.js?v=1"></script>
+  <script src="js/sync.js?v=20"></script>
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
   <script src="js/theme.js?v=3"></script>
   <script src="js/topbar.js?v=13"></script>
@@ -320,8 +321,23 @@
       </p>
 
       <div class="add-row">
-        <input type="text" class="goal-input" id="addInput" placeholder="Add a task for today…" autocomplete="off" />
+        <input type="text" class="goal-input" id="addInput" placeholder="Add a task…" autocomplete="off" />
         <button type="button" class="btn primary" id="addBtn">Add</button>
+      </div>
+      <div id="addSchedule"></div>
+
+      <div class="cal-sub-card" id="calSubCard">
+        <h3>Apple Calendar</h3>
+        <p>
+          Subscribe once. Open tasks show as all-day events; add a time above and they become timed blocks (30&nbsp;min).
+          Apple refreshes subscribed calendars on its own schedule (often every hour).
+        </p>
+        <div class="cal-sub-actions">
+          <button type="button" class="btn primary" id="calCopyBtn">Copy subscription link</button>
+          <a class="btn" id="calOpenBtn" href="#" target="_blank" rel="noopener">Open webcal link</a>
+          <button type="button" class="btn" id="calRotateBtn" title="Invalidates the old link">New link</button>
+        </div>
+        <div class="cal-sub-link" id="calSubLink"></div>
       </div>
 
       <div class="filter-pills" role="tablist" aria-label="Filter tasks">
@@ -507,6 +523,12 @@
         var text = document.createElement('span');
         text.className = 'todo-text';
         text.textContent = goal.text || '';
+        if (goal.time && window.JGDash && JGDash.todoSchedule) {
+          var badge = document.createElement('span');
+          badge.className = 'todo-time-badge';
+          badge.textContent = JGDash.todoSchedule.formatTimeLabel(goal.time);
+          text.appendChild(badge);
+        }
         var del = document.createElement('button');
         del.type = 'button';
         del.className = 'todo-delete';
@@ -528,17 +550,70 @@
     });
   }
 
+  var sched = null;
+  if (window.JGDash && JGDash.todoSchedule) {
+    JGDash.todoSchedule.injectSchedCss();
+    sched = JGDash.todoSchedule.mountScheduleStrip({
+      root: document.getElementById('addSchedule'),
+      defaultDay: 'today'
+    });
+  }
+
   function addToday() {
     var input = document.getElementById('addInput');
     var text = String(input.value || '').trim();
     if (!text) { input.focus(); return; }
-    var key = todayKey();
+    var dayYmd = sched ? sched.getDayYmd() : getActiveDateString();
+    var time = sched ? sched.getTime() : '';
+    var key = 'goals:' + dayYmd;
     var goals = getGoals(key);
-    goals.push({ id: goalUid(), text: text, done: false });
+    var goal = (window.JGDash && JGDash.todoSchedule)
+      ? JGDash.todoSchedule.buildGoal(text, { time: time, cal: true })
+      : { id: goalUid(), text: text, done: false };
+    goals.push(goal);
     setGoals(key, goals);
     input.value = '';
+    if (sched) sched.reset();
     render();
   }
+
+  function refreshCalCard() {
+    if (!window.JGDash || !JGDash.todoSchedule) return;
+    var meta = JGDash.todoSchedule.ensureFeedToken();
+    var urls = JGDash.todoSchedule.feedUrls(meta.token);
+    var linkEl = document.getElementById('calSubLink');
+    var openBtn = document.getElementById('calOpenBtn');
+    if (linkEl) linkEl.textContent = urls.webcal;
+    if (openBtn) openBtn.href = urls.webcal;
+  }
+
+  document.getElementById('calCopyBtn').addEventListener('click', function () {
+    if (!window.JGDash || !JGDash.todoSchedule) return;
+    var meta = JGDash.todoSchedule.ensureFeedToken();
+    var urls = JGDash.todoSchedule.feedUrls(meta.token);
+    refreshCalCard();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(urls.webcal).then(function () {
+        alert('Copied. On iPhone: Settings → Calendar → Accounts → Add Account → Other → Add Subscribed Calendar → paste.');
+      }).catch(function () {
+        prompt('Copy this subscription link:', urls.webcal);
+      });
+    } else {
+      prompt('Copy this subscription link:', urls.webcal);
+    }
+    if (window.JGDash.sync && JGDash.sync.syncNow) {
+      try { JGDash.sync.syncNow({ skipReload: true }); } catch (e) { /* ignore */ }
+    }
+  });
+  document.getElementById('calRotateBtn').addEventListener('click', function () {
+    if (!confirm('Create a new subscription link? Your old Apple Calendar subscription will stop updating.')) return;
+    JGDash.todoSchedule.rotateFeedToken();
+    refreshCalCard();
+    if (window.JGDash.sync && JGDash.sync.syncNow) {
+      try { JGDash.sync.syncNow({ skipReload: true }); } catch (e) { /* ignore */ }
+    }
+  });
+  refreshCalCard();
 
   function openSidebar() {
     document.getElementById('sidebar').classList.add('open');

@@ -16,6 +16,7 @@
   <script src="js/lock.js?v=2"></script>
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
   <script src="js/goals-rollover.js?v=1"></script>
+  <script src="js/todo-schedule.js?v=1"></script>
   <style>
     :root {
       --text-primary: #FAFAFA;
@@ -1238,9 +1239,10 @@
         <div id="emptyState" class="empty-state">No goals for today yet — add one below.</div>
         <button type="button" class="gm-push-btn" id="gmPushBtn">Push remaining → tomorrow</button>
         <div class="goal-input-wrap gm-input-wrap">
-          <input type="text" class="goal-input" id="goalInput" placeholder="Add a goal for today…" autocomplete="off" />
+          <input type="text" class="goal-input" id="goalInput" placeholder="Add a goal…" autocomplete="off" />
           <button type="button" class="goal-add-btn" id="goalAddBtn">+ Add</button>
           <button type="button" class="goal-polish-btn" id="goalPolishBtn">✨ Polish</button>
+          <div id="goalSchedule" style="flex-basis:100%"></div>
           <div class="polish-status" id="polishStatus"></div>
         </div>
       </div>
@@ -1882,6 +1884,13 @@
       text.textContent = goal.text;
       makeInlineEdit(text, key, idx);
 
+      let timeBadge = null;
+      if (goal.time && window.JGDash && JGDash.todoSchedule) {
+        timeBadge = document.createElement('span');
+        timeBadge.className = 'todo-time-badge';
+        timeBadge.textContent = JGDash.todoSchedule.formatTimeLabel(goal.time);
+      }
+
       const queueBtn = document.createElement('button');
       queueBtn.type = 'button';
       queueBtn.className = 'gm-queue-btn' + (goal.queued ? ' is-active' : '');
@@ -1917,6 +1926,7 @@
       row.appendChild(handle);
       row.appendChild(cb);
       row.appendChild(text);
+      if (timeBadge) row.appendChild(timeBadge);
       row.appendChild(queueBtn);
       row.appendChild(del);
 
@@ -2018,7 +2028,7 @@
       return String(arr[0]).trim();
     }
 
-    function makeAddHandlers(input, addBtn, polishBtn, keyFn, statusEl, reload) {
+    function makeAddHandlers(input, addBtn, polishBtn, keyFn, statusEl, reload, scheduleApi) {
       function showStatus(msg, isError) {
         statusEl.textContent = msg;
         statusEl.classList.toggle('is-error', !!isError);
@@ -2033,12 +2043,25 @@
       function addText(text) {
         const t = (text || '').trim();
         if (!t) return;
-        const key = typeof keyFn === 'function' ? keyFn() : keyFn;
+        let key;
+        let time = '';
+        if (scheduleApi && typeof scheduleApi.getDayYmd === 'function') {
+          key = 'goals:' + scheduleApi.getDayYmd();
+          time = scheduleApi.getTime() || '';
+        } else {
+          key = typeof keyFn === 'function' ? keyFn() : keyFn;
+        }
         const goals = getGoals(key);
-        goals.push({ id: goalUid(), text: t, done: false });
+        const goal = (window.JGDash && JGDash.todoSchedule)
+          ? JGDash.todoSchedule.buildGoal(t, { time: time, cal: true })
+          : { id: goalUid(), text: t, done: false };
+        goals.push(goal);
         setGoals(key, goals);
         input.value = '';
+        if (scheduleApi && typeof scheduleApi.reset === 'function') scheduleApi.reset();
         reload();
+        if (typeof loadToday === 'function') loadToday();
+        if (typeof loadTomorrow === 'function') loadTomorrow();
       }
 
       addBtn.addEventListener('click', function () {
@@ -2082,7 +2105,9 @@
       const remaining = today.filter(function (g) { return !g.done; });
       remaining.forEach(function (g) {
         if (!tomorrow.some(function (t) { return t.text === g.text; })) {
-          tomorrow.push({ id: g.id || goalUid(), text: g.text, done: false, queued: !!g.queued });
+          var moved = { id: g.id || goalUid(), text: g.text, done: false, queued: !!g.queued, cal: g.cal !== false };
+          if (g.time) moved.time = g.time;
+          tomorrow.push(moved);
         }
       });
       const kept = today.filter(function (g) { return g.done; });
@@ -2428,13 +2453,22 @@
     runStreakCheck();
     runRollover();
     normalizeStoredGoalIds();
+    var todaySched = null;
+    if (window.JGDash && JGDash.todoSchedule) {
+      JGDash.todoSchedule.injectSchedCss();
+      todaySched = JGDash.todoSchedule.mountScheduleStrip({
+        root: document.getElementById('goalSchedule'),
+        defaultDay: 'today'
+      });
+    }
     makeAddHandlers(
       document.getElementById('goalInput'),
       document.getElementById('goalAddBtn'),
       document.getElementById('goalPolishBtn'),
       todayKey,
       document.getElementById('polishStatus'),
-      loadToday
+      loadToday,
+      todaySched
     );
     makeAddHandlers(
       document.getElementById('tomorrowInput'),
@@ -2442,7 +2476,8 @@
       document.getElementById('tomorrowPolishBtn'),
       tomorrowKey,
       document.getElementById('tomorrowStatus'),
-      loadTomorrow
+      loadTomorrow,
+      null
     );
     loadToday();
     loadTomorrow();
@@ -2479,7 +2514,7 @@
       - Tile range: HABIT_GRID_DAYS (default 35 = 5×7). Consistency label uses a 30-day window.
     */
   </script>
-  <script src="js/sync.js?v=19"></script>
+  <script src="js/sync.js?v=20"></script>
   <script src="js/theme.js?v=3"></script>
   <script src="js/topbar.js?v=13"></script>
   <script>
