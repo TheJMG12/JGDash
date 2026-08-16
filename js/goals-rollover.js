@@ -106,7 +106,9 @@
           text: g.text,
           done: false,
           queued: !!g.queued,
-          rolledFrom: date
+          rolledFrom: date,
+          time: g.time || undefined,
+          cal: g.cal !== false
         });
       });
 

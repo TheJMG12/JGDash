@@ -18,7 +18,8 @@
     'jg_finance_data_v1',
     'jg_training_data_v1',
     'jg_health_data_v1',
-    'jg_media_data_v1'
+    'jg_media_data_v1',
+    'jg_calendar_feed_v1'
   ];
 
   // Top-level array fields merged by item `id` (not whole-blob LWW).
@@ -195,7 +196,11 @@
           id: doneByText[tk].id || it.id,
           text: doneByText[tk].text || it.text,
           done: true,
-          queued: !!(doneByText[tk].queued || it.queued)
+          queued: !!(doneByText[tk].queued || it.queued),
+          time: it.time || doneByText[tk].time,
+          cal: typeof it.cal === 'boolean' ? it.cal : doneByText[tk].cal,
+          doneAt: it.doneAt != null ? it.doneAt : doneByText[tk].doneAt,
+          rolledFrom: it.rolledFrom || doneByText[tk].rolledFrom
         };
       }
     });
@@ -224,6 +229,25 @@
     return result;
   }
 
+  function mergeGoalFields(a, b) {
+    // Prefer b (usually local) for schedule fields when present.
+    var out = {
+      id: (b && b.id) || (a && a.id) || undefined,
+      text: (b && b.text && String(b.text).trim()) ? b.text : (a && a.text),
+      done: !!(a && a.done) || !!(b && b.done),
+      queued: !!(a && a.queued) || !!(b && b.queued)
+    };
+    var time = (b && b.time) || (a && a.time);
+    if (time) out.time = time;
+    if (b && typeof b.cal === 'boolean') out.cal = b.cal;
+    else if (a && typeof a.cal === 'boolean') out.cal = a.cal;
+    if (b && b.doneAt != null) out.doneAt = b.doneAt;
+    else if (a && a.doneAt != null) out.doneAt = a.doneAt;
+    if (b && b.rolledFrom) out.rolledFrom = b.rolledFrom;
+    else if (a && a.rolledFrom) out.rolledFrom = a.rolledFrom;
+    return out;
+  }
+
   function mergeGoalsArray(localArr, remoteArr) {
     var map = {};
     var order = [];
@@ -235,26 +259,15 @@
         if (!key) return;
         var prev = map[key];
         if (!prev) {
-          map[key] = {
-            id: it.id || undefined,
-            text: it.text,
-            done: !!it.done,
-            queued: !!it.queued
-          };
+          map[key] = mergeGoalFields(null, it);
           order.push(key);
           return;
         }
-        // Union flags; keep non-empty text; keep id if either has one
-        map[key] = {
-          id: prev.id || it.id || undefined,
-          text: (it.text && String(it.text).trim()) ? it.text : prev.text,
-          done: !!(prev.done || it.done),
-          queued: !!(prev.queued || it.queued)
-        };
+        map[key] = mergeGoalFields(prev, it);
       });
     }
 
-    // Remote first so local edits (done/queued) still win via OR, and local-only tasks append.
+    // Remote first so local edits (done/queued/time) still win via mergeGoalFields, and local-only tasks append.
     ingest(remoteArr);
     ingest(localArr);
 

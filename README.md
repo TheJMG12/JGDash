@@ -15,6 +15,7 @@ Dashboard pages store data in `localStorage`. When you are signed in **once**, `
 5. Sign in on each device with the **owner** account (email + password is most reliable; passkey/magic link need the production URL).
 6. Keep using the app — sync is automatic. Use the topbar **Sync** button anytime for an immediate pass.
 7. If Sync says “Sign in…”, you are not authenticated on that device yet.
+8. **Apple Calendar:** on **Projects → To Do List**, use **Copy subscription link**, then on iPhone: Settings → Calendar → Accounts → Add Account → Other → Add Subscribed Calendar. Set Vercel env `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` so `/api/todos-ics` can read your synced tasks.
 
 Synced: goals, habits, projects, finance, training, health, media (including MyMind / Watchlist / Reading List). Training `.mp4` blobs sync via Supabase Storage bucket `training-videos`. MyMind image uploads sync via bucket `media-images`. Not synced: theme preference, health PIN.
 

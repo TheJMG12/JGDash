@@ -36,6 +36,7 @@ In [Supabase Dashboard](https://supabase.com/dashboard) → your JGDash project:
 
 - Keep the project **private** on GitHub if the repo is private.
 - WHOOP secrets (`WHOOP_CLIENT_SECRET`, etc.) stay in Vercel env vars only.
+- Calendar feed (`api/todos-ics.js`) also needs `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` on Vercel (service role never in the frontend).
 - Optional: Vercel → Deployment Protection / password on preview deployments so random visitors cannot even load the shell.
 
 ## Honest limits (static apps)
