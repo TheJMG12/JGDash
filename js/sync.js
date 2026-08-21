@@ -128,6 +128,17 @@
     var map = {};
     var orphans = [];
 
+    function stickyFlags(a, b) {
+      // Once either side has bytes / cloud upload, keep that capability across LWW.
+      // Whole-object LWW was dropping cloud:true when the other device edited title/tags.
+      if (!a || !b) return a || b;
+      var out = a;
+      if (!!b.cloud && !out.cloud) out = Object.assign({}, out, { cloud: true });
+      if (!!b.hasBlob && !out.hasBlob) out = Object.assign({}, out, { hasBlob: true });
+      if (b.blobId && !out.blobId) out = Object.assign({}, out, { blobId: b.blobId });
+      return out;
+    }
+
     function ingest(list) {
       (list || []).forEach(function (it) {
         if (!it || typeof it !== 'object') {
@@ -146,11 +157,16 @@
         }
         var lt = itemTime(it);
         var rt = itemTime(prev);
-        if (lt > rt) map[id] = it;
-        else if (lt === rt) {
+        var newer;
+        var older;
+        if (lt > rt) { newer = it; older = prev; }
+        else if (lt < rt) { newer = prev; older = it; }
+        else {
           // Deterministic tie-break: prefer lexicographically larger JSON
-          if (stableStringify(it) > stableStringify(prev)) map[id] = it;
+          if (stableStringify(it) > stableStringify(prev)) { newer = it; older = prev; }
+          else { newer = prev; older = it; }
         }
+        map[id] = stickyFlags(Object.assign({}, older, newer), older);
       });
     }
 

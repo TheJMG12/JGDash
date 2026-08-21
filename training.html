@@ -13,8 +13,8 @@
   <script src="js/config.js?v=4"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/lock.js?v=2"></script>
-  <script src="js/sync.js?v=16"></script>
-  <script src="js/training-blobs.js?v=1"></script>
+  <script src="js/sync.js?v=21"></script>
+  <script src="js/training-blobs.js?v=2"></script>
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
   <script src="js/theme.js?v=3"></script>
   <script src="js/topbar.js?v=13"></script>
@@ -999,17 +999,87 @@
     });
   }
 
-  /** Resolve a playable blob: local IndexedDB first, then cloud Storage (cache locally). */
-  function resolveVideoBlob(id) {
+  /**
+   * Resolve a playable source: local IndexedDB first, then a cloud signed URL
+   * (streaming — avoids loading the full .mp4 into memory on phones).
+   * Returns { kind:'blob', blob } | { kind:'url', url, reason? } | { kind:'error', reason }.
+   */
+  function resolveVideoSource(id) {
     return idbGet(id).then(function (local) {
-      if (local) return local;
+      if (local) return { kind: 'blob', blob: local };
       var api = window.JGTrainingBlobs;
-      if (!api || typeof api.download !== 'function') return null;
-      return api.download(id).then(function (remote) {
-        if (!remote) return null;
-        return idbPut(id, remote).then(function () { return remote; }).catch(function () { return remote; });
+      if (!api) return { kind: 'error', reason: 'no_api' };
+
+      function cacheInBackground() {
+        if (typeof api.download !== 'function') return;
+        api.download(id).then(function (res) {
+          if (res && res.ok && res.blob) {
+            idbPut(id, res.blob).catch(function () {});
+            var meta = store.videos.find(function (v) { return v.id === id; });
+            if (meta) {
+              meta.hasBlob = true;
+              meta.cloud = true;
+              meta.updatedAt = new Date().toISOString();
+              saveData();
+            }
+          }
+        }).catch(function () {});
+      }
+
+      if (typeof api.getPlayUrl === 'function') {
+        return api.getPlayUrl(id).then(function (res) {
+          if (res && res.ok && res.url) {
+            cacheInBackground();
+            return { kind: 'url', url: res.url };
+          }
+          var reason = (res && res.reason) || 'not_found';
+          // Fall back to full download for older clients / edge cases.
+          if (typeof api.download !== 'function') {
+            return { kind: 'error', reason: reason };
+          }
+          return api.download(id).then(function (dl) {
+            if (dl && dl.ok && dl.blob) {
+              return idbPut(id, dl.blob).then(function () {
+                return { kind: 'blob', blob: dl.blob };
+              }).catch(function () {
+                return { kind: 'blob', blob: dl.blob };
+              });
+            }
+            return { kind: 'error', reason: (dl && dl.reason) || reason };
+          });
+        });
+      }
+
+      if (typeof api.download !== 'function') return { kind: 'error', reason: 'no_api' };
+      return api.download(id).then(function (dl) {
+        if (dl && dl.ok && dl.blob) {
+          return idbPut(id, dl.blob).then(function () {
+            return { kind: 'blob', blob: dl.blob };
+          }).catch(function () {
+            return { kind: 'blob', blob: dl.blob };
+          });
+        }
+        // Legacy shape: raw Blob
+        if (dl && typeof dl.slice === 'function') {
+          return idbPut(id, dl).then(function () {
+            return { kind: 'blob', blob: dl };
+          }).catch(function () {
+            return { kind: 'blob', blob: dl };
+          });
+        }
+        return { kind: 'error', reason: (dl && dl.reason) || 'not_found' };
       });
     });
+  }
+
+  function cloudFailMessage(reason) {
+    if (reason === 'not_signed_in') return 'Cloud failed to load — sign in, then try again';
+    if (reason === 'not_configured') return 'Cloud failed to load — sync is not configured';
+    if (reason === 'not_found') {
+      return 'Cloud failed to load — file missing in Storage. Open Training on the upload device while signed in, or re-upload';
+    }
+    if (reason) return 'Cloud failed to load — ' + reason;
+    return 'Cloud failed to load';
   }
 
   function cloudUploadVideo(id, blob) {
@@ -1021,6 +1091,7 @@
         if (meta) {
           meta.cloud = true;
           meta.hasBlob = true;
+          meta.updatedAt = new Date().toISOString();
           saveData();
         }
       }
@@ -2065,13 +2136,32 @@
           thumb.innerHTML = '<video muted playsinline preload="metadata" src="' + url + '#t=0.1"></video>';
           return;
         }
-        var ph = (v && (v.cloud || v.hasBlob))
-          ? '☁ Cloud · tap ▶ to load'
+        if (v && v.cloud) {
+          thumb.innerHTML = '<div class="thumb-ph">☁ Cloud · loading…</div>';
+          var api = window.JGTrainingBlobs;
+          if (api && typeof api.getPlayUrl === 'function') {
+            return api.getPlayUrl(id).then(function (res) {
+              if (res && res.ok && res.url) {
+                thumb.innerHTML = '<video muted playsinline preload="metadata" src="' + res.url + '#t=0.1"></video>';
+                return;
+              }
+              thumb.innerHTML = '<div class="thumb-ph">☁ Cloud failed to load</div>';
+            }).catch(function () {
+              thumb.innerHTML = '<div class="thumb-ph">☁ Cloud failed to load</div>';
+            });
+          }
+          thumb.innerHTML = '<div class="thumb-ph">☁ Cloud · tap ▶ to load</div>';
+          return;
+        }
+        var ph = (v && v.hasBlob)
+          ? 'On upload device only — sign in there to sync'
           : 'Upload .mp4 for thumbnail';
         thumb.innerHTML = '<div class="thumb-ph">' + ph + '</div>';
       }).catch(function () {
         thumb.innerHTML = '<div class="thumb-ph">' +
-          ((v && v.hasBlob) ? '☁ Cloud · tap ▶ to load' : 'Upload .mp4 for thumbnail') +
+          ((v && v.cloud) ? '☁ Cloud · tap ▶ to load'
+            : (v && v.hasBlob) ? 'On upload device only — sign in there to sync'
+            : 'Upload .mp4 for thumbnail') +
           '</div>';
       });
     });
@@ -2100,6 +2190,7 @@
             } else if (res && res.reason) {
               // Bucket may not exist yet — local play still works on this device.
               console.warn('Training video cloud upload:', res.reason);
+              toast('Saved locally — cloud upload failed: ' + res.reason);
             }
           });
         });
@@ -2121,7 +2212,13 @@
         { key: 'linkedName', label: 'Linked name', value: v.linkedName, full: true },
         { key: 'tags', label: 'Tags', value: v.tags, full: true }
       ],
-      save: function (vals) { Object.assign(v, vals); saveData(); renderVideos(); toast('Video updated'); },
+      save: function (vals) {
+        Object.assign(v, vals);
+        v.updatedAt = new Date().toISOString();
+        saveData();
+        renderVideos();
+        toast('Video updated');
+      },
       remove: function () {
         if (!confirm('Delete video?')) return false;
         idbDel(v.id).catch(function () {});
@@ -2148,28 +2245,48 @@
     $('playerTitle').textContent = meta ? meta.title : 'Video';
     $('playerModal').classList.add('open');
     var video = $('playerVideo');
+    if (video.src && video.src.indexOf('blob:') === 0) {
+      try { URL.revokeObjectURL(video.src); } catch (e) { /* ignore */ }
+    }
     video.removeAttribute('src');
     video.load();
     toast('Loading video…');
-    resolveVideoBlob(id).then(function (blob) {
-      if (!blob) {
-        toast(meta && meta.hasBlob
-          ? 'Video file not on this device yet — open Training on the upload device while signed in, or re-upload here'
-          : 'No playable upload — upload an .mp4 first');
+    resolveVideoSource(id).then(function (src) {
+      if (!src || src.kind === 'error') {
+        if (meta && meta.cloud) {
+          toast(cloudFailMessage(src && src.reason));
+        } else if (meta && meta.hasBlob) {
+          toast('Video file not on this device yet — open Training on the upload device while signed in, or re-upload here');
+        } else {
+          toast('No playable upload — upload an .mp4 first');
+        }
         return;
       }
-      if (video.src) URL.revokeObjectURL(video.src);
-      video.src = URL.createObjectURL(blob);
+      if (src.kind === 'blob') {
+        video.src = URL.createObjectURL(src.blob);
+      } else if (src.kind === 'url') {
+        video.src = src.url;
+      } else {
+        toast(cloudFailMessage(src.reason));
+        return;
+      }
       video.playbackRate = Number($('playerSpeed').value) || 1;
+      video.onerror = function () {
+        toast(cloudFailMessage('playback_error'));
+      };
       video.play().catch(function () {});
-      // Mark local availability after a successful cloud fetch
-      if (meta && !meta.hasBlob) {
-        meta.hasBlob = true;
-        saveData();
+      if (meta) {
+        var dirty = false;
+        if (!meta.hasBlob) { meta.hasBlob = true; dirty = true; }
+        if (src.kind === 'url' && !meta.cloud) { meta.cloud = true; dirty = true; }
+        if (dirty) {
+          meta.updatedAt = new Date().toISOString();
+          saveData();
+        }
       }
       renderVideos();
-    }).catch(function () {
-      toast('Could not load video');
+    }).catch(function (err) {
+      toast(cloudFailMessage((err && err.message) || 'unknown'));
     });
   }
 
