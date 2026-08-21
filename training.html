@@ -2271,6 +2271,9 @@
         return;
       }
       video.playbackRate = Number($('playerSpeed').value) || 1;
+      video.onerror = function () {
+        toast(cloudFailMessage('playback_error'));
+      };
       video.play().catch(function () {});
       if (meta) {
         var dirty = false;
