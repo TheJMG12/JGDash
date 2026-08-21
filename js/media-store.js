@@ -344,12 +344,20 @@
     var blobId = visual.blobId || blobIdFromNote(visual.note);
     var needsHydrate = !src || src.indexOf('blob:') === 0 || visual.srcOmitted;
     if (!needsHydrate) return Promise.resolve(src);
+    if (blobId && !visual.blobId) visual.blobId = blobId;
 
     function fromIdb() {
       if (!blobId) return Promise.resolve('');
       return idbGet(blobId).then(function (blob) {
         if (!blob) return '';
-        return URL.createObjectURL(blob);
+        // Prefer durable data URL so cards survive refresh / don't depend on object URLs.
+        return resizeImageFile(blob, 1400, 0.82).then(function (dataUrl) {
+          visual.src = dataUrl;
+          visual.srcOmitted = false;
+          return dataUrl;
+        }).catch(function () {
+          return URL.createObjectURL(blob);
+        });
       }).catch(function () { return ''; });
     }
 
@@ -708,6 +716,7 @@
     repairVisualBlobs: repairVisualBlobs,
     backfillCloudImages: backfillCloudImages,
     markVisualCloud: markVisualCloud,
+    blobIdFromNote: blobIdFromNote,
     detectType: detectType,
     guessMeta: guessMeta,
     enrichMeta: enrichMeta,

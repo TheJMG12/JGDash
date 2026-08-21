@@ -18,7 +18,7 @@
   <script src="js/theme.js?v=3"></script>
   <script src="js/topbar.js?v=13"></script>
   <script src="js/media-blobs.js?v=1"></script>
-  <script src="js/media-store.js?v=5"></script>
+  <script src="js/media-store.js?v=6"></script>
   <style>
 
 :root {
@@ -507,24 +507,76 @@ body.sheet-open .main-scroll{overflow:hidden!important;touch-action:none}
     return src;
   }
 
+  function visualBlobId(v) {
+    if (!v) return '';
+    if (v.blobId) return String(v.blobId);
+    var m = String(v.note || '').match(/IndexedDB blob id\s+(m_[a-z0-9]+)/i);
+    return m ? m[1] : '';
+  }
+
+  function canHydrateVisual(v) {
+    if (!v) return false;
+    if (displaySrc(v)) return false;
+    if (visualBlobId(v)) return true;
+    if (v.srcOmitted) return true;
+    if (String(v.src || '').indexOf('blob:') === 0) return true;
+    return false;
+  }
+
+  /** 1×1 transparent GIF — avoids empty-src onerror wiping the card before hydrate. */
+  var PLACEHOLDER_SRC = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+
+  function showNoPreview(el) {
+    if (!el || !el.parentNode) return;
+    var div = document.createElement('div');
+    div.className = 'note-preview';
+    div.style.cssText = 'min-height:100px;display:flex;align-items:center;justify-content:center;color:var(--text-tertiary);font-size:12px';
+    div.textContent = 'No preview';
+    el.replaceWith(div);
+  }
+
   function hydrateCardImg(img, v) {
     if (!img || !v) return;
     var durable = displaySrc(v);
     if (durable) {
+      img.removeAttribute('data-hydrating');
       img.src = durable;
       return;
     }
-    if (String(v.src || '').indexOf('blob:') === 0 || v.blobId || v.srcOmitted) {
-      JGMedia.resolveVisualSrc(v).then(function (resolved) {
-        if (!resolved) return;
-        img.src = resolved;
-        if (String(resolved).indexOf('data:') === 0) {
-          v.src = resolved;
-          v.srcOmitted = false;
-          persist();
-        }
-      });
+    if (!canHydrateVisual(v)) {
+      showNoPreview(img);
+      return;
     }
+    img.setAttribute('data-hydrating', '1');
+    if (!img.getAttribute('src') || img.getAttribute('src') === PLACEHOLDER_SRC) {
+      img.src = PLACEHOLDER_SRC;
+    }
+    JGMedia.resolveVisualSrc(v).then(function (resolved) {
+      if (!img.isConnected) return;
+      img.removeAttribute('data-hydrating');
+      if (!resolved) {
+        showNoPreview(img);
+        return;
+      }
+      img.onerror = function () {
+        if (img.getAttribute('data-hydrating') === '1') return;
+        showNoPreview(img);
+      };
+      img.src = resolved;
+      if (String(resolved).indexOf('data:') === 0) {
+        v.src = resolved;
+        v.srcOmitted = false;
+        if (!v.blobId) {
+          var bid = visualBlobId(v);
+          if (bid) v.blobId = bid;
+        }
+        persist();
+      }
+    }).catch(function () {
+      if (!img.isConnected) return;
+      img.removeAttribute('data-hydrating');
+      showNoPreview(img);
+    });
   }
 
   function render() {
@@ -537,14 +589,16 @@ body.sheet-open .main-scroll{overflow:hidden!important;touch-action:none}
     root.innerHTML = slice.map(function (v) {
       var kind = visualKind(v);
       var durable = displaySrc(v);
-      var canHydrate = !durable && (!!v.blobId || String(v.src || '').indexOf('blob:') === 0);
+      var hydrate = canHydrateVisual(v);
       var mediaHtml;
-      if (kind === 'note' && !durable && !canHydrate) {
+      if (kind === 'note' && !durable && !hydrate) {
         mediaHtml = '<div class="note-preview">' + esc((v.note || v.caption || v.title || 'Note').slice(0, 160)) + '</div>';
-      } else if (!durable && !canHydrate) {
+      } else if (!durable && !hydrate) {
         mediaHtml = '<div class="note-preview" style="min-height:100px;display:flex;align-items:center;justify-content:center;color:var(--text-tertiary);font-size:12px">No preview</div>';
+      } else if (durable) {
+        mediaHtml = '<img data-vid="' + esc(v.id) + '" src="' + esc(durable) + '" alt="' + esc(v.title || '') + '" loading="lazy" />';
       } else {
-        mediaHtml = '<img data-vid="' + esc(v.id) + '" src="' + esc(durable || '') + '" alt="' + esc(v.title || '') + '" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement(\'div\'),{className:\'note-preview\',style:\'min-height:100px;display:flex;align-items:center;justify-content:center;color:var(--text-tertiary);font-size:12px\',textContent:\'No preview\'}))" />';
+        mediaHtml = '<img data-vid="' + esc(v.id) + '" data-hydrating="1" src="' + PLACEHOLDER_SRC + '" alt="' + esc(v.title || '') + '" loading="lazy" />';
       }
       return '<article class="vcard" data-id="' + esc(v.id) + '" tabindex="0" role="button" aria-label="' + esc(v.title || 'Item') + '">' +
         mediaHtml +
@@ -553,9 +607,12 @@ body.sheet-open .main-scroll{overflow:hidden!important;touch-action:none}
         '</div></div></article>';
     }).join('');
     slice.forEach(function (v) {
-      var img = root.querySelector('img[data-vid="' + v.id + '"]');
-      if (img && (!img.getAttribute('src') || String(v.src || '').indexOf('blob:') === 0)) {
+      var img = root.querySelector('img[data-vid="' + String(v.id).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"]');
+      if (!img) return;
+      if (img.getAttribute('data-hydrating') === '1' || !img.getAttribute('src') || String(v.src || '').indexOf('blob:') === 0) {
         hydrateCardImg(img, v);
+      } else {
+        img.onerror = function () { showNoPreview(img); };
       }
     });
   }
@@ -592,13 +649,22 @@ body.sheet-open .main-scroll{overflow:hidden!important;touch-action:none}
       noteBody.classList.add('hidden');
       if (durable) {
         img.src = durable;
-      } else if (String(v.src || '').indexOf('blob:') === 0 || v.blobId || v.srcOmitted) {
+      } else if (canHydrateVisual(v)) {
         img.removeAttribute('src');
+        img.src = PLACEHOLDER_SRC;
         JGMedia.resolveVisualSrc(v).then(function (resolved) {
-          if (activeId === id && resolved) img.src = resolved;
+          if (activeId !== id) return;
+          if (resolved) {
+            img.src = resolved;
+            if (String(resolved).indexOf('data:') === 0) {
+              v.src = resolved;
+              v.srcOmitted = false;
+              persist();
+            }
+          }
         });
       } else {
-        img.src = v.src || '';
+        img.removeAttribute('src');
       }
     }
     img.alt = v.title || '';
