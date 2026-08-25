@@ -1,0 +1,505 @@
+/* JGDash UI 2026 — shared design layer
+   Soft depth, generous radius, pill controls, layered surfaces.
+   Loaded after page <style> so shared upgrades win on common selectors. */
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --text-primary: #F4F4F5;
+  --text-secondary: #A1A1AA;
+  --text-tertiary: #71717A;
+  --success: #6EE7B7;
+  --warning: #FBBF24;
+  --danger: #FB7185;
+  --bg: #09090B;
+  --bg-elevated: #121214;
+  --card-bg: rgba(255, 255, 255, 0.035);
+  --card-bg-strong: rgba(255, 255, 255, 0.055);
+  --card-emph: rgba(110, 231, 183, 0.12);
+  --border: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.1);
+  --input-bg: rgba(255, 255, 255, 0.04);
+  --accent: #6EE7B7;
+  --accent-2: #67E8F9;
+  --accent-warm: #FB923C;
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.35);
+  --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.25);
+  --radius-sm: 12px;
+  --radius-md: 18px;
+  --radius-lg: 24px;
+  --radius-pill: 999px;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --sans: "Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --space-page: 22px;
+}
+
+[data-theme="light"] {
+  --text-primary: #18181B;
+  --text-secondary: #52525B;
+  --text-tertiary: #71717A;
+  --success: #059669;
+  --warning: #D97706;
+  --danger: #E11D48;
+  --bg: #F4F4F5;
+  --bg-elevated: #FFFFFF;
+  --card-bg: rgba(255, 255, 255, 0.78);
+  --card-bg-strong: #FFFFFF;
+  --card-emph: rgba(5, 150, 105, 0.1);
+  --border: rgba(24, 24, 27, 0.08);
+  --border-strong: rgba(24, 24, 27, 0.12);
+  --input-bg: rgba(255, 255, 255, 0.92);
+  --accent: #059669;
+  --accent-2: #0891B2;
+  --accent-warm: #EA580C;
+  --shadow-card: 0 8px 28px rgba(24, 24, 27, 0.08);
+  --shadow-soft: 0 4px 16px rgba(24, 24, 27, 0.06);
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-family: var(--sans);
+  letter-spacing: -0.01em;
+  background: var(--bg);
+}
+
+/* Atmosphere — cooler, less noisy than prior wash */
+body::before {
+  background:
+    radial-gradient(ellipse 55% 42% at 88% 8%, rgba(110, 231, 183, 0.09), transparent 58%),
+    radial-gradient(ellipse 48% 38% at 8% 92%, rgba(103, 232, 249, 0.07), transparent 55%),
+    radial-gradient(ellipse 40% 30% at 50% 40%, rgba(251, 146, 60, 0.04), transparent 60%) !important;
+  filter: blur(48px) !important;
+}
+
+[data-theme="light"] body::before {
+  background:
+    radial-gradient(ellipse 55% 42% at 88% 8%, rgba(5, 150, 105, 0.08), transparent 58%),
+    radial-gradient(ellipse 48% 38% at 8% 92%, rgba(8, 145, 178, 0.06), transparent 55%) !important;
+}
+
+body::after {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.018) 0.7px, transparent 0.7px) !important;
+  background-size: 4px 4px !important;
+  opacity: 0.7;
+}
+
+[data-theme="light"] body::after {
+  background-image: radial-gradient(rgba(0, 0, 0, 0.028) 0.7px, transparent 0.7px) !important;
+}
+
+/* —— Shell —— */
+.sidebar {
+  background: rgba(9, 9, 11, 0.55) !important;
+  border-right-color: var(--border) !important;
+  padding: 18px 14px !important;
+  gap: 3px !important;
+}
+
+[data-theme="light"] .sidebar {
+  background: rgba(255, 255, 255, 0.72) !important;
+}
+
+.sidebar-brand {
+  font-size: 11px !important;
+  letter-spacing: 0.16em !important;
+  color: var(--text-tertiary) !important;
+  padding: 6px 12px 16px !important;
+}
+
+.nav-link {
+  border-radius: var(--radius-pill) !important;
+  padding: 10px 14px !important;
+  font-size: 13.5px !important;
+  font-weight: 500 !important;
+  transition: background 0.2s var(--ease-out), color 0.2s var(--ease-out), transform 0.2s var(--ease-out) !important;
+}
+
+.nav-link:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: var(--text-primary) !important;
+}
+
+.nav-link.active {
+  background: color-mix(in srgb, var(--accent) 16%, transparent) !important;
+  color: var(--accent) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+.sidebar-section {
+  margin-top: 20px !important;
+  letter-spacing: 0.16em !important;
+  font-weight: 600 !important;
+}
+
+.mobile-bar {
+  background: rgba(9, 9, 11, 0.88) !important;
+  border-bottom-color: var(--border) !important;
+  backdrop-filter: blur(18px) saturate(1.2) !important;
+}
+
+.hamburger {
+  border-radius: var(--radius-pill) !important;
+  width: 40px !important;
+  height: 40px !important;
+  border-color: var(--border) !important;
+}
+
+.sidebar-overlay {
+  background: rgba(0, 0, 0, 0.55) !important;
+  backdrop-filter: blur(4px);
+}
+
+/* —— Main chrome —— */
+.main-header,
+.page-header,
+.section-head,
+.top-row {
+  gap: 12px;
+}
+
+.page-title,
+.dash-title,
+h1.page-title,
+.main-header h1 {
+  letter-spacing: -0.03em !important;
+  font-weight: 600 !important;
+}
+
+.section-sub,
+.page-sub,
+.card-meta {
+  color: var(--text-secondary) !important;
+  font-weight: 400 !important;
+}
+
+/* —— Cards & surfaces —— */
+.card,
+.gm-card,
+.panel,
+.lib-card,
+.kpi,
+.stat-card,
+.cal-sub-card,
+.vcard,
+.tile {
+  border-radius: var(--radius-md) !important;
+  border-color: var(--border) !important;
+  background: var(--card-bg) !important;
+  box-shadow: var(--shadow-soft) !important;
+  backdrop-filter: blur(28px) saturate(1.25) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(1.25) !important;
+  transition: transform 0.22s var(--ease-out), border-color 0.22s var(--ease-out), box-shadow 0.22s var(--ease-out) !important;
+}
+
+.card {
+  padding: 18px !important;
+}
+
+.card h3,
+.panel h3 {
+  font-weight: 600 !important;
+  letter-spacing: -0.02em !important;
+}
+
+.card-emph,
+.kpi.highlight,
+.stat-card.accent {
+  background: var(--card-emph) !important;
+  border-color: color-mix(in srgb, var(--accent) 22%, transparent) !important;
+}
+
+.kpi {
+  border-radius: var(--radius-md) !important;
+  padding: 16px !important;
+  min-height: 88px !important;
+  gap: 6px !important;
+}
+
+.kpi-value,
+.mini-stat,
+.stat-value {
+  font-family: var(--mono) !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.04em !important;
+  font-size: 24px !important;
+}
+
+/* —— Controls —— */
+.btn,
+button.btn,
+.goal-add-btn,
+.tb-btn,
+.hamburger {
+  border-radius: var(--radius-pill) !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+  transition: background 0.18s var(--ease-out), border-color 0.18s var(--ease-out), transform 0.18s var(--ease-out), color 0.18s var(--ease-out) !important;
+}
+
+.btn {
+  padding: 8px 14px !important;
+  border: 1px solid var(--border-strong) !important;
+  background: var(--input-bg) !important;
+  color: var(--text-primary) !important;
+}
+
+.btn:hover {
+  background: rgba(255, 255, 255, 0.07) !important;
+  border-color: var(--border-strong) !important;
+}
+
+.btn.primary,
+.goal-add-btn {
+  background: color-mix(in srgb, var(--accent) 18%, transparent) !important;
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent) !important;
+  color: var(--accent) !important;
+}
+
+.btn.primary:hover,
+.goal-add-btn:hover {
+  background: color-mix(in srgb, var(--accent) 26%, transparent) !important;
+  transform: translateY(-1px);
+}
+
+input,
+select,
+textarea,
+.goal-input,
+.search-input {
+  border-radius: var(--radius-sm) !important;
+  border-color: var(--border) !important;
+  background: var(--input-bg) !important;
+  transition: border-color 0.18s var(--ease-out), box-shadow 0.18s var(--ease-out) !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus,
+.goal-input:focus,
+.search-input:focus {
+  outline: none !important;
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent) !important;
+}
+
+.chip,
+.tag,
+.saved-pill,
+.feed-tab,
+.view-toggle button,
+.mode-chip,
+.filter-chip {
+  border-radius: var(--radius-pill) !important;
+  font-weight: 550 !important;
+}
+
+.feed-tab.active,
+.view-toggle button.active,
+.mode-chip.active,
+.filter-chip.active,
+.saved-pill.active {
+  background: color-mix(in srgb, var(--accent) 16%, transparent) !important;
+  color: var(--accent) !important;
+  border-color: color-mix(in srgb, var(--accent) 38%, transparent) !important;
+}
+
+/* —— Tables / lists —— */
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+th {
+  font-size: 11px !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  color: var(--text-tertiary) !important;
+  font-weight: 600 !important;
+}
+
+td, th {
+  border-color: var(--border) !important;
+}
+
+tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.empty-state {
+  color: var(--text-secondary) !important;
+  padding: 28px 16px !important;
+  text-align: center;
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--border);
+  background: transparent !important;
+}
+
+/* —— Progress —— */
+.progress-bar,
+.bar-track {
+  border-radius: var(--radius-pill) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  overflow: hidden;
+}
+
+.progress-bar > span,
+.bar-fill {
+  border-radius: var(--radius-pill) !important;
+  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent-2) 70%, var(--accent))) !important;
+}
+
+/* —— Modals / sheets —— */
+.modal,
+.sheet,
+.lightbox-panel,
+.dialog {
+  border-radius: var(--radius-lg) !important;
+  border-color: var(--border-strong) !important;
+  background: color-mix(in srgb, var(--bg-elevated) 92%, transparent) !important;
+  backdrop-filter: blur(28px) saturate(1.3) !important;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55) !important;
+}
+
+/* —— Motion —— */
+@keyframes ui-fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ui-soft-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.72; }
+}
+
+.app > .main,
+.wrap,
+.main-scroll,
+#mainScroll {
+  animation: ui-fade-up 0.45s var(--ease-out) both;
+}
+
+.card:hover,
+.lib-card:hover,
+.tile:hover,
+.vcard:hover {
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent) !important;
+  box-shadow: var(--shadow-card) !important;
+}
+
+/* Reduce clunky dense gaps on common grids */
+.content-grid,
+.cards-grid,
+.kpi-grid,
+.stats-grid {
+  gap: 14px !important;
+}
+
+@media (max-width: 860px) {
+  .card { padding: 14px !important; }
+  .kpi-value { font-size: 20px !important; }
+}
+
+
+/* —— Page headers & content density —— */
+.main-header,
+.page-head,
+.content-header {
+  padding: 8px 0 18px !important;
+}
+
+.main-scroll,
+#mainScroll,
+.content {
+  padding: 18px 22px 40px !important;
+}
+
+@media (max-width: 860px) {
+  .main-scroll,
+  #mainScroll,
+  .content {
+    padding: 14px 14px 32px !important;
+  }
+}
+
+.week-grid,
+.schedule-grid,
+.habit-week,
+.meal-grid {
+  gap: 10px !important;
+}
+
+.day-col,
+.week-day,
+.sched-day {
+  border-radius: var(--radius-md) !important;
+  border-color: var(--border) !important;
+  background: rgba(255,255,255,0.025) !important;
+  padding: 12px !important;
+}
+
+.status-dot,
+.dot {
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 999px !important;
+}
+
+.badge,
+.pill-badge,
+.status-badge {
+  border-radius: var(--radius-pill) !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  padding: 3px 9px !important;
+}
+
+/* Soften nested card-in-card */
+.card .card,
+.card .inner-card,
+.nested-card {
+  box-shadow: none !important;
+  background: rgba(255,255,255,0.03) !important;
+}
+
+[data-theme="light"] .card .card,
+[data-theme="light"] .nested-card {
+  background: rgba(0,0,0,0.02) !important;
+}
+
+/* Toggle switches feel */
+.toggle,
+.switch {
+  border-radius: var(--radius-pill) !important;
+}
+
+/* Media masonry / library */
+.masonry .vcard,
+.lib-card {
+  border-radius: 20px !important;
+}
+
+.lib-card:hover,
+.masonry .vcard:hover {
+  transform: translateY(-3px) !important;
+}
+
+/* Training chips */
+.session-chip,
+.chip-session,
+.workout-chip {
+  border-radius: 14px !important;
+  border-color: var(--border) !important;
+}
+
+/* Health WHOOP / metric tiles */
+.metric-tile,
+.whoop-card,
+.ring-card {
+  border-radius: var(--radius-md) !important;
+}

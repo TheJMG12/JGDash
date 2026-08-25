@@ -7,6 +7,11 @@
   'use strict';
 
   var LOCK_SKIP = false;
+  // Local static demos (python -m http.server) — never on production hosts.
+  try {
+    if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) LOCK_SKIP = true;
+  } catch (e) { /* ignore */ }
+
   var STYLE_ID = 'jgdash-auth-gate-style';
   var PENDING_CLASS = 'jgdash-auth-pending';
   var OK_CLASS = 'jgdash-auth-ok';

@@ -13,21 +13,23 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/config.js?v=4"></script>
   <script src="js/supabase-client.js"></script>
-  <script src="js/lock.js?v=2"></script>
+  <script src="js/lock.js?v=3"></script>
   <script src="js/sync.js?v=21"></script>
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
   <script src="js/theme.js?v=3"></script>
-  <style>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<style>
     :root {
-      --text-primary: #FAFAFA;
-      --text-secondary: #B8B6B0;
-      --text-tertiary: #76746E;
-      --success: #6BE3A4;
+      --text-primary: #F4F4F5;
+      --text-secondary: #A1A1AA;
+      --text-tertiary: #71717A;
+      --success: #6EE7B7;
       --danger: #FF6B6B;
-      --bg: #050506;
-      --card-bg: rgba(255, 255, 255, 0.04);
-      --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-      --sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --bg: #09090B;
+      --card-bg: rgba(255, 255, 255, 0.035);
+      --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      --sans: "Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -72,18 +74,27 @@
       width: 100%;
       max-width: 420px;
       background: var(--card-bg);
-      border-radius: 16px;
-      padding: 28px 24px;
-      backdrop-filter: blur(24px) saturate(1.2);
-      -webkit-backdrop-filter: blur(24px) saturate(1.2);
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+      border-radius: 24px;
+      padding: 32px 28px;
+      border: 1px solid rgba(255,255,255,0.06);
+      backdrop-filter: blur(28px) saturate(1.25);
+      -webkit-backdrop-filter: blur(28px) saturate(1.25);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+    }
+    .brand-mark {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin-bottom: 12px;
     }
     .dash-title {
-      font-size: 28px;
-      font-weight: 700;
-      letter-spacing: -0.025em;
+      font-size: 32px;
+      font-weight: 600;
+      letter-spacing: -0.035em;
       margin-bottom: 8px;
-      background: linear-gradient(180deg, #FFFFFF 0%, #C7C4BC 120%);
+      background: linear-gradient(180deg, #FFFFFF 0%, #A1A1AA 130%);
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -221,9 +232,11 @@
     .session-pill.is-on { display: inline-flex; }
     code { font-family: var(--mono); font-size: 10.5px; }
   </style>
+  <link rel="stylesheet" href="css/ui.css?v=1" />
 </head>
 <body>
   <div class="card">
+    <div class="brand-mark">JGDash</div>
     <h1 class="dash-title">Sign in</h1>
     <p class="sub">
       Best for sync: <strong>email + password</strong> (works on phone, web, and Desktop).<br />

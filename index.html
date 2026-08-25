@@ -13,20 +13,30 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/config.js?v=4"></script>
   <script src="js/supabase-client.js"></script>
-  <script src="js/lock.js?v=2"></script>
+  <script src="js/lock.js?v=3"></script>
   <script src="js/sync.js?v=21"></script>
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
   <script src="js/theme.js?v=3"></script>
-  <script src="js/topbar.js?v=13"></script>
+  <script src="js/topbar.js?v=14"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <style>
     :root {
-      --text-primary: #FAFAFA;
-      --text-secondary: #B8B6B0;
-      --text-tertiary: #76746E;
-      --bg: #050506;
-      --card-bg: rgba(255, 255, 255, 0.04);
-      --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-      --sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --text-primary: #F4F4F5;
+      --text-secondary: #A1A1AA;
+      --text-tertiary: #71717A;
+      --bg: #09090B;
+      --card-bg: rgba(255, 255, 255, 0.035);
+      --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      --sans: "Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    [data-theme="light"] {
+      --text-primary: #18181B;
+      --text-secondary: #52525B;
+      --text-tertiary: #71717A;
+      --bg: #F4F4F5;
+      --card-bg: rgba(255, 255, 255, 0.78);
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -43,10 +53,11 @@
       z-index: 0;
       pointer-events: none;
       background:
-        radial-gradient(ellipse 50% 40% at 82% 14%, rgba(224, 118, 88, 0.16), transparent 60%),
-        radial-gradient(ellipse 45% 35% at 18% 90%, rgba(180, 180, 200, 0.06), transparent 55%);
-      filter: blur(40px);
-      animation: wash-drift 36s ease-in-out infinite alternate;
+        radial-gradient(ellipse 55% 42% at 88% 8%, rgba(110, 231, 183, 0.11), transparent 58%),
+        radial-gradient(ellipse 48% 38% at 8% 92%, rgba(103, 232, 249, 0.08), transparent 55%),
+        radial-gradient(ellipse 36% 28% at 55% 35%, rgba(251, 146, 60, 0.05), transparent 60%);
+      filter: blur(48px);
+      animation: wash-drift 40s ease-in-out infinite alternate;
     }
     body::after {
       content: '';
@@ -54,84 +65,171 @@
       inset: 0;
       z-index: 0;
       pointer-events: none;
-      background-image: radial-gradient(rgba(255, 255, 255, 0.014) 0.6px, transparent 0.6px);
-      background-size: 3px 3px;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.018) 0.7px, transparent 0.7px);
+      background-size: 4px 4px;
+      opacity: 0.65;
     }
     @keyframes wash-drift {
       0% { transform: translate(0, 0) scale(1); }
-      100% { transform: translate(-3%, 2%) scale(1.04); }
+      100% { transform: translate(-2.5%, 2%) scale(1.05); }
+    }
+    @keyframes tile-in {
+      from { opacity: 0; transform: translateY(14px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
     }
     .wrap {
       position: relative;
       z-index: 1;
-      max-width: 1100px;
+      max-width: 1120px;
       margin: 0 auto;
-      padding: max(12px, env(safe-area-inset-top)) 20px 48px;
+      padding: max(20px, env(safe-area-inset-top)) 22px 56px;
+    }
+    .hero {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 20px;
+      margin: 12px 0 28px;
+      flex-wrap: wrap;
+    }
+    .hero-brand {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin-bottom: 10px;
     }
     .dash-title {
-      font-size: 28px;
-      font-weight: 700;
-      letter-spacing: -0.025em;
-      margin: 8px 0 20px;
-      background: linear-gradient(180deg, #FFFFFF 0%, #C7C4BC 120%);
+      font-size: clamp(34px, 5vw, 48px);
+      font-weight: 600;
+      letter-spacing: -0.04em;
+      line-height: 1.05;
+      background: linear-gradient(180deg, #FFFFFF 0%, #A1A1AA 130%);
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
     }
+    [data-theme="light"] .dash-title {
+      background: linear-gradient(180deg, #18181B 0%, #52525B 130%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-sub {
+      margin-top: 10px;
+      font-size: 15px;
+      color: var(--text-secondary);
+      max-width: 36ch;
+      line-height: 1.45;
+      font-weight: 400;
+    }
+    .hero-clock {
+      font-family: var(--mono);
+      font-size: clamp(28px, 4vw, 40px);
+      font-weight: 500;
+      letter-spacing: -0.04em;
+      color: var(--text-primary);
+      opacity: 0.9;
+      padding: 14px 20px;
+      border-radius: 999px;
+      background: var(--card-bg);
+      border: 1px solid rgba(255,255,255,0.06);
+      backdrop-filter: blur(20px);
+    }
+    [data-theme="light"] .hero-clock {
+      border-color: rgba(0,0,0,0.08);
+    }
     .bento {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      grid-auto-rows: 168px;
-      gap: 14px;
+      grid-auto-rows: 176px;
+      gap: 16px;
       grid-auto-flow: dense;
     }
     .tile {
-      --accent: #6BE3A4;
+      --accent: #6EE7B7;
       display: flex;
       flex-direction: column;
       text-decoration: none;
       color: inherit;
       background: var(--card-bg);
-      border-radius: 18px;
+      border-radius: 24px;
       border: 1px solid rgba(255, 255, 255, 0.06);
-      padding: 18px 20px;
-      backdrop-filter: blur(24px) saturate(1.2);
-      -webkit-backdrop-filter: blur(24px) saturate(1.2);
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
-      transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+      padding: 22px 22px 20px;
+      backdrop-filter: blur(28px) saturate(1.25);
+      -webkit-backdrop-filter: blur(28px) saturate(1.25);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.28);
+      transition: transform 0.28s var(--ease), border-color 0.28s var(--ease), box-shadow 0.28s var(--ease), background 0.28s var(--ease);
       position: relative;
       overflow: hidden;
+      animation: tile-in 0.55s var(--ease) both;
+    }
+    .tile:nth-child(1) { animation-delay: 0.04s; }
+    .tile:nth-child(2) { animation-delay: 0.08s; }
+    .tile:nth-child(3) { animation-delay: 0.12s; }
+    .tile:nth-child(4) { animation-delay: 0.16s; }
+    .tile:nth-child(5) { animation-delay: 0.2s; }
+    .tile:nth-child(6) { animation-delay: 0.24s; }
+    .tile::before {
+      content: '';
+      position: absolute;
+      inset: auto -20% -40% auto;
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      background: radial-gradient(circle, color-mix(in srgb, var(--accent) 35%, transparent), transparent 70%);
+      opacity: 0.55;
+      transition: opacity 0.28s var(--ease), transform 0.28s var(--ease);
+      pointer-events: none;
     }
     .tile:hover {
-      transform: translateY(-3px);
-      border-color: color-mix(in srgb, var(--accent) 55%, transparent);
-      box-shadow: 0 16px 44px rgba(0, 0, 0, 0.5);
+      transform: translateY(-4px);
+      border-color: color-mix(in srgb, var(--accent) 48%, transparent);
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.42);
+      background: color-mix(in srgb, var(--accent) 6%, var(--card-bg));
+    }
+    .tile:hover::before {
+      opacity: 0.9;
+      transform: scale(1.15);
+    }
+    .tile.emph {
+      background: color-mix(in srgb, var(--accent) 14%, transparent);
+      border-color: color-mix(in srgb, var(--accent) 22%, transparent);
     }
     .tile.big { grid-column: span 2; grid-row: span 2; }
     .tile.wide { grid-column: span 2; }
     .tile-num {
       font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.08em;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
       color: var(--text-tertiary);
     }
-    .tile-emoji {
+    .tile-mark {
       position: absolute;
-      top: 16px;
-      right: 18px;
-      font-size: 28px;
-      filter: drop-shadow(0 0 10px color-mix(in srgb, var(--accent) 70%, transparent));
+      top: 18px;
+      right: 20px;
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 14%, transparent);
+      border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
       line-height: 1;
     }
-    .tile-spacer { flex: 1; min-height: 12px; }
+    .tile-spacer { flex: 1; min-height: 16px; }
     .tile-title {
-      font-size: 22px;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      margin-bottom: 10px;
+      font-size: 24px;
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      margin-bottom: 8px;
     }
-    .tile.big .tile-title { font-size: 28px; }
+    .tile.big .tile-title { font-size: 34px; }
     .tile-footer {
       display: flex;
       align-items: center;
@@ -139,34 +237,54 @@
       gap: 12px;
     }
     .tile-sub {
-      font-size: 13px;
+      font-size: 13.5px;
       color: var(--text-secondary);
+      line-height: 1.35;
     }
     .tile-arrow {
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
       color: var(--accent);
-      font-size: 18px;
-      transition: transform 0.22s ease;
+      font-size: 16px;
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent);
+      transition: transform 0.28s var(--ease);
+      flex-shrink: 0;
     }
-    .tile:hover .tile-arrow { transform: translateX(4px); }
+    .tile:hover .tile-arrow { transform: translateX(3px); }
 
     @media (max-width: 720px) {
-      .bento { grid-template-columns: repeat(2, 1fr); }
+      .bento { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 150px; gap: 12px; }
       .tile.big { grid-row: span 1; }
+      .tile.big .tile-title { font-size: 24px; }
+      .tile { padding: 16px; border-radius: 20px; }
+      .hero-clock { font-size: 22px; padding: 10px 14px; }
     }
     @media (max-width: 440px) {
       .bento { grid-template-columns: 1fr; }
       .tile.big, .tile.wide { grid-column: span 1; }
-      .dash-title { font-size: 22px; }
+      .dash-title { font-size: 32px; }
     }
   </style>
+  <link rel="stylesheet" href="css/ui.css?v=1" />
 </head>
 <body data-page-title="Hub">
   <div class="wrap">
-    <h1 class="dash-title">Pages</h1>
+    <header class="hero">
+      <div>
+        <div class="hero-brand">JGDash</div>
+        <h1 class="dash-title">Overview</h1>
+        <p class="hero-sub">Your spaces, tuned for focus — open a hub and keep moving.</p>
+      </div>
+      <div class="hero-clock" id="hubClock" aria-live="polite">—</div>
+    </header>
     <div class="bento">
-      <a class="tile big" style="--accent:#6BE3A4" href="main.html">
-        <span class="tile-num">·01</span>
-        <span class="tile-emoji">🏠</span>
+      <a class="tile big emph" style="--accent:#6EE7B7" href="main.html">
+        <span class="tile-num">01</span>
+        <span class="tile-mark">M</span>
         <span class="tile-spacer"></span>
         <span class="tile-title">Main</span>
         <span class="tile-footer">
@@ -174,9 +292,9 @@
           <span class="tile-arrow">→</span>
         </span>
       </a>
-      <a class="tile wide" style="--accent:#7DD3FC" href="training.html">
-        <span class="tile-num">·02</span>
-        <span class="tile-emoji">⚽</span>
+      <a class="tile wide" style="--accent:#67E8F9" href="training.html">
+        <span class="tile-num">02</span>
+        <span class="tile-mark">T</span>
         <span class="tile-spacer"></span>
         <span class="tile-title">Training</span>
         <span class="tile-footer">
@@ -185,18 +303,18 @@
         </span>
       </a>
       <a class="tile" style="--accent:#A7F3D0" href="health.html">
-        <span class="tile-num">·03</span>
-        <span class="tile-emoji">💊</span>
+        <span class="tile-num">03</span>
+        <span class="tile-mark">H</span>
         <span class="tile-spacer"></span>
         <span class="tile-title">Health</span>
         <span class="tile-footer">
-          <span class="tile-sub">Supplements &amp; vitals</span>
+          <span class="tile-sub">Vitals &amp; habits</span>
           <span class="tile-arrow">→</span>
         </span>
       </a>
-      <a class="tile" style="--accent:#A78BFA" href="media.html">
-        <span class="tile-num">·04</span>
-        <span class="tile-emoji">👨‍💻</span>
+      <a class="tile" style="--accent:#67E8F9" href="media.html">
+        <span class="tile-num">04</span>
+        <span class="tile-mark">◆</span>
         <span class="tile-spacer"></span>
         <span class="tile-title">Media</span>
         <span class="tile-footer">
@@ -204,9 +322,9 @@
           <span class="tile-arrow">→</span>
         </span>
       </a>
-      <a class="tile wide" style="--accent:#F2C063" href="finance.html">
-        <span class="tile-num">·05</span>
-        <span class="tile-emoji">📊</span>
+      <a class="tile wide" style="--accent:#FBBF24" href="finance.html">
+        <span class="tile-num">05</span>
+        <span class="tile-mark">$</span>
         <span class="tile-spacer"></span>
         <span class="tile-title">Finance</span>
         <span class="tile-footer">
@@ -214,9 +332,9 @@
           <span class="tile-arrow">→</span>
         </span>
       </a>
-      <a class="tile wide" style="--accent:#C4B5FD" href="projects.html">
-        <span class="tile-num">·06</span>
-        <span class="tile-emoji">📁</span>
+      <a class="tile wide" style="--accent:#FB923C" href="projects.html">
+        <span class="tile-num">06</span>
+        <span class="tile-mark">P</span>
         <span class="tile-spacer"></span>
         <span class="tile-title">Projects</span>
         <span class="tile-footer">
@@ -226,5 +344,16 @@
       </a>
     </div>
   </div>
+  <script>
+    (function () {
+      var el = document.getElementById('hubClock');
+      function tick() {
+        var now = new Date();
+        el.textContent = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      }
+      tick();
+      setInterval(tick, 15000);
+    })();
+  </script>
 </body>
 </html>

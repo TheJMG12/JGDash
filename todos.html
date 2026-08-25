@@ -12,40 +12,42 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/config.js?v=4"></script>
   <script src="js/supabase-client.js"></script>
-  <script src="js/lock.js?v=2"></script>
+  <script src="js/lock.js?v=3"></script>
   <script src="js/goals-rollover.js?v=1"></script>
-  <script src="js/todo-schedule.js?v=2"></script>
+  <script src="js/todo-schedule.js?v=3"></script>
   <script src="js/sync.js?v=21"></script>
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
   <script src="js/theme.js?v=3"></script>
-  <script src="js/topbar.js?v=13"></script>
-  <style>
+  <script src="js/topbar.js?v=14"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<style>
     :root {
-      --text-primary: #FAFAFA;
-      --text-secondary: #B8B6B0;
-      --text-tertiary: #76746E;
-      --success: #6BE3A4;
+      --text-primary: #F4F4F5;
+      --text-secondary: #A1A1AA;
+      --text-tertiary: #71717A;
+      --success: #6EE7B7;
       --warning: #F2C063;
       --danger: #FF6B6B;
-      --bg: #050506;
-      --card-bg: rgba(255, 255, 255, 0.04);
-      --accent: #6BE3A4;
-      --border: rgba(255, 255, 255, 0.08);
+      --bg: #09090B;
+      --card-bg: rgba(255, 255, 255, 0.035);
+      --accent: #6EE7B7;
+      --border: rgba(255, 255, 255, 0.06);
       --input-bg: rgba(255, 255, 255, 0.05);
       --sidebar-w: 220px;
-      --sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      --sans: "Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
     }
     [data-theme="light"] {
       --text-primary: #1A1917;
       --text-secondary: #5C5A54;
       --text-tertiary: #8A8780;
-      --bg: #F4F3F0;
+      --bg: #F4F4F5;
       --card-bg: rgba(255, 255, 255, 0.72);
       --border: rgba(0, 0, 0, 0.1);
       --input-bg: rgba(255, 255, 255, 0.9);
-      --success: #1F9D62;
-      --accent: #1F9D62;
+      --success: #059669;
+      --accent: #059669;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; }
@@ -87,7 +89,7 @@
       align-items: center;
       gap: 8px;
       padding: 8px 10px;
-      border-radius: 10px;
+      border-radius: 12px;
       font-size: 13px;
       color: var(--text-secondary);
       text-decoration: none;
@@ -134,7 +136,7 @@
       z-index: 20;
     }
     .hamburger {
-      width: 36px; height: 36px; border-radius: 10px;
+      width: 36px; height: 36px; border-radius: 12px;
       border: 1px solid var(--border);
       color: var(--text-primary);
       font-size: 18px;
@@ -153,7 +155,7 @@
       background: var(--input-bg);
       border: 1px solid var(--border);
       color: var(--text-primary);
-      border-radius: 10px;
+      border-radius: 12px;
       padding: 8px 12px;
       font-size: 13px;
       font-family: inherit;
@@ -163,7 +165,7 @@
       border: 1px solid var(--border);
       background: rgba(255,255,255,0.04);
       color: var(--text-primary);
-      border-radius: 10px;
+      border-radius: 12px;
       padding: 8px 12px;
       font-size: 13px;
       font-weight: 600;
@@ -191,7 +193,7 @@
     .day-card {
       background: var(--card-bg);
       border: 1px solid var(--border);
-      border-radius: 14px;
+      border-radius: 16px;
       padding: 14px 16px;
       margin-bottom: 12px;
     }
@@ -215,7 +217,7 @@
       align-items: center;
       gap: 10px;
       padding: 8px 6px;
-      border-radius: 10px;
+      border-radius: 12px;
     }
     .todo-row:hover { background: rgba(255,255,255,0.03); }
     .todo-row.is-done .todo-text {
@@ -278,6 +280,7 @@
       .search-input { flex: 1; min-width: 0; }
     }
   </style>
+  <link rel="stylesheet" href="css/ui.css?v=1" />
 </head>
 <body data-page-title="To Do List">
 <div class="app" id="appRoot">
