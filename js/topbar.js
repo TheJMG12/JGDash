@@ -142,6 +142,9 @@
           '#jgdash-topbar .tb-btn,#jgdash-topbar .tb-hubs-btn{padding:6px 8px;font-size:11px;}' +
         '}' +
         '@media (max-width:860px){' +
+          /* body overflow-x:hidden breaks position:sticky — pin both chrome bars to the viewport */
+          '#jgdash-topbar{position:fixed!important;top:0!important;left:0!important;right:0!important;width:100%!important;}' +
+          'body.jgdash-fixed-topbar{padding-top:var(--jgdash-topbar-height,0px)!important;}' +
           '.mobile-bar{position:fixed!important;left:0;right:0;' +
             'top:var(--jgdash-topbar-height,0px)!important;z-index:150!important;' +
             'background:#09090B!important;backdrop-filter:none;' +
@@ -167,16 +170,17 @@
 
     function syncMobileBarLayout() {
       var bar = document.querySelector('.mobile-bar');
-      var show = false;
-      if (bar) {
-        // match pages that reveal the bar at ≤860px
-        show = window.matchMedia && window.matchMedia('(max-width: 860px)').matches;
-      }
-      document.body.classList.toggle('jgdash-mobile-bar-pad', !!show);
-      if (show && bar) {
+      var mobile = window.matchMedia && window.matchMedia('(max-width: 860px)').matches;
+      var showBar = !!(bar && mobile);
+      // Fixed topbar on mobile (sticky fails with body overflow-x:hidden).
+      document.body.classList.toggle('jgdash-fixed-topbar', !!mobile);
+      document.body.classList.toggle('jgdash-mobile-bar-pad', showBar);
+      if (showBar && bar) {
         // Temporarily ensure measurable height even before page CSS display:flex applies.
         var h = bar.offsetHeight || 57;
         document.documentElement.style.setProperty('--jgdash-mobile-bar-height', h + 'px');
+      } else {
+        document.documentElement.style.removeProperty('--jgdash-mobile-bar-height');
       }
     }
 
