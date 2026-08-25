@@ -335,6 +335,94 @@
       color: var(--text-tertiary);
     }
 
+    /* —— Home stats + tabs (Tasks / Habits) —— */
+    .home-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin: 18px 0 16px;
+    }
+    .home-stat {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: var(--card-bg);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      min-width: 0;
+    }
+    .home-stat-ico {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      font-size: 15px;
+      flex-shrink: 0;
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .home-stat-ico.is-date { background: rgba(251, 113, 133, 0.14); }
+    .home-stat-ico.is-today { background: rgba(107, 227, 164, 0.14); }
+    .home-stat-ico.is-open { background: rgba(167, 139, 250, 0.14); }
+    .home-stat-body { min-width: 0; }
+    .home-stat-value {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .home-stat-label {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-top: 2px;
+      font-weight: 600;
+    }
+
+    .home-tabs {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      margin: 4px 0 18px;
+      width: 100%;
+      max-width: 360px;
+    }
+    .home-tab {
+      flex: 1;
+      appearance: none;
+      border: 0;
+      background: transparent;
+      color: var(--text-secondary);
+      font: inherit;
+      font-size: 13.5px;
+      font-weight: 650;
+      padding: 10px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.18s ease, color 0.18s ease;
+    }
+    .home-tab.is-on {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-primary);
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+    .home-panel[hidden] { display: none !important; }
+    .home-panel .section-title { margin-top: 0; }
+
+    @media (max-width: 560px) {
+      .home-stats { gap: 8px; }
+      .home-stat { padding: 10px 10px; flex-direction: column; gap: 6px; }
+      .home-stat-value { font-size: 16px; }
+      .home-tabs { max-width: none; }
+    }
+
     /* —— Section / Cards —— */
     .section { margin-top: 8px; }
 
@@ -803,7 +891,7 @@
     .polish-status.is-error { color: var(--danger); }
 
     /* —— Habit Tracker —— */
-    .ht-section { margin-top: 28px; }
+    .ht-section { margin-top: 0; }
 
     .ht-header {
       display: flex;
@@ -1170,7 +1258,7 @@
 </head>
 <body>
   <div class="wrap">
-    <h1 class="dash-title">Welcome Justin</h1>
+    <h1 class="dash-title">Home</h1>
 
     <div class="ticker-row">
       <div class="goal-ticker" id="goalTicker" aria-live="polite" aria-atomic="true">
@@ -1214,6 +1302,36 @@
       </div>
     </div>
 
+    <div class="home-stats" aria-label="Today at a glance">
+      <div class="home-stat">
+        <div class="home-stat-ico is-date" aria-hidden="true">📅</div>
+        <div class="home-stat-body">
+          <div class="home-stat-value" id="homeStatDate">—</div>
+          <div class="home-stat-label" id="homeStatWeekday">—</div>
+        </div>
+      </div>
+      <div class="home-stat">
+        <div class="home-stat-ico is-today" aria-hidden="true">✓</div>
+        <div class="home-stat-body">
+          <div class="home-stat-value" id="homeStatToday">0</div>
+          <div class="home-stat-label">Today</div>
+        </div>
+      </div>
+      <div class="home-stat">
+        <div class="home-stat-ico is-open" aria-hidden="true">○</div>
+        <div class="home-stat-body">
+          <div class="home-stat-value" id="homeStatOpen">0</div>
+          <div class="home-stat-label">Open</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="home-tabs" role="tablist" aria-label="Main views">
+      <button type="button" class="home-tab is-on" role="tab" id="homeTabTasks" aria-selected="true" aria-controls="homePanelTasks" data-home-tab="tasks">Tasks</button>
+      <button type="button" class="home-tab" role="tab" id="homeTabHabits" aria-selected="false" aria-controls="homePanelHabits" data-home-tab="habits">Habits</button>
+    </div>
+
+    <div class="home-panel" id="homePanelTasks" role="tabpanel" aria-labelledby="homeTabTasks">
     <div class="section">
       <div class="section-title">To Do List</div>
 
@@ -1271,8 +1389,9 @@
         </div>
       </div>
     </div>
+    </div>
 
-    <!-- Habit Tracker -->
+    <div class="home-panel" id="homePanelHabits" role="tabpanel" aria-labelledby="homeTabHabits" hidden>
     <div class="section ht-section" id="habitTrackerSection">
       <div class="ht-header">
         <div class="ht-header-text">
@@ -1287,6 +1406,7 @@
         <p>Build streaks with a few daily anchors — start with one.</p>
         <button type="button" class="ht-add-btn" id="habitEmptyAddBtn">Add your first habit</button>
       </div>
+    </div>
     </div>
   </div>
 
@@ -1748,6 +1868,64 @@
       const hasUnchecked = goals.some(function (g) { return !g.done; });
       if (hasUnchecked) pushBtn.classList.add('is-visible');
       else pushBtn.classList.remove('is-visible');
+
+      updateHomeStats();
+    }
+
+    function updateHomeStats() {
+      const dateEl = document.getElementById('homeStatDate');
+      const weekEl = document.getElementById('homeStatWeekday');
+      const todayEl = document.getElementById('homeStatToday');
+      const openEl = document.getElementById('homeStatOpen');
+      if (!dateEl || !todayEl || !openEl) return;
+
+      const ymd = getActiveDateString();
+      const d = (window.JGDash && JGDash.todoSchedule)
+        ? JGDash.todoSchedule.parseDateString(ymd)
+        : (function () {
+            const p = String(ymd).split('-').map(Number);
+            return new Date(p[0], p[1] - 1, p[2]);
+          })();
+      dateEl.textContent = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      if (weekEl) weekEl.textContent = d.toLocaleDateString(undefined, { weekday: 'long' });
+
+      const todayGoals = getGoals(todayKey());
+      const openToday = todayGoals.filter(function (g) { return !g.done; }).length;
+      // "Open in total" = incomplete today + planned tomorrow (still ahead of you).
+      const tomorrowGoals = getGoals(tomorrowKey());
+      const openTotal = openToday + tomorrowGoals.length;
+
+      todayEl.textContent = String(todayGoals.length);
+      openEl.textContent = String(openTotal);
+    }
+
+    function setHomeTab(tab) {
+      const tasks = tab !== 'habits';
+      const tabTasks = document.getElementById('homeTabTasks');
+      const tabHabits = document.getElementById('homeTabHabits');
+      const panelTasks = document.getElementById('homePanelTasks');
+      const panelHabits = document.getElementById('homePanelHabits');
+      if (!tabTasks || !panelTasks || !panelHabits) return;
+
+      tabTasks.classList.toggle('is-on', tasks);
+      tabHabits.classList.toggle('is-on', !tasks);
+      tabTasks.setAttribute('aria-selected', tasks ? 'true' : 'false');
+      tabHabits.setAttribute('aria-selected', tasks ? 'false' : 'true');
+      panelTasks.hidden = !tasks;
+      panelHabits.hidden = tasks;
+      try { localStorage.setItem('jg_main_home_tab', tasks ? 'tasks' : 'habits'); } catch (e) { /* ignore */ }
+      if (!tasks && typeof renderHabits === 'function') renderHabits();
+    }
+
+    function initHomeTabs() {
+      document.querySelectorAll('[data-home-tab]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          setHomeTab(btn.getAttribute('data-home-tab'));
+        });
+      });
+      var saved = 'tasks';
+      try { saved = localStorage.getItem('jg_main_home_tab') || 'tasks'; } catch (e) { /* ignore */ }
+      setHomeTab(saved === 'habits' ? 'habits' : 'tasks');
     }
 
     function renderStreak() {
@@ -1765,6 +1943,7 @@
       document.getElementById('gmTomorrowCount').textContent = n + ' planned';
       document.getElementById('tomorrowLabel').textContent =
         'Plan tomorrow — {' + formatDate(getTomorrowDateString()) + '}';
+      updateHomeStats();
     }
 
     function makeInlineEdit(textEl, key, idx) {
@@ -2486,6 +2665,8 @@
     updateDayBar();
     setInterval(updateDayBar, 60 * 1000);
     initHabits();
+    initHomeTabs();
+    updateHomeStats();
 
     // When quiet auto-sync merges goals/habits, refresh Main UI without a full reload.
     window.addEventListener('jg-sync-complete', function (e) {
