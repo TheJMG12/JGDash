@@ -33,13 +33,13 @@ EOF
 
 clone_or_pull() {
   if [[ -d "$CACHE/.git" ]]; then
-    echo "Updating $CACHE"
-    git -C "$CACHE" pull --ff-only
+    echo "Updating $CACHE" >&2
+    git -C "$CACHE" pull --ff-only >&2
   elif [[ -e "$CACHE" ]]; then
     echo "error: $CACHE exists but is not a git repo" >&2
     exit 1
   else
-    echo "Cloning into $CACHE"
+    echo "Cloning into $CACHE" >&2
     git clone "$REPO_URL" "$CACHE"
   fi
 }
