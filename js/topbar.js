@@ -144,9 +144,9 @@
         '@media (max-width:860px){' +
           '.mobile-bar{position:fixed!important;left:0;right:0;' +
             'top:var(--jgdash-topbar-height,0px)!important;z-index:150!important;' +
-            'background:rgba(9,9,11,0.92)!important;backdrop-filter:blur(18px);' +
+            'background:#09090B!important;backdrop-filter:none;' +
             'display:flex!important;}' +
-          '[data-theme="light"] .mobile-bar{background:rgba(244,244,245,0.94)!important;}' +
+          '[data-theme="light"] .mobile-bar{background:#F4F4F5!important;}' +
           'body.jgdash-mobile-bar-pad .main{' +
             'padding-top:var(--jgdash-mobile-bar-height,57px)!important;}' +
           '.sidebar{top:calc(var(--jgdash-topbar-height,0px) + var(--jgdash-mobile-bar-height,57px))!important;' +

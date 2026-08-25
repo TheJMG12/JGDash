@@ -138,9 +138,14 @@ body::after {
 }
 
 .mobile-bar {
-  background: rgba(9, 9, 11, 0.88) !important;
+  background: rgba(9, 9, 11, 0.96) !important;
   border-bottom-color: var(--border) !important;
   backdrop-filter: blur(18px) saturate(1.2) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(1.2) !important;
+}
+
+[data-theme="light"] .mobile-bar {
+  background: rgba(244, 244, 245, 0.98) !important;
 }
 
 .hamburger {
@@ -424,6 +429,37 @@ tr:hover td {
   #mainScroll,
   .content {
     padding: 14px 14px 32px !important;
+  }
+
+  /* Mobile bar already shows the page name — hide the duplicate hero title to stop ghosting. */
+  .page-header .page-title,
+  .page-title-block .page-title,
+  .main-header .page-title,
+  .page-header h1.page-title {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+  }
+
+  .page-title-block .page-sub,
+  .page-header .page-sub {
+    margin-top: 0 !important;
+  }
+
+  .mobile-bar {
+    background: #09090B !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  [data-theme="light"] .mobile-bar {
+    background: #F4F4F5 !important;
   }
 }
 
