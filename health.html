@@ -303,9 +303,14 @@
     .meal-day-picker {
       display: none;
       gap: 6px;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
       margin-bottom: 12px;
+      padding-bottom: 2px;
+      scrollbar-width: none;
     }
+    .meal-day-picker::-webkit-scrollbar { display: none; }
     .meal-day-picker .meal-day-chip {
       appearance: none;
       border: 1px solid var(--border);
@@ -317,6 +322,7 @@
       padding: 8px 12px;
       border-radius: 999px;
       cursor: pointer;
+      flex: 0 0 auto;
     }
     .meal-day-picker .meal-day-chip.is-on {
       color: var(--accent);
@@ -581,7 +587,9 @@
       #sec-therapy > .section-head .panel-tabs { display: none !important; }
       .page-header .toolbar #weekSelect,
       .page-header .toolbar #searchInput { display: none !important; }
-      #todayMetrics.metric-grid { grid-template-columns: repeat(2, 1fr); }
+      #todayMetrics.metric-grid { grid-template-columns: 1fr; }
+      #todayMetrics.metric-grid:has(> :nth-child(2)) { grid-template-columns: repeat(2, 1fr); }
+      #todayMetrics.metric-grid:has(> :nth-child(3)) { grid-template-columns: repeat(3, 1fr); }
     }
     @media (max-width: 560px) {
       .metric-grid { grid-template-columns: repeat(2, 1fr); }
@@ -1345,24 +1353,17 @@
 
     function renderTodayMetrics() {
       var m = WHOOP_METRICS;
-      // Overview stays glanceable — full WHOOP detail lives in #sec-whoop.
-      var items = [
-        { label: 'Water', value: (waterFilled * 0.5).toFixed(1) + ' L', sub: 'of 3.0 L goal', kind: 'manual', ph: false, zone: waterFilled >= 6 ? 'g' : waterFilled > 0 ? 'y' : 'r' },
-        { label: 'Mood / energy', value: 'Good', sub: 'Check-in', kind: 'manual', ph: false, zone: 'g' }
-      ];
+      // Overview is WHOOP glance only — water/mood live in the cards below (no duplicate tiles).
+      var items = [];
 
       if (WHOOP_STATE === 'loading') {
         items = [
           { label: 'Recovery', value: '…', sub: 'WHOOP', kind: 'whoop', ph: true },
           { label: 'Sleep', value: '…', sub: 'WHOOP', kind: 'whoop', ph: true },
-          { label: 'Water', value: (waterFilled * 0.5).toFixed(1) + ' L', sub: 'of 3.0 L goal', kind: 'manual', ph: false, zone: waterFilled >= 6 ? 'g' : waterFilled > 0 ? 'y' : 'r' },
-          { label: 'Mood / energy', value: 'Good', sub: 'Check-in', kind: 'manual', ph: false, zone: 'g' }
+          { label: 'Day strain', value: '…', sub: 'WHOOP', kind: 'whoop', ph: true }
         ];
-        $('todayMetrics').innerHTML = items.map(function (it) {
-          if (it.kind === 'whoop') {
-            return '<div class="metric"><div class="metric-label">Loading</div><div class="skel lg"></div><div class="skel" style="margin-top:8px;width:40%"></div></div>';
-          }
-          return '<div class="metric"><div class="metric-label">' + it.label + '</div><div class="metric-value">' + it.value + '</div><div class="metric-sub">' + it.sub + '</div></div>';
+        $('todayMetrics').innerHTML = items.map(function () {
+          return '<div class="metric"><div class="metric-label">Loading</div><div class="skel lg"></div><div class="skel" style="margin-top:8px;width:40%"></div></div>';
         }).join('');
         return;
       }
@@ -1371,19 +1372,17 @@
         items = [
           { label: 'Recovery', value: m.recovery.value, sub: m.recovery.sub, kind: 'whoop', ph: false, zone: m.recovery.zone },
           { label: 'Sleep', value: m.sleep.value, sub: m.sleep.sub, kind: 'whoop', ph: false, zone: m.sleep.zone },
-          { label: 'Day strain', value: m.strain.value, sub: m.strain.sub, kind: 'whoop', ph: false, zone: m.strain.zone },
-          { label: 'Water', value: (waterFilled * 0.5).toFixed(1) + ' L', sub: 'of 3.0 L goal', kind: 'manual', ph: false, zone: waterFilled >= 6 ? 'g' : waterFilled > 0 ? 'y' : 'r' },
-          { label: 'Mood / energy', value: 'Good', sub: 'Check-in', kind: 'manual', ph: false, zone: 'g' }
+          { label: 'Day strain', value: m.strain.value, sub: m.strain.sub, kind: 'whoop', ph: false, zone: m.strain.zone }
         ];
-      } else if (WHOOP_STATE === 'disconnected' || WHOOP_STATE === 'error') {
-        items.unshift({
+      } else {
+        items = [{
           label: 'WHOOP',
           value: WHOOP_STATE === 'error' ? 'Sync issue' : 'Not connected',
           sub: 'Open WHOOP section →',
           kind: 'whoop',
           ph: true,
           zone: ''
-        });
+        }];
       }
 
       $('todayMetrics').innerHTML = items.map(function (it) {
@@ -1391,7 +1390,7 @@
           (it.zone === 'g' ? ' zone-g' : it.zone === 'y' ? ' zone-y' : it.zone === 'r' ? ' zone-r' : '');
         var click = it.kind === 'whoop' ? ' data-jump-whoop="1" style="cursor:pointer"' : '';
         return '<div class="' + cls + '"' + click + '>' +
-          '<div class="metric-label">' + it.label + (it.kind === 'whoop' ? '' : '') + '</div>' +
+          '<div class="metric-label">' + it.label + '</div>' +
           '<div class="metric-value' + (it.ph ? ' placeholder' : '') + '">' + it.value + '</div>' +
           '<div class="metric-sub">' + it.sub + '</div></div>';
       }).join('');
