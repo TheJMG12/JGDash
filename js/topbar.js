@@ -168,18 +168,48 @@
       syncMobileBarLayout();
     }
 
+    function ensureMobileBarPlaceholder(bar) {
+      if (bar._jgPlaceholder && bar._jgPlaceholder.isConnected) return bar._jgPlaceholder;
+      var ph = document.createElement('div');
+      ph.className = 'jg-mobile-bar-slot';
+      ph.setAttribute('aria-hidden', 'true');
+      ph.style.cssText = 'display:none;';
+      if (bar.parentNode) bar.parentNode.insertBefore(ph, bar);
+      bar._jgPlaceholder = ph;
+      return ph;
+    }
+
+    function parkMobileBarOnBody(bar) {
+      // Escape transformed/animated ancestors so position:fixed tracks the viewport.
+      ensureMobileBarPlaceholder(bar);
+      if (bar.parentElement !== document.body) {
+        var topbar = document.getElementById('jgdash-topbar');
+        if (topbar && topbar.nextSibling) document.body.insertBefore(bar, topbar.nextSibling);
+        else document.body.appendChild(bar);
+      }
+    }
+
+    function restoreMobileBar(bar) {
+      var ph = bar._jgPlaceholder;
+      if (ph && ph.parentNode && bar.parentElement === document.body) {
+        ph.parentNode.insertBefore(bar, ph);
+      }
+    }
+
     function syncMobileBarLayout() {
-      var bar = document.querySelector('.mobile-bar');
+      var bar = document.body.querySelector(':scope > .mobile-bar') || document.querySelector('.mobile-bar');
       var mobile = window.matchMedia && window.matchMedia('(max-width: 860px)').matches;
       var showBar = !!(bar && mobile);
       // Fixed topbar on mobile (sticky fails with body overflow-x:hidden).
       document.body.classList.toggle('jgdash-fixed-topbar', !!mobile);
       document.body.classList.toggle('jgdash-mobile-bar-pad', showBar);
       if (showBar && bar) {
+        parkMobileBarOnBody(bar);
         // Temporarily ensure measurable height even before page CSS display:flex applies.
         var h = bar.offsetHeight || 57;
         document.documentElement.style.setProperty('--jgdash-mobile-bar-height', h + 'px');
       } else {
+        if (bar) restoreMobileBar(bar);
         document.documentElement.style.removeProperty('--jgdash-mobile-bar-height');
       }
     }

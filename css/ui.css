@@ -372,9 +372,16 @@ tr:hover td {
 }
 
 /* —— Motion —— */
+/* Opacity-only on .main — a lingering transform creates a containing block
+   that breaks position:fixed for the mobile hamburger bar. */
 @keyframes ui-fade-up {
   from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes ui-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes ui-soft-pulse {
@@ -382,7 +389,11 @@ tr:hover td {
   50% { opacity: 0.72; }
 }
 
-.app > .main,
+/* Do not put transform animations on .app > .main — fixed .mobile-bar lives inside it. */
+.app > .main {
+  animation: ui-fade-in 0.35s var(--ease-out) both;
+}
+
 .wrap,
 .main-scroll,
 #mainScroll {
