@@ -149,8 +149,18 @@
     return { https: https, webcal: webcal };
   }
 
+  function formatPickLabel(ymd) {
+    if (!ymd) return 'Pick day';
+    try {
+      var d = parseDateString(ymd);
+      return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    } catch (e) {
+      return ymd;
+    }
+  }
+
   /**
-   * Mount a compact day + time strip.
+   * Mount a compact day + time strip (2026 pill picker).
    * opts: { root, defaultDay: 'today'|'tomorrow'|ymd, onChange }
    * Returns { getDayYmd, getTime, reset }
    */
@@ -165,26 +175,37 @@
 
     root.innerHTML =
       '<div class="sched-strip" role="group" aria-label="Schedule">' +
-        '<div class="sched-row">' +
-          '<span class="sched-label">Day</span>' +
-          '<button type="button" class="sched-chip" data-day="today">Today</button>' +
-          '<button type="button" class="sched-chip" data-day="tomorrow">Tomorrow</button>' +
-          '<button type="button" class="sched-chip" data-day="pick">Pick…</button>' +
-          '<input type="date" class="sched-date" hidden />' +
+        '<div class="sched-block">' +
+          '<span class="sched-label">When</span>' +
+          '<div class="sched-pills" role="toolbar" aria-label="Day">' +
+            '<button type="button" class="sched-chip" data-day="today">Today</button>' +
+            '<button type="button" class="sched-chip" data-day="tomorrow">Tomorrow</button>' +
+            '<button type="button" class="sched-chip sched-chip-pick" data-day="pick">' +
+              '<span class="sched-pick-ico" aria-hidden="true">📅</span>' +
+              '<span class="sched-pick-label">Pick day</span>' +
+            '</button>' +
+            '<input type="date" class="sched-date" hidden />' +
+          '</div>' +
         '</div>' +
-        '<div class="sched-row">' +
+        '<div class="sched-block">' +
           '<span class="sched-label">Time</span>' +
-          '<button type="button" class="sched-chip" data-time="">None</button>' +
-          '<button type="button" class="sched-chip" data-time="09:00">9am</button>' +
-          '<button type="button" class="sched-chip" data-time="12:00">Noon</button>' +
-          '<button type="button" class="sched-chip" data-time="15:00">3pm</button>' +
-          '<button type="button" class="sched-chip" data-time="18:00">6pm</button>' +
-          '<input type="time" class="sched-time" aria-label="Custom time" />' +
+          '<div class="sched-pills" role="toolbar" aria-label="Time">' +
+            '<button type="button" class="sched-chip" data-time="">None</button>' +
+            '<button type="button" class="sched-chip" data-time="09:00">9am</button>' +
+            '<button type="button" class="sched-chip" data-time="12:00">Noon</button>' +
+            '<button type="button" class="sched-chip" data-time="15:00">3pm</button>' +
+            '<button type="button" class="sched-chip" data-time="18:00">6pm</button>' +
+            '<label class="sched-time-wrap">' +
+              '<span class="sched-time-hint">Custom</span>' +
+              '<input type="time" class="sched-time" aria-label="Custom time" />' +
+            '</label>' +
+          '</div>' +
         '</div>' +
       '</div>';
 
     var dateInput = root.querySelector('.sched-date');
     var timeInput = root.querySelector('.sched-time');
+    var pickLabel = root.querySelector('.sched-pick-label');
 
     function paint() {
       root.querySelectorAll('[data-day]').forEach(function (btn) {
@@ -195,9 +216,16 @@
       root.querySelectorAll('[data-time]').forEach(function (btn) {
         btn.classList.toggle('is-on', (btn.getAttribute('data-time') || '') === timeVal);
       });
-      dateInput.hidden = dayMode !== 'pick';
-      if (dayMode === 'pick' && customYmd) dateInput.value = customYmd;
+      dateInput.hidden = true;
+      if (dayMode === 'pick' && customYmd) {
+        dateInput.value = customYmd;
+        pickLabel.textContent = formatPickLabel(customYmd);
+      } else {
+        pickLabel.textContent = 'Pick day';
+      }
       timeInput.value = timeVal || '';
+      var preset = { '': 1, '09:00': 1, '12:00': 1, '15:00': 1, '18:00': 1 };
+      root.querySelector('.sched-time-wrap').classList.toggle('is-on', !!timeVal && !preset[timeVal]);
     }
 
     function emit() {
@@ -212,9 +240,9 @@
         var d = dayBtn.getAttribute('data-day');
         if (d === 'pick') {
           dayMode = 'pick';
-          dateInput.hidden = false;
           if (!customYmd) customYmd = addDaysYmd(active, 2);
           dateInput.value = customYmd;
+          dateInput.hidden = false;
           try { dateInput.showPicker(); } catch (err) { dateInput.focus(); }
         } else {
           dayMode = d;
@@ -266,20 +294,29 @@
   }
 
   var SCHED_CSS =
-    '.sched-strip{display:flex;flex-direction:column;gap:8px;margin:8px 0 4px;width:100%}' +
-    '.sched-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px}' +
-    '.sched-label{font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-tertiary);min-width:36px}' +
-    '.sched-chip{appearance:none;border:1px solid var(--border);background:var(--input-bg);color:var(--text-secondary);font-size:12px;font-weight:600;padding:6px 10px;border-radius:999px;cursor:pointer;line-height:1}' +
-    '.sched-chip.is-on{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 45%,transparent);background:color-mix(in srgb,var(--accent) 14%,transparent)}' +
-    '.sched-date,.sched-time{border:1px solid var(--border);background:var(--input-bg);color:var(--text-primary);border-radius:10px;padding:5px 8px;font-size:12px}' +
-    '.sched-time{max-width:118px}' +
-    '.cal-sub-card{margin:14px 0 18px;padding:14px 16px;border-radius:14px;border:1px solid var(--border);background:var(--card-bg)}' +
-    '.cal-sub-card h3{font-size:14px;font-weight:700;margin:0 0 6px;color:var(--text-primary)}' +
-    '.cal-sub-card p{font-size:12px;color:var(--text-secondary);line-height:1.45;margin:0 0 10px}' +
+    '.sched-strip{display:flex;flex-direction:column;gap:12px;margin:10px 0 6px;width:100%;padding:12px 14px;border-radius:18px;border:1px solid var(--border);background:color-mix(in srgb,var(--card-bg) 80%,transparent);backdrop-filter:blur(16px)}' +
+    '.sched-block{display:flex;flex-direction:column;gap:8px}' +
+    '.sched-label{font-size:10px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-tertiary)}' +
+    '.sched-pills{display:flex;flex-wrap:wrap;align-items:center;gap:8px}' +
+    '.sched-chip{appearance:none;border:1px solid var(--border);background:var(--input-bg);color:var(--text-secondary);font:inherit;font-size:12.5px;font-weight:600;padding:8px 14px;border-radius:999px;cursor:pointer;line-height:1.1;transition:background .18s ease,border-color .18s ease,color .18s ease,transform .18s ease}' +
+    '.sched-chip:hover{color:var(--text-primary);border-color:var(--border-strong,rgba(255,255,255,.12));transform:translateY(-1px)}' +
+    '.sched-chip.is-on{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 48%,transparent);background:color-mix(in srgb,var(--accent) 16%,transparent);box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 18%,transparent)}' +
+    '.sched-chip-pick{display:inline-flex;align-items:center;gap:6px;padding-left:12px;padding-right:14px}' +
+    '.sched-pick-ico{font-size:12px;opacity:.85}' +
+    '.sched-date{position:absolute;opacity:0;pointer-events:none;width:0;height:0}' +
+    '.sched-time-wrap{display:inline-flex;align-items:center;gap:8px;padding:4px 6px 4px 12px;border-radius:999px;border:1px solid var(--border);background:var(--input-bg);transition:border-color .18s ease,background .18s ease}' +
+    '.sched-time-wrap.is-on{border-color:color-mix(in srgb,var(--accent) 48%,transparent);background:color-mix(in srgb,var(--accent) 16%,transparent)}' +
+    '.sched-time-hint{font-size:11px;font-weight:600;color:var(--text-tertiary);letter-spacing:.04em;text-transform:uppercase}' +
+    '.sched-time-wrap.is-on .sched-time-hint{color:var(--accent)}' +
+    '.sched-time{border:0;background:transparent;color:var(--text-primary);border-radius:999px;padding:4px 8px;font:inherit;font-size:12.5px;font-weight:600;max-width:118px;color-scheme:dark}' +
+    '[data-theme="light"] .sched-time{color-scheme:light}' +
+    '.cal-sub-card{margin:14px 0 18px;padding:16px 18px;border-radius:18px;border:1px solid var(--border);background:var(--card-bg)}' +
+    '.cal-sub-card h3{font-size:14px;font-weight:600;margin:0 0 6px;color:var(--text-primary);letter-spacing:-.02em}' +
+    '.cal-sub-card p{font-size:12.5px;color:var(--text-secondary);line-height:1.45;margin:0 0 10px}' +
     '.cal-sub-actions{display:flex;flex-wrap:wrap;gap:8px}' +
     '.cal-sub-actions .btn{font-size:12px}' +
-    '.cal-sub-link{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;word-break:break-all;color:var(--text-tertiary);margin-top:8px}' +
-    '.todo-time-badge{margin-left:6px;font-size:11px;font-weight:650;color:var(--accent);white-space:nowrap}';
+    '.cal-sub-link{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;word-break:break-all;color:var(--text-tertiary);margin-top:8px}' +
+    '.todo-time-badge{display:inline-flex;align-items:center;margin-left:8px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent);border:1px solid color-mix(in srgb,var(--accent) 28%,transparent);white-space:nowrap}';
 
   function injectSchedCss() {
     if (document.getElementById('jgdash-sched-css')) return;

@@ -12,45 +12,47 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/config.js?v=4"></script>
   <script src="js/supabase-client.js"></script>
-  <script src="js/lock.js?v=2"></script>
+  <script src="js/lock.js?v=4"></script>
   <script src="js/sync.js?v=21"></script>
   <script src="js/training-blobs.js?v=2"></script>
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
   <script src="js/theme.js?v=3"></script>
-  <script src="js/topbar.js?v=13"></script>
-  <style>
+  <script src="js/topbar.js?v=16"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<style>
 
     :root {
-      --text-primary: #FAFAFA;
-      --text-secondary: #B8B6B0;
-      --text-tertiary: #76746E;
-      --success: #6BE3A4;
+      --text-primary: #F4F4F5;
+      --text-secondary: #A1A1AA;
+      --text-tertiary: #71717A;
+      --success: #6EE7B7;
       --warning: #F2C063;
       --danger: #FF6B6B;
-      --bg: #050506;
-      --card-bg: rgba(255, 255, 255, 0.04);
-      --accent: #6BE3A4;
+      --bg: #09090B;
+      --card-bg: rgba(255, 255, 255, 0.035);
+      --accent: #6EE7B7;
       --fitness: #7DD3FC;
       --soccer: #F2C063;
       --game: #86EFAC;
-      --border: rgba(255, 255, 255, 0.08);
+      --border: rgba(255, 255, 255, 0.06);
       --input-bg: rgba(255, 255, 255, 0.05);
       --sidebar-w: 220px;
-      --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-      --sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      --sans: "Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
     [data-theme="light"] {
       --text-primary: #1A1917;
       --text-secondary: #5C5A54;
       --text-tertiary: #8A8780;
-      --bg: #F4F3F0;
+      --bg: #F4F4F5;
       --card-bg: rgba(255, 255, 255, 0.72);
       --border: rgba(0, 0, 0, 0.1);
       --input-bg: rgba(255, 255, 255, 0.9);
-      --success: #1F9D62;
+      --success: #059669;
       --warning: #C4841A;
       --danger: #D64545;
-      --accent: #1F9D62;
+      --accent: #059669;
       --fitness: #0284C7;
       --soccer: #C4841A;
       --game: #15803D;
@@ -105,7 +107,7 @@
     }
     .nav-link {
       touch-action: manipulation; -webkit-tap-highlight-color: transparent;
-      display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px;
+      display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 12px;
       font-size: 13px; color: var(--text-secondary); text-align: left; width: 100%;
       transition: background .15s, color .15s;
     }
@@ -128,7 +130,7 @@
       backdrop-filter: blur(16px); position: sticky; top: 0; z-index: 20;
     }
     .hamburger {
-      width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border);
+      width: 36px; height: 36px; border-radius: 12px; border: 1px solid var(--border);
       background: var(--input-bg); display: flex; align-items: center; justify-content: center;
       font-size: 16px; color: var(--text-primary);
     }
@@ -141,12 +143,12 @@
     .page-sub { font-size: 12px; color: var(--text-tertiary); margin-top: 4px; max-width: 420px; line-height: 1.4; }
     .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
     .search-input {
-      min-width: 180px; padding: 7px 12px; border-radius: 10px; border: 1px solid var(--border);
+      min-width: 180px; padding: 7px 12px; border-radius: 12px; border: 1px solid var(--border);
       background: var(--input-bg); font-size: 13px; color: var(--text-primary);
     }
     .search-input::placeholder { color: var(--text-tertiary); }
     .btn {
-      display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 10px;
+      display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 12px;
       font-size: 13px; font-weight: 600; border: 1px solid var(--border);
       background: var(--input-bg); color: var(--text-secondary);
       transition: background .15s, border-color .15s, color .15s;
@@ -170,7 +172,7 @@
     }
     .btn.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 35%, transparent); }
     .select, .field input, .field textarea, .field select {
-      padding: 7px 10px; border-radius: 10px; border: 1px solid var(--border);
+      padding: 7px 10px; border-radius: 12px; border: 1px solid var(--border);
       background: var(--input-bg); font-size: 13px; color: var(--text-primary); width: 100%;
     }
     .field input[type="date"],
@@ -191,7 +193,7 @@
     }
     .filters .select { width: auto; min-width: 120px; }
     .card {
-      background: var(--card-bg); border-radius: 16px; padding: 14px;
+      background: var(--card-bg); border-radius: 18px; padding: 14px;
       backdrop-filter: blur(24px) saturate(1.2); -webkit-backdrop-filter: blur(24px) saturate(1.2);
       box-shadow: 0 12px 40px rgba(0,0,0,0.45); border: 1px solid var(--border);
       min-width: 0; max-width: 100%;
@@ -214,7 +216,7 @@
     .badge.warn { color: var(--warning); border-color: color-mix(in srgb, var(--warning) 40%, transparent); }
     .kpi-row { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; margin-bottom: 14px; }
     .kpi {
-      padding: 12px; border-radius: 14px; border: 1px solid var(--border);
+      padding: 12px; border-radius: 16px; border: 1px solid var(--border);
       background: color-mix(in srgb, var(--card-bg) 80%, transparent); min-height: 88px;
       display: flex; flex-direction: column; gap: 4px;
     }
@@ -259,7 +261,7 @@
     .sess-chip.drag-over { outline: 1px dashed var(--accent); }
     .day-col.tmpl-drag-over { outline: 1px dashed var(--fitness); background: color-mix(in srgb, var(--fitness) 8%, var(--input-bg)); }
     .tmpl-chip {
-      padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border);
+      padding: 8px 10px; border-radius: 12px; border: 1px solid var(--border);
       background: var(--input-bg); cursor: grab; text-align: left; width: 100%;
       display: flex; flex-direction: column; gap: 2px;
     }
@@ -322,7 +324,7 @@
     }
     .video-card {
       padding: 0; overflow: hidden; display: flex; flex-direction: column;
-      background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px;
+      background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px;
       box-shadow: none;
     }
     .video-card .media {
@@ -380,7 +382,7 @@
     .video-drop-card { margin-bottom: 12px; padding: 10px; }
     .video-drop-card .dropzone { padding: 14px; }
     .dropzone {
-      border: 1.5px dashed var(--border); border-radius: 14px; padding: 22px; text-align: center;
+      border: 1.5px dashed var(--border); border-radius: 16px; padding: 22px; text-align: center;
       color: var(--text-tertiary); font-size: 13px; background: var(--input-bg);
       transition: border-color .15s, background .15s;
     }
@@ -416,7 +418,7 @@
     .modal-backdrop.open { display: flex; }
     .modal {
       width: 100%; max-width: 640px; max-height: 90vh; overflow-y: auto; padding: 20px;
-      border-radius: 16px; background: #121214; border: 1px solid var(--border);
+      border-radius: 18px; background: #121214; border: 1px solid var(--border);
       box-shadow: 0 24px 60px rgba(0,0,0,0.55);
     }
     [data-theme="light"] .modal { background: #fff; }
@@ -429,7 +431,7 @@
     .modal-actions .spacer { flex: 1; }
     .toast {
       position: fixed; bottom: 20px; right: 20px; z-index: 60; padding: 10px 14px;
-      border-radius: 10px; background: #121214; border: 1px solid var(--border);
+      border-radius: 12px; background: #121214; border: 1px solid var(--border);
       font-size: 13px; color: var(--text-primary); box-shadow: 0 12px 32px rgba(0,0,0,0.4);
       opacity: 0; transform: translateY(8px); transition: opacity .2s, transform .2s; pointer-events: none;
     }
@@ -492,6 +494,7 @@
     }
 
   </style>
+  <link rel="stylesheet" href="css/ui.css?v=4" />
 </head>
 <body data-page-title="Training">
 <div class="app" id="appRoot">
@@ -526,17 +529,19 @@
             <p class="page-sub">Plan sessions, log work, review progress, and improve performance — gym and soccer under one system.</p>
           </div>
           <div class="toolbar">
-            <select class="select" id="rangeSelect" aria-label="Date range">
+            <select class="select toolbar-secondary" id="rangeSelect" aria-label="Date range">
               <option value="week">This week</option>
               <option value="month">This month</option>
               <option value="all">All time</option>
             </select>
             <input type="search" class="search-input" id="searchInput" placeholder="Search workouts, drills, notes…" aria-label="Search training" />
-            <button type="button" class="btn" id="planBtn">Plan Training</button>
+            <button type="button" class="btn toolbar-secondary" id="planBtn">Plan Training</button>
             <button type="button" class="btn primary" id="addSessionBtn">+ Add Session</button>
           </div>
         </div>
 
+        <details class="more-panel" open>
+          <summary class="more-summary">Filters</summary>
         <div class="filters" id="filterRow">
           <select class="select" id="fDomain" aria-label="Domain">
             <option value="all">Domain: All</option>
@@ -577,6 +582,7 @@
           <input class="search-input" id="fTags" placeholder="Tags…" aria-label="Tags filter" style="min-width:110px" />
           <button type="button" class="btn" id="clearFilters">Clear</button>
         </div>
+        </details>
 
         <section class="section" id="sec-overview">
           <div class="section-head">
