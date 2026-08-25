@@ -16,7 +16,7 @@
   <script src="js/sync.js?v=21"></script>
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
   <script src="js/theme.js?v=3"></script>
-  <script src="js/topbar.js?v=15"></script>
+  <script src="js/topbar.js?v=16"></script>
   <script src="js/media-blobs.js?v=1"></script>
   <script src="js/media-store.js?v=6"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -239,7 +239,7 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
 .sidebar-tags-drop .tag-list .count{font-family:var(--mono);font-size:10px;color:var(--text-tertiary)}
 
   </style>
-  <link rel="stylesheet" href="css/ui.css?v=3" />
+  <link rel="stylesheet" href="css/ui.css?v=4" />
 </head>
 <body data-page-title="Media">
 <div class="app">
@@ -303,7 +303,10 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
           <div class="section-head">
             <h2 class="section-title">Bookmark Library</h2>
             <span class="section-sub">Tagged cards · filter from Library tags in the sidebar / hamburger</span>
-            <select class="select" id="filterType" style="width:auto;margin-left:auto">
+            <details class="more-panel" open style="margin-left:auto">
+              <summary class="more-summary">View &amp; filters</summary>
+              <div class="more-panel-body" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+            <select class="select" id="filterType" style="width:auto">
               <option value="all">Type: All</option>
               <option value="article">article</option>
               <option value="video">video</option>
@@ -323,6 +326,8 @@ table.t tr:hover td{background:rgba(255,255,255,0.02)}
               <button type="button" data-view="list" title="List">List</button>
               <button type="button" data-view="table" title="Table">Table</button>
             </div>
+              </div>
+            </details>
           </div>
           <div class="lib-toolbar">
             <span class="section-sub" id="libCountLabel"></span>

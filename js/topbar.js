@@ -361,6 +361,15 @@
     }
   }
 
+  function collapseMorePanelsOnMobile() {
+    try {
+      if (!global.matchMedia || !matchMedia('(max-width: 860px)').matches) return;
+      document.querySelectorAll('details.more-panel[open]').forEach(function (d) {
+        d.open = false;
+      });
+    } catch (e) { /* ignore */ }
+  }
+
   global.JGDash = global.JGDash || {};
   global.JGDash.topbar = { mount: mountTopbar };
 
@@ -368,6 +377,7 @@
     if (!document.body) return;
     var page = document.body.getAttribute('data-page-title');
     if (page !== null) mountTopbar({ title: page || 'JGDash' });
+    collapseMorePanelsOnMobile();
   }
 
   if (document.readyState === 'loading') {

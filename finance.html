@@ -17,7 +17,7 @@
   <script src="js/sync.js?v=21"></script>
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
   <script src="js/theme.js?v=3"></script>
-  <script src="js/topbar.js?v=15"></script>
+  <script src="js/topbar.js?v=16"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <style>
@@ -217,7 +217,7 @@
     }
 
   </style>
-  <link rel="stylesheet" href="css/ui.css?v=3" />
+  <link rel="stylesheet" href="css/ui.css?v=4" />
 </head>
 <body data-page-title="Finance">
 <div class="app">
@@ -257,12 +257,14 @@
               <option value="all">All time</option>
             </select>
             <input type="search" class="search-input" id="searchInput" placeholder="Search purchases, goals, tickers…" aria-label="Search finance" />
-            <button type="button" class="btn invest" id="analyzeBtn">Analyze Stock</button>
-            <button type="button" class="btn" id="addGoalBtn">Add Goal</button>
+            <button type="button" class="btn invest toolbar-secondary" id="analyzeBtn">Analyze Stock</button>
+            <button type="button" class="btn toolbar-secondary" id="addGoalBtn">Add Goal</button>
             <button type="button" class="btn primary" id="addPurchaseBtn">+ Add Purchase</button>
           </div>
         </div>
 
+        <details class="more-panel" open>
+          <summary class="more-summary">Filters</summary>
         <div class="filters">
           <select class="select" id="fAccount" aria-label="Account">
             <option value="all">Account: All</option>
@@ -275,6 +277,7 @@
           <button type="button" class="btn" id="clearFilters">Clear</button>
           <span class="badge" id="marketBadge">Market: sample mode</span>
         </div>
+        </details>
 
         <section class="section" id="sec-overview">
           <div class="section-head">

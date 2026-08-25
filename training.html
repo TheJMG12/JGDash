@@ -17,7 +17,7 @@
   <script src="js/training-blobs.js?v=2"></script>
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
   <script src="js/theme.js?v=3"></script>
-  <script src="js/topbar.js?v=15"></script>
+  <script src="js/topbar.js?v=16"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <style>
@@ -494,7 +494,7 @@
     }
 
   </style>
-  <link rel="stylesheet" href="css/ui.css?v=3" />
+  <link rel="stylesheet" href="css/ui.css?v=4" />
 </head>
 <body data-page-title="Training">
 <div class="app" id="appRoot">
@@ -529,17 +529,19 @@
             <p class="page-sub">Plan sessions, log work, review progress, and improve performance — gym and soccer under one system.</p>
           </div>
           <div class="toolbar">
-            <select class="select" id="rangeSelect" aria-label="Date range">
+            <select class="select toolbar-secondary" id="rangeSelect" aria-label="Date range">
               <option value="week">This week</option>
               <option value="month">This month</option>
               <option value="all">All time</option>
             </select>
             <input type="search" class="search-input" id="searchInput" placeholder="Search workouts, drills, notes…" aria-label="Search training" />
-            <button type="button" class="btn" id="planBtn">Plan Training</button>
+            <button type="button" class="btn toolbar-secondary" id="planBtn">Plan Training</button>
             <button type="button" class="btn primary" id="addSessionBtn">+ Add Session</button>
           </div>
         </div>
 
+        <details class="more-panel" open>
+          <summary class="more-summary">Filters</summary>
         <div class="filters" id="filterRow">
           <select class="select" id="fDomain" aria-label="Domain">
             <option value="all">Domain: All</option>
@@ -580,6 +582,7 @@
           <input class="search-input" id="fTags" placeholder="Tags…" aria-label="Tags filter" style="min-width:110px" />
           <button type="button" class="btn" id="clearFilters">Clear</button>
         </div>
+        </details>
 
         <section class="section" id="sec-overview">
           <div class="section-head">

@@ -534,3 +534,104 @@ tr:hover td {
 .ring-card {
   border-radius: var(--radius-md) !important;
 }
+
+/* —— Mobile progressive disclosure (desktop stays dense) —— */
+.more-panel {
+  border: none;
+  margin: 0 0 12px;
+  padding: 0;
+  background: transparent;
+}
+.more-panel > .more-summary {
+  list-style: none;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 600;
+  user-select: none;
+}
+.more-panel > .more-summary::-webkit-details-marker { display: none; }
+.more-panel > .more-summary::after {
+  content: '▾';
+  font-size: 10px;
+  opacity: 0.7;
+}
+.more-panel[open] > .more-summary::after { content: '▴'; }
+
+@media (min-width: 861px) {
+  .more-panel > .more-summary { display: none !important; }
+  .more-panel { display: contents; }
+  .more-panel-body { display: contents !important; }
+}
+
+@media (max-width: 860px) {
+  .more-panel > .more-summary {
+    display: inline-flex !important;
+    margin-bottom: 10px;
+  }
+  .more-panel:not([open]) > *:not(summary) {
+    display: none !important;
+  }
+  .more-panel[open] {
+    padding: 12px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+  }
+  .more-panel[open] > .more-summary {
+    margin-bottom: 12px;
+    border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+  }
+
+  /* Keep primary actions; tuck secondary chrome */
+  .toolbar-secondary { display: none !important; }
+  .page-header .toolbar {
+    gap: 8px !important;
+  }
+  .page-header .toolbar .search-input {
+    flex: 1 1 100%;
+    min-width: 0;
+    order: -1;
+  }
+
+  /* Quieter section heads on phones */
+  .section-head .section-sub {
+    display: none;
+  }
+
+  /* KPI rows: prefer 2-up, less visual noise */
+  .kpi-row,
+  .metric-grid {
+    gap: 10px !important;
+  }
+
+  /* Filter selects stack cleanly inside more-panel */
+  .more-panel .filters,
+  .more-panel-body {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .more-panel .filters .select,
+  .more-panel .filters .search-input {
+    flex: 1 1 calc(50% - 8px);
+    min-width: 140px;
+  }
+}
+
+.desktop-only { display: inline; }
+.mobile-only { display: none !important; }
+@media (max-width: 860px) {
+  .desktop-only { display: none !important; }
+  .mobile-only { display: initial !important; }
+}

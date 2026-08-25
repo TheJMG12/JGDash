@@ -17,7 +17,7 @@
   <script src="js/whoop.js?v=2"></script>
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
   <script src="js/theme.js?v=3"></script>
-  <script src="js/topbar.js?v=15"></script>
+  <script src="js/topbar.js?v=16"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <style>
@@ -300,9 +300,34 @@
       font-size: 9px; color: var(--text-tertiary); font-family: var(--mono); white-space: nowrap;
     }
 
-    .meal-week {
-      display: grid; grid-template-columns: 80px repeat(7, 1fr); gap: 6px; overflow-x: auto;
+    .meal-day-picker {
+      display: none;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
     }
+    .meal-day-picker .meal-day-chip {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: var(--input-bg);
+      color: var(--text-secondary);
+      font: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 8px 12px;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+    .meal-day-picker .meal-day-chip.is-on {
+      color: var(--accent);
+      border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+      background: color-mix(in srgb, var(--accent) 14%, transparent);
+    }
+    .meal-week {
+      display: grid; grid-template-columns: 80px repeat(7, 1fr); gap: 6px;
+    }
+    .desktop-only { display: inline; }
+    .mobile-only { display: none !important; }
     .meal-corner, .meal-day-h, .meal-slot-label {
       font-size: 11px; font-weight: 700; color: var(--text-tertiary);
       text-transform: uppercase; letter-spacing: 0.04em; padding: 6px 4px;
@@ -527,7 +552,7 @@
       .metric-grid { grid-template-columns: repeat(3, 1fr); }
       .grid-2, .grid-3 { grid-template-columns: 1fr; }
       .span-2 { grid-column: span 1; }
-      .meal-week { grid-template-columns: 70px repeat(7, minmax(90px, 1fr)); }
+      .meal-week { grid-template-columns: 70px repeat(7, 1fr); }
     }
     @media (max-width: 860px) {
       .sidebar {
@@ -539,6 +564,24 @@
       .sidebar-overlay.open { display: block; }
       .mobile-bar { display: flex; }
       .main { max-height: none; }
+      .desktop-only { display: none !important; }
+      .mobile-only { display: flex !important; }
+      .meal-day-picker { display: flex; }
+      #mealPlannerCard { overflow: visible !important; }
+      .meal-week {
+        grid-template-columns: 72px 1fr !important;
+        overflow: visible !important;
+      }
+      .meal-week .meal-corner,
+      .meal-week .meal-day-h { display: none !important; }
+      .meal-week .meal-cell { display: none !important; }
+      .meal-week .meal-cell.is-focus { display: flex !important; min-height: 64px; }
+      .meal-cell .m-actions button { min-height: 36px; padding: 8px 10px; }
+      #sec-nutrition > .section-head .panel-tabs,
+      #sec-therapy > .section-head .panel-tabs { display: none !important; }
+      .page-header .toolbar #weekSelect,
+      .page-header .toolbar #searchInput { display: none !important; }
+      #todayMetrics.metric-grid { grid-template-columns: repeat(2, 1fr); }
     }
     @media (max-width: 560px) {
       .metric-grid { grid-template-columns: repeat(2, 1fr); }
@@ -546,7 +589,7 @@
       .page-title { width: 100%; margin-bottom: 4px; }
     }
   </style>
-  <link rel="stylesheet" href="css/ui.css?v=3" />
+  <link rel="stylesheet" href="css/ui.css?v=4" />
 </head>
 <body data-page-title="Health">
 <div class="app" id="appRoot">
@@ -597,9 +640,9 @@
         <section class="section" id="sec-today" aria-labelledby="h-today">
           <div class="section-head">
             <h2 class="section-title" id="h-today">Today overview</h2>
-            <span class="section-sub">Mon Jul 27 · Manual + wearable placeholders</span>
-            <span class="badge whoop">WHOOP not connected</span>
-            <span class="badge manual">Manual logging on</span>
+            <span class="section-sub">Check-in · water · glance metrics</span>
+            <button type="button" class="badge whoop" id="todayWhoopBadge" data-section="whoop" style="cursor:pointer">WHOOP</button>
+            <span class="badge manual">Manual</span>
           </div>
 
           <div class="metric-grid" id="todayMetrics" aria-live="polite"></div>
@@ -771,12 +814,13 @@
                 <button type="button" class="btn primary" id="mealComposerSave">Save meal</button>
               </div>
             </div>
-            <div class="card" id="mealPlannerCard" style="overflow-x:auto;margin-bottom:12px">
+            <div class="card" id="mealPlannerCard" style="margin-bottom:12px">
               <div class="section-head" style="margin-bottom:10px">
                 <h3 style="margin:0">Weekly meal planner</h3>
-                <span class="section-sub">Tap a cell or + Add meal</span>
+                <span class="section-sub desktop-only">Tap a cell or + Add meal</span>
                 <button type="button" class="btn primary" id="addMealBtn" style="margin-left:auto">+ Add meal</button>
               </div>
+              <div class="meal-day-picker" id="mealDayPicker" role="tablist" aria-label="Meal plan day"></div>
               <div class="meal-week" id="mealWeek" aria-label="Weekly meal plan"></div>
             </div>
             <div class="grid-4" style="margin-bottom:12px" id="nutritionTargetsMount"></div>
@@ -907,6 +951,10 @@
     'use strict';
 
     var DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    var mealFocusDay = (function () {
+      var js = new Date().getDay(); // 0 Sun … 6 Sat
+      return js === 0 ? 6 : js - 1; // Mon=0 … Sun=6
+    })();
     var SLOTS = [
       { key: 'b', label: 'Breakfast' },
       { key: 'l', label: 'Lunch' },
@@ -1297,22 +1345,24 @@
 
     function renderTodayMetrics() {
       var m = WHOOP_METRICS;
+      // Overview stays glanceable — full WHOOP detail lives in #sec-whoop.
       var items = [
-        { label: 'Recovery', value: 'Not connected yet', sub: 'WHOOP', kind: 'whoop', ph: true },
-        { label: 'Sleep', value: 'Awaiting sync', sub: 'WHOOP', kind: 'whoop', ph: true },
-        { label: 'Day strain', value: 'No data', sub: 'WHOOP', kind: 'whoop', ph: true },
-        { label: 'Steps', value: '—', sub: 'Not in WHOOP API', kind: 'whoop', ph: true },
-        { label: 'Calories burned', value: '—', sub: 'WHOOP cycle', kind: 'whoop', ph: true },
-        { label: 'Resting HR', value: 'Awaiting sync', sub: 'WHOOP', kind: 'whoop', ph: true },
-        { label: 'HRV', value: 'Not connected yet', sub: 'WHOOP', kind: 'whoop', ph: true },
-        { label: 'Stress / readiness', value: 'Manual OK', sub: 'Check-in · 3/5', kind: 'manual', ph: false, zone: 'y' },
         { label: 'Water', value: (waterFilled * 0.5).toFixed(1) + ' L', sub: 'of 3.0 L goal', kind: 'manual', ph: false, zone: waterFilled >= 6 ? 'g' : waterFilled > 0 ? 'y' : 'r' },
-        { label: 'Mood / energy', value: 'Good', sub: 'Logged this morning', kind: 'manual', ph: false, zone: 'g' }
+        { label: 'Mood / energy', value: 'Good', sub: 'Check-in', kind: 'manual', ph: false, zone: 'g' }
       ];
 
       if (WHOOP_STATE === 'loading') {
-        $('todayMetrics').innerHTML = items.map(function () {
-          return '<div class="metric"><div class="metric-label">Loading</div><div class="skel lg"></div><div class="skel" style="margin-top:8px;width:40%"></div></div>';
+        items = [
+          { label: 'Recovery', value: '…', sub: 'WHOOP', kind: 'whoop', ph: true },
+          { label: 'Sleep', value: '…', sub: 'WHOOP', kind: 'whoop', ph: true },
+          { label: 'Water', value: (waterFilled * 0.5).toFixed(1) + ' L', sub: 'of 3.0 L goal', kind: 'manual', ph: false, zone: waterFilled >= 6 ? 'g' : waterFilled > 0 ? 'y' : 'r' },
+          { label: 'Mood / energy', value: 'Good', sub: 'Check-in', kind: 'manual', ph: false, zone: 'g' }
+        ];
+        $('todayMetrics').innerHTML = items.map(function (it) {
+          if (it.kind === 'whoop') {
+            return '<div class="metric"><div class="metric-label">Loading</div><div class="skel lg"></div><div class="skel" style="margin-top:8px;width:40%"></div></div>';
+          }
+          return '<div class="metric"><div class="metric-label">' + it.label + '</div><div class="metric-value">' + it.value + '</div><div class="metric-sub">' + it.sub + '</div></div>';
         }).join('');
         return;
       }
@@ -1322,23 +1372,28 @@
           { label: 'Recovery', value: m.recovery.value, sub: m.recovery.sub, kind: 'whoop', ph: false, zone: m.recovery.zone },
           { label: 'Sleep', value: m.sleep.value, sub: m.sleep.sub, kind: 'whoop', ph: false, zone: m.sleep.zone },
           { label: 'Day strain', value: m.strain.value, sub: m.strain.sub, kind: 'whoop', ph: false, zone: m.strain.zone },
-          { label: 'Steps', value: m.steps.value, sub: m.steps.sub, kind: 'whoop', ph: true },
-          { label: 'Calories burned', value: m.calories.value, sub: m.calories.sub, kind: 'whoop', ph: m.calories.value === '—' },
-          { label: 'Resting HR', value: m.rhr.value, sub: m.rhr.sub, kind: 'whoop', ph: false, zone: m.rhr.zone },
-          { label: 'HRV', value: m.hrv.value, sub: m.hrv.sub, kind: 'whoop', ph: false, zone: m.hrv.zone },
-          { label: 'Stress / readiness', value: 'Manual OK', sub: 'Check-in · 3/5', kind: 'manual', ph: false, zone: 'y' },
           { label: 'Water', value: (waterFilled * 0.5).toFixed(1) + ' L', sub: 'of 3.0 L goal', kind: 'manual', ph: false, zone: waterFilled >= 6 ? 'g' : waterFilled > 0 ? 'y' : 'r' },
-          { label: 'Mood / energy', value: 'Good', sub: 'Logged this morning', kind: 'manual', ph: false, zone: 'g' }
+          { label: 'Mood / energy', value: 'Good', sub: 'Check-in', kind: 'manual', ph: false, zone: 'g' }
         ];
+      } else if (WHOOP_STATE === 'disconnected' || WHOOP_STATE === 'error') {
+        items.unshift({
+          label: 'WHOOP',
+          value: WHOOP_STATE === 'error' ? 'Sync issue' : 'Not connected',
+          sub: 'Open WHOOP section →',
+          kind: 'whoop',
+          ph: true,
+          zone: ''
+        });
       }
 
-      $('todayMetrics').innerHTML = items.map(function (m) {
-        var cls = 'metric' + (m.kind === 'whoop' && WHOOP_STATE !== 'connected' ? ' disconnected' : '') +
-          (m.zone === 'g' ? ' zone-g' : m.zone === 'y' ? ' zone-y' : m.zone === 'r' ? ' zone-r' : '');
-        return '<div class="' + cls + '">' +
-          '<div class="metric-label">' + m.label + ' · ' + m.kind + '</div>' +
-          '<div class="metric-value' + (m.ph ? ' placeholder' : '') + '">' + m.value + '</div>' +
-          '<div class="metric-sub">' + m.sub + '</div></div>';
+      $('todayMetrics').innerHTML = items.map(function (it) {
+        var cls = 'metric' + (it.kind === 'whoop' && WHOOP_STATE !== 'connected' ? ' disconnected' : '') +
+          (it.zone === 'g' ? ' zone-g' : it.zone === 'y' ? ' zone-y' : it.zone === 'r' ? ' zone-r' : '');
+        var click = it.kind === 'whoop' ? ' data-jump-whoop="1" style="cursor:pointer"' : '';
+        return '<div class="' + cls + '"' + click + '>' +
+          '<div class="metric-label">' + it.label + (it.kind === 'whoop' ? '' : '') + '</div>' +
+          '<div class="metric-value' + (it.ph ? ' placeholder' : '') + '">' + it.value + '</div>' +
+          '<div class="metric-sub">' + it.sub + '</div></div>';
       }).join('');
     }
 
@@ -1415,6 +1470,24 @@
       }
     }
 
+    function paintTodayWhoopBadge() {
+      var badge = $('todayWhoopBadge');
+      if (!badge) return;
+      if (WHOOP_STATE === 'connected') {
+        badge.textContent = 'WHOOP live';
+        badge.className = 'badge ok';
+      } else if (WHOOP_STATE === 'loading') {
+        badge.textContent = 'WHOOP syncing';
+        badge.className = 'badge whoop';
+      } else if (WHOOP_STATE === 'error') {
+        badge.textContent = 'WHOOP error';
+        badge.className = 'badge err';
+      } else {
+        badge.textContent = 'WHOOP →';
+        badge.className = 'badge whoop';
+      }
+    }
+
     function setWhoopUI() {
       var banner = $('whoopBanner');
       var freshness = $('whoopFreshness');
@@ -1422,6 +1495,7 @@
       var syncBtn = $('whoopSyncBtn');
       var discBtn = $('disconnectWhoopBtn');
       var connect2 = $('connectWhoopBtn2');
+      paintTodayWhoopBadge();
 
       if (syncBtn) syncBtn.hidden = WHOOP_STATE === 'disconnected';
       if (discBtn) discBtn.hidden = WHOOP_STATE === 'disconnected';
@@ -1944,18 +2018,29 @@
       return MEALS;
     }
 
+    function renderMealDayPicker() {
+      var mount = $('mealDayPicker');
+      if (!mount) return;
+      mount.innerHTML = DAYS.map(function (d, i) {
+        return '<button type="button" class="meal-day-chip' + (i === mealFocusDay ? ' is-on' : '') +
+          '" data-meal-day="' + i + '" role="tab" aria-selected="' + (i === mealFocusDay) + '">' + d + '</button>';
+      }).join('');
+    }
+
     function renderMeals() {
       ensureMealsMap();
+      renderMealDayPicker();
       var html = '<div class="meal-corner"></div>';
       DAYS.forEach(function (d, i) {
-        html += '<div class="meal-day-h' + (i === 0 ? ' today' : '') + '">' + d + '</div>';
+        html += '<div class="meal-day-h' + (i === mealFocusDay ? ' today is-focus' : '') + '" data-day="' + i + '">' + d + '</div>';
       });
       SLOTS.forEach(function (slot) {
         html += '<div class="meal-slot-label">' + slot.label + '</div>';
         DAYS.forEach(function (_, di) {
           var key = di + '-' + slot.key;
           var meal = MEALS[key];
-          html += '<div class="meal-cell' + (meal ? ' filled' : ' empty-add') + '" draggable="' + (meal ? 'true' : 'false') + '" data-key="' + key + '" role="button" tabindex="0" aria-label="' + (meal ? 'Edit' : 'Add') + ' ' + DAYS[di] + ' ' + slot.label + '">';
+          var focus = di === mealFocusDay ? ' is-focus' : '';
+          html += '<div class="meal-cell' + (meal ? ' filled' : ' empty-add') + focus + '" draggable="' + (meal ? 'true' : 'false') + '" data-key="' + key + '" data-day="' + di + '" role="button" tabindex="0" aria-label="' + (meal ? 'Edit' : 'Add') + ' ' + DAYS[di] + ' ' + slot.label + '">';
           if (meal) {
             html += '<div class="m-title">' + esc(meal.title) + '</div><div class="m-flags">';
             (meal.flags || []).forEach(function (f) {
@@ -3179,6 +3264,20 @@
         if (t.closest('#addMealBtn')) {
           e.preventDefault();
           goToMealPlanner({ openComposer: true, slot: '0-b', fromQuickFilter: true });
+          return;
+        }
+
+        var dayChip = t.closest('[data-meal-day]');
+        if (dayChip) {
+          e.preventDefault();
+          mealFocusDay = parseInt(dayChip.getAttribute('data-meal-day'), 10) || 0;
+          renderMeals();
+          return;
+        }
+
+        if (t.closest('#todayWhoopBadge') || t.closest('[data-jump-whoop]')) {
+          e.preventDefault();
+          scrollToSection('whoop');
           return;
         }
         if (t.closest('#mealComposerSave')) {
