@@ -435,16 +435,11 @@ tr:hover td {
   .page-header .page-title,
   .page-title-block .page-title,
   .main-header .page-title,
-  .page-header h1.page-title {
-    position: absolute !important;
-    width: 1px !important;
-    height: 1px !important;
-    padding: 0 !important;
-    margin: -1px !important;
-    overflow: hidden !important;
-    clip: rect(0, 0, 0, 0) !important;
-    white-space: nowrap !important;
-    border: 0 !important;
+  .page-header h1.page-title,
+  .page-header h1,
+  .page-title-block h1,
+  h1.page-title {
+    display: none !important;
   }
 
   .page-title-block .page-sub,
