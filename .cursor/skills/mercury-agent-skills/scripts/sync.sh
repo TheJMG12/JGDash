@@ -19,12 +19,13 @@ cursor_skills="${CURSOR_SKILLS_DIR:-$project_root/.cursor/skills}"
 
 usage() {
   cat <<EOF
-Usage: $(basename "$0") [sync|install <slug> ...|install-all|list]
+Usage: $(basename "$0") [sync|install <slug> ...|install-category <cat> ...|install-all|list]
 
-  sync              Clone or pull the Mercury skills library (default)
-  install <slug>…   Copy named playbooks into .cursor/skills/<slug>/
-  install-all       Copy every playbook from the clone (large)
-  list              Print category/slug paths in the clone
+  sync                         Clone or pull the Mercury skills library (default)
+  install <slug>…              Copy named playbooks into .cursor/skills/<slug>/
+  install-category <cat>…      Copy every playbook in a category (development, backend, frontend, …)
+  install-all                  Copy every playbook from the clone (large)
+  list                         Print category/slug paths in the clone
 
 Cache: $CACHE
 Cursor skills dir: $cursor_skills
@@ -117,6 +118,38 @@ case "$cmd" in
         continue
       fi
       install_one "$slug"
+    done
+    ;;
+  install-category)
+    shift
+    if [[ $# -eq 0 ]]; then
+      echo "error: install-category requires at least one category" >&2
+      usage >&2
+      exit 1
+    fi
+    clone_or_pull
+    mkdir -p "$cursor_skills"
+    for cat in "$@"; do
+      src="$CACHE/categories/$cat"
+      if [[ ! -d "$src" ]]; then
+        echo "error: no Mercury category named '$cat'" >&2
+        echo "hint: run: $0 list" >&2
+        exit 1
+      fi
+      found=0
+      for dir in "$src"/*/; do
+        [[ -d "$dir" ]] || continue
+        slug="$(basename "$dir")"
+        if [[ "$slug" == "mercury-agent-skills" ]]; then
+          continue
+        fi
+        install_one "$slug"
+        found=1
+      done
+      if [[ "$found" -eq 0 ]]; then
+        echo "error: category '$cat' has no skill directories" >&2
+        exit 1
+      fi
     done
     ;;
   install-all)

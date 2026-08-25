@@ -35,6 +35,12 @@ If several slugs fit, pick the most specific one. Read at most two playbooks unl
 
 Cursor loads `.cursor/skills/<slug>/SKILL.md`.
 
+This workspace already vendors the **development**, **backend**, and **frontend** categories (33 playbooks). Refresh them with:
+
+```bash
+bash .cursor/skills/mercury-agent-skills/scripts/sync.sh install-category development backend frontend
+```
+
 ```bash
 # one or more slugs
 bash .cursor/skills/mercury-agent-skills/scripts/sync.sh install code-review git-workflow
@@ -59,6 +65,15 @@ Agent:
 
 ```bash
 bash .cursor/skills/mercury-agent-skills/scripts/sync.sh install docker-patterns ci-cd-pipeline
+```
+
+**Install whole categories**
+
+User: "Add Mercury development, backend, and frontend skills."
+Agent:
+
+```bash
+bash .cursor/skills/mercury-agent-skills/scripts/sync.sh install-category development backend frontend
 ```
 
 **Refresh the clone**
