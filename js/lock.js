@@ -222,7 +222,9 @@
   // Hide immediately (script is in <head> on app pages).
   if (!isSignInPage()) setPending();
 
-  if (!LOCK_SKIP) {
+  if (LOCK_SKIP) {
+    reveal();
+  } else {
     var boot = function () {
       ensureSession().catch(function (err) {
         console.warn('JGDash lock:', err);
