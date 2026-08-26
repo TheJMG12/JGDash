@@ -1120,13 +1120,17 @@
     .ht-modal-backdrop {
       position: fixed;
       inset: 0;
-      z-index: 40;
+      /* Above #jgdash-topbar (200) and .mobile-bar (150) so Create Habit is tappable on phones */
+      z-index: 320;
       background: rgba(0, 0, 0, 0.55);
       backdrop-filter: blur(6px);
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: center;
       padding: 20px;
+      padding-top: max(20px, env(safe-area-inset-top, 0px));
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
 
     .ht-modal-backdrop[hidden] { display: none; }
@@ -2451,6 +2455,12 @@
       return window.filter(function (d) { return isCompletedOn(habit, d); }).length;
     }
 
+    function touchHabit(habit) {
+      if (!habit || typeof habit !== 'object') return habit;
+      habit.updatedAt = new Date().toISOString();
+      return habit;
+    }
+
     function toggleToday(habitId) {
       const habits = loadHabits();
       const habit = habits.find(function (h) { return h.id === habitId; });
@@ -2461,6 +2471,7 @@
       if (set[today]) delete set[today];
       else set[today] = true;
       habit.completions = Object.keys(set).sort();
+      touchHabit(habit);
       saveHabits(habits);
       renderHabits({ popId: habitId, popDate: today });
     }
@@ -2609,6 +2620,7 @@
         const name = document.getElementById('habitName').value.trim();
         if (!name) return;
         const habits = loadHabits();
+        const now = new Date().toISOString();
         habits.push({
           id: uid(),
           name: name,
@@ -2616,7 +2628,8 @@
           color: document.getElementById('habitColor').value || '#6BE3A4',
           frequency: document.getElementById('habitFrequency').value || 'Daily',
           completions: [],
-          createdAt: new Date().toISOString()
+          createdAt: now,
+          updatedAt: now
         });
         saveHabits(habits);
         closeHabitModal();
@@ -2695,7 +2708,7 @@
       - Tile range: HABIT_GRID_DAYS (default 35 = 5×7). Consistency label uses a 30-day window.
     */
   </script>
-  <script src="js/sync.js?v=21"></script>
+  <script src="js/sync.js?v=22"></script>
   <script src="js/theme.js?v=3"></script>
   <script src="js/topbar.js?v=18"></script>
   <script>

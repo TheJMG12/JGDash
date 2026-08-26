@@ -162,9 +162,18 @@
         if (lt > rt) { newer = it; older = prev; }
         else if (lt < rt) { newer = prev; older = it; }
         else {
-          // Deterministic tie-break: prefer lexicographically larger JSON
-          if (stableStringify(it) > stableStringify(prev)) { newer = it; older = prev; }
-          else { newer = prev; older = it; }
+          // Equal timestamps (legacy habits without updatedAt): keep the richer
+          // completion set so Complete-today is not wiped by an older cloud copy.
+          var cNew = Array.isArray(it.completions) ? it.completions.length : -1;
+          var cPrev = Array.isArray(prev.completions) ? prev.completions.length : -1;
+          if (cNew !== cPrev && (cNew >= 0 || cPrev >= 0)) {
+            if (cNew > cPrev) { newer = it; older = prev; }
+            else { newer = prev; older = it; }
+          } else if (stableStringify(it) > stableStringify(prev)) {
+            newer = it; older = prev;
+          } else {
+            newer = prev; older = it;
+          }
         }
         map[id] = stickyFlags(Object.assign({}, older, newer), older);
       });
