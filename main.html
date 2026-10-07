@@ -16,7 +16,10 @@
   <script src="js/lock.js?v=4"></script>
   <script>!function(){try{if(localStorage.getItem('jg_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}}()</script>
   <script src="js/goals-rollover.js?v=1"></script>
-  <script src="js/todo-schedule.js?v=3"></script>
+  <script src="js/todo-schedule.js?v=4"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet" />
   <style>
     :root {
       --text-primary: #FAFAFA;
@@ -25,10 +28,21 @@
       --success: #6BE3A4;
       --warning: #F2C063;
       --danger: #FF6B6B;
+      --accent: #F07167;
+      --accent-2: #7DD3FC;
+      --block-a: #2A2438;
+      --block-b: #1C1C1F;
+      --block-c: #E8DCC8;
+      --moss: #6B7F5C;
+      --moss-deep: #556749;
+      --moss-ink: #F3F6EF;
       --bg: #050506;
       --card-bg: rgba(255, 255, 255, 0.04);
       --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-      --sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --sans: "Outfit", "Segoe UI", Helvetica, Arial, sans-serif;
+      --radius-block: 28px;
+      --tray-h: 72px;
+      --tray-side: 72px;
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -78,7 +92,14 @@
       z-index: 1;
       max-width: 1100px;
       margin: 0 auto;
-      padding: max(28px, env(safe-area-inset-top)) 20px 48px;
+      padding: max(28px, env(safe-area-inset-top)) 20px calc(48px + var(--tray-h) + env(safe-area-inset-bottom));
+    }
+
+    @media (min-width: 861px) {
+      .wrap {
+        padding-left: calc(20px + var(--tray-side) + 18px);
+        padding-bottom: 48px;
+      }
     }
 
     /* —— Title —— */
@@ -335,92 +356,464 @@
       color: var(--text-tertiary);
     }
 
-    /* —— Home stats + tabs (Tasks / Habits) —— */
+    /* —— Home stats (blocky glance cards) —— */
     .home-stats {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-      margin: 18px 0 16px;
+      grid-template-columns: 1.1fr 1fr 1fr;
+      gap: 8px;
+      margin: 14px 0 14px;
+    }
+    .home-stats.is-calendar-view {
+      grid-template-columns: 1fr 1fr;
+    }
+    .home-stats.is-calendar-view .home-stat-date {
+      display: none !important;
     }
     .home-stat {
       display: flex;
-      align-items: flex-start;
+      flex-direction: row;
+      align-items: center;
       gap: 10px;
-      padding: 12px 14px;
-      border-radius: 16px;
-      background: var(--card-bg);
-      border: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 10px 12px;
+      border-radius: 18px;
+      border: 0;
       min-width: 0;
+      min-height: 0;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22);
+    }
+    .home-stat-date {
+      background: linear-gradient(160deg, #3A314F 0%, #2A2438 100%);
+      color: #F4F0FF;
+    }
+    .home-stat-today {
+      background: linear-gradient(160deg, #2A2A2E 0%, #1C1C1F 100%);
+      color: var(--text-primary);
+    }
+    .home-stat-open {
+      background: linear-gradient(160deg, var(--moss) 0%, var(--moss-deep) 100%);
+      color: var(--moss-ink);
     }
     .home-stat-ico {
-      width: 34px;
-      height: 34px;
+      width: 28px;
+      height: 28px;
       border-radius: 10px;
       display: grid;
       place-items: center;
-      font-size: 15px;
+      font-size: 13px;
       flex-shrink: 0;
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(255, 255, 255, 0.12);
     }
-    .home-stat-ico.is-date { background: rgba(251, 113, 133, 0.14); }
-    .home-stat-ico.is-today { background: rgba(107, 227, 164, 0.14); }
-    .home-stat-ico.is-open { background: rgba(167, 139, 250, 0.14); }
+    .home-stat-open .home-stat-ico { background: rgba(255, 255, 255, 0.16); }
     .home-stat-body { min-width: 0; }
     .home-stat-value {
       font-size: 18px;
-      font-weight: 700;
+      font-weight: 800;
       letter-spacing: -0.03em;
-      line-height: 1.15;
+      line-height: 1.05;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     .home-stat-label {
       font-size: 11px;
-      color: var(--text-tertiary);
+      opacity: 0.72;
       margin-top: 2px;
       font-weight: 600;
     }
 
-    .home-tabs {
+    .home-tabs { display: none !important; }
+    .home-panel[hidden] { display: none !important; }
+    .home-panel .section-title { margin-top: 0; }
+
+    /* —— Nav tray: bottom mobile / side desktop —— */
+    .home-tray {
+      position: fixed;
+      z-index: 180;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      gap: 4px;
+      background: #0A0A0C;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+    }
+    .home-tray-btn {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      color: #8A8882;
+      width: 48px;
+      height: 48px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: color .18s ease, background .18s ease, transform .18s ease;
+    }
+    .home-tray-btn svg {
+      width: 22px;
+      height: 22px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .home-tray-btn.is-on {
+      color: #FAFAFA;
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .home-tray-btn.is-plus {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 8px 24px rgba(240, 113, 103, 0.4);
+      transform: translateY(-6px);
+    }
+    .home-tray-btn.is-plus:hover { filter: brightness(1.06); }
+    .home-tray-btn.is-plus svg { stroke-width: 2.2; }
+    .home-tray-btn:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    @media (max-width: 860px) {
+      .home-tray {
+        left: 14px;
+        right: 14px;
+        bottom: calc(10px + env(safe-area-inset-bottom));
+        height: var(--tray-h);
+        border-radius: 999px;
+        padding: 0 10px;
+      }
+    }
+    @media (min-width: 861px) {
+      .home-tray {
+        top: 50%;
+        left: 18px;
+        transform: translateY(-50%);
+        width: var(--tray-side);
+        flex-direction: column;
+        justify-content: center;
+        gap: 10px;
+        padding: 18px 0;
+        border-radius: 999px;
+        height: auto;
+      }
+      .home-tray-btn.is-plus { transform: none; margin: 6px 0; }
+    }
+
+    /* —— Blocky task rows —— */
+    .goal-list.gm-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .gm-list .goal-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      margin-bottom: 0;
+      border-radius: 999px;
+      background: #1A1A1D;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+    }
+    .gm-list .goal-row.is-done {
+      background: rgba(107, 227, 164, 0.08);
+    }
+    .gm-list .goal-check {
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+    }
+    .gm-card-header-slim {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .gm-todos-link {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
-      padding: 4px;
+      gap: 6px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 650;
+      letter-spacing: -0.01em;
+      padding: 8px 12px;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.04);
       border: 1px solid rgba(255, 255, 255, 0.08);
-      margin: 4px 0 18px;
-      width: 100%;
-      max-width: 360px;
+      background: rgba(255, 255, 255, 0.03);
+      transition: color .15s ease, border-color .15s ease, background .15s ease;
     }
-    .home-tab {
-      flex: 1;
+    .gm-todos-link:hover {
+      color: var(--text-primary);
+      border-color: rgba(255, 255, 255, 0.16);
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .gm-todos-link .gm-todos-arrow {
+      font-size: 14px;
+      line-height: 1;
+      opacity: 0.85;
+    }
+
+    .gm-add-top {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 4px 0 14px;
+    }
+
+    .task-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 330;
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 20px;
+      padding-top: max(20px, env(safe-area-inset-top, 0px));
+      overflow-y: auto;
+    }
+    .task-modal-backdrop[hidden] { display: none; }
+    .task-modal {
+      width: 100%;
+      max-width: 420px;
+      background: #121214;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 22px;
+      padding: 22px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+      margin-top: 8vh;
+    }
+    .task-modal h2 {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+    .task-modal-sub {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      margin-bottom: 16px;
+    }
+    .task-modal .goal-input {
+      width: 100%;
+      margin-bottom: 4px;
+    }
+    .task-modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .task-modal-cancel {
+      appearance: none;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: transparent;
+      color: var(--text-secondary);
+      border-radius: 999px;
+      padding: 10px 16px;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    .task-modal-save {
+      appearance: none;
+      border: 0;
+      background: linear-gradient(160deg, var(--moss) 0%, var(--moss-deep) 100%);
+      color: var(--moss-ink);
+      border-radius: 999px;
+      padding: 10px 18px;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .gm-add-new-btn {
+      appearance: none;
+      border: 0;
+      width: 100%;
+      padding: 14px 18px;
+      border-radius: 999px;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--moss-ink);
+      background: linear-gradient(160deg, var(--moss) 0%, var(--moss-deep) 100%);
+      cursor: pointer;
+      box-shadow: 0 8px 22px rgba(85, 103, 73, 0.35);
+      transition: transform .15s ease, filter .15s ease;
+    }
+    .gm-add-new-btn:hover { filter: brightness(1.04); }
+    .gm-add-new-btn:active { transform: scale(0.985); }
+    .gm-input-wrap.is-collapsed { display: none; }
+
+    /* —— Calendar / timeline —— */
+    .tl-month {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--accent);
+      margin-bottom: 14px;
+    }
+    .tl-week {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+      margin-bottom: 22px;
+    }
+    .tl-day {
       appearance: none;
       border: 0;
       background: transparent;
       color: var(--text-secondary);
-      font: inherit;
-      font-size: 13.5px;
-      font-weight: 650;
-      padding: 10px 14px;
-      border-radius: 999px;
+      border-radius: 18px;
+      padding: 8px 4px 10px;
       cursor: pointer;
-      transition: background 0.18s ease, color 0.18s ease;
+      font: inherit;
+      text-align: center;
     }
-    .home-tab.is-on {
-      background: rgba(255, 255, 255, 0.1);
-      color: var(--text-primary);
-      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04);
+    .tl-day-name {
+      display: block;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      opacity: 0.7;
+      margin-bottom: 6px;
     }
-    .home-panel[hidden] { display: none !important; }
-    .home-panel .section-title { margin-top: 0; }
+    .tl-day-num {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      margin: 0 auto;
+      border-radius: 50%;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .tl-day.is-on .tl-day-num {
+      background: var(--accent);
+      color: #fff;
+    }
+    .tl-day.is-today:not(.is-on) .tl-day-num {
+      box-shadow: inset 0 0 0 1.5px rgba(240, 113, 103, 0.55);
+    }
+    .tl-track {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      padding-left: 4px;
+    }
+    .tl-row {
+      display: grid;
+      grid-template-columns: 52px 56px 1fr 40px;
+      gap: 10px;
+      align-items: center;
+      min-height: 72px;
+      position: relative;
+    }
+    .tl-time {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-tertiary);
+      text-align: right;
+    }
+    .tl-pill {
+      width: 48px;
+      height: 56px;
+      border-radius: 18px;
+      display: grid;
+      place-items: center;
+      font-size: 18px;
+      color: #fff;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+      position: relative;
+      z-index: 1;
+    }
+    .tl-row::before {
+      content: '';
+      position: absolute;
+      left: calc(52px + 28px);
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: rgba(255, 255, 255, 0.08);
+      z-index: 0;
+    }
+    .tl-row:first-child::before { top: 50%; }
+    .tl-row:last-child::before { bottom: 50%; }
+    .tl-meta { min-width: 0; }
+    .tl-title {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .tl-title.is-done { text-decoration: line-through; opacity: 0.55; }
+    .tl-sub {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-top: 2px;
+    }
+    .tl-check {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2px solid currentColor;
+      background: transparent;
+      cursor: pointer;
+      appearance: none;
+      color: var(--accent);
+      display: grid;
+      place-items: center;
+      padding: 0;
+    }
+    .tl-check.is-done {
+      background: currentColor;
+      color: var(--success);
+      border-color: var(--success);
+    }
+    .tl-check.is-done::after {
+      content: '✓';
+      color: #04140C;
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .tl-empty, .tl-gap {
+      padding: 18px 8px 18px 62px;
+      font-size: 13px;
+      color: var(--text-tertiary);
+    }
+    .tl-section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin: 18px 0 10px;
+    }
 
     @media (max-width: 560px) {
-      .home-stats { gap: 8px; }
-      .home-stat { padding: 10px 10px; flex-direction: column; gap: 6px; }
+      .home-stats { grid-template-columns: 1fr 1fr; gap: 8px; }
+      .home-stats:not(.is-calendar-view) .home-stat-date { grid-column: 1 / -1; }
       .home-stat-value { font-size: 16px; }
-      .home-tabs { max-width: none; }
+      .tl-row { grid-template-columns: 44px 48px 1fr 34px; gap: 8px; }
+      .tl-row::before { left: calc(44px + 24px); }
     }
 
     /* —— Section / Cards —— */
@@ -454,12 +847,11 @@
     }
 
     .gm-card {
-      background: var(--card-bg);
-      border-radius: 16px;
+      background: #121214;
+      border-radius: var(--radius-block);
       padding: 20px;
-      backdrop-filter: blur(24px) saturate(1.2);
-      -webkit-backdrop-filter: blur(24px) saturate(1.2);
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.4);
       margin-bottom: 16px;
       position: relative;
       overflow: hidden;
@@ -1039,9 +1431,21 @@
 
     .ht-tile {
       aspect-ratio: 1;
+      width: 100%;
       border-radius: 3px;
+      border: 0;
+      padding: 0;
+      appearance: none;
+      display: block;
       background: rgba(255, 255, 255, 0.06);
-      transition: background 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+      cursor: pointer;
+      transition: background 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease, filter 0.2s ease;
+    }
+
+    .ht-tile:hover { filter: brightness(1.18); }
+    .ht-tile:focus-visible {
+      outline: 2px solid var(--habit-color);
+      outline-offset: 1px;
     }
 
     .ht-tile.is-done {
@@ -1050,8 +1454,13 @@
     }
 
     .ht-tile.is-today {
-      outline: 1px solid rgba(255, 255, 255, 0.28);
-      outline-offset: 1px;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+    }
+
+    .ht-tile.is-future {
+      opacity: 0.35;
+      cursor: default;
+      pointer-events: none;
     }
 
     .ht-tile.is-pop {
@@ -1306,22 +1715,22 @@
       </div>
     </div>
 
-    <div class="home-stats" aria-label="Today at a glance">
-      <div class="home-stat">
+    <div class="home-stats" id="homeStats" aria-label="Today at a glance">
+      <div class="home-stat home-stat-date">
         <div class="home-stat-ico is-date" aria-hidden="true">📅</div>
         <div class="home-stat-body">
           <div class="home-stat-value" id="homeStatDate">—</div>
           <div class="home-stat-label" id="homeStatWeekday">—</div>
         </div>
       </div>
-      <div class="home-stat">
+      <div class="home-stat home-stat-today">
         <div class="home-stat-ico is-today" aria-hidden="true">✓</div>
         <div class="home-stat-body">
           <div class="home-stat-value" id="homeStatToday">0</div>
           <div class="home-stat-label">Today</div>
         </div>
       </div>
-      <div class="home-stat">
+      <div class="home-stat home-stat-open">
         <div class="home-stat-ico is-open" aria-hidden="true">○</div>
         <div class="home-stat-body">
           <div class="home-stat-value" id="homeStatOpen">0</div>
@@ -1330,43 +1739,35 @@
       </div>
     </div>
 
-    <div class="home-tabs" role="tablist" aria-label="Main views">
+    <div class="home-tabs" role="tablist" aria-label="Main views" hidden>
       <button type="button" class="home-tab is-on" role="tab" id="homeTabTasks" aria-selected="true" aria-controls="homePanelTasks" data-home-tab="tasks">Tasks</button>
       <button type="button" class="home-tab" role="tab" id="homeTabHabits" aria-selected="false" aria-controls="homePanelHabits" data-home-tab="habits">Habits</button>
+      <button type="button" class="home-tab" role="tab" id="homeTabCalendar" aria-selected="false" aria-controls="homePanelCalendar" data-home-tab="calendar">Calendar</button>
     </div>
 
     <div class="home-panel" id="homePanelTasks" role="tabpanel" aria-labelledby="homeTabTasks">
     <div class="section">
-      <div class="section-title">To Do List</div>
+      <div class="section-title">To do today</div>
 
       <!-- TODAY -->
       <div class="gm-card" id="todayCard">
-        <div class="gm-card-header">
-          <div>
-            <div class="gm-eyebrow" id="todayLabel">Today</div>
-            <div class="gm-progress-row">
-              <span class="gm-progress-num" id="gmProgressNum">0</span>
-              <span class="gm-progress-total" id="gmProgressTotal">/ 0</span>
-              <span class="gm-progress-label" id="gmProgressLabel">no goals yet</span>
-            </div>
-          </div>
+        <div class="gm-card-header gm-card-header-slim">
+          <a class="gm-todos-link" href="todos.html" title="Open full To Do List">
+            To Do List
+            <span class="gm-todos-arrow" aria-hidden="true">↗</span>
+          </a>
           <div class="gm-streak" id="gmStreak">
             <span class="gm-streak-bolt">⚡</span>
             <span class="gm-streak-num" id="gmStreakNum">0</span>
             <span class="gm-streak-label">day streak</span>
           </div>
         </div>
-        <div class="gm-bar" id="gmBar"></div>
-        <ul id="goalList" class="goal-list gm-list"></ul>
-        <div id="emptyState" class="empty-state">No goals for today yet — add one below.</div>
-        <button type="button" class="gm-push-btn" id="gmPushBtn">Push remaining → tomorrow</button>
-        <div class="goal-input-wrap gm-input-wrap">
-          <input type="text" class="goal-input" id="goalInput" placeholder="Add a goal…" autocomplete="off" />
-          <button type="button" class="goal-add-btn" id="goalAddBtn">+ Add</button>
-          <button type="button" class="goal-polish-btn" id="goalPolishBtn">✨ Polish</button>
-          <div id="goalSchedule" style="flex-basis:100%"></div>
-          <div class="polish-status" id="polishStatus"></div>
+        <div class="gm-add-top">
+          <button type="button" class="gm-add-new-btn" id="addNewTaskBtn">Add New Task</button>
         </div>
+        <ul id="goalList" class="goal-list gm-list"></ul>
+        <div id="emptyState" class="empty-state">No goals for today yet — tap Add New Task.</div>
+        <button type="button" class="gm-push-btn" id="gmPushBtn">Push remaining → tomorrow</button>
       </div>
 
       <!-- TOMORROW -->
@@ -1411,6 +1812,46 @@
         <button type="button" class="ht-add-btn" id="habitEmptyAddBtn">Add your first habit</button>
       </div>
     </div>
+    </div>
+
+    <div class="home-panel" id="homePanelCalendar" role="tabpanel" aria-labelledby="homeTabCalendar" hidden>
+      <div class="section">
+        <div class="tl-month" id="tlMonth">—</div>
+        <div class="tl-week" id="tlWeek" role="tablist" aria-label="Week"></div>
+        <div class="section-title">Timeline</div>
+        <div class="gm-card">
+          <div class="tl-track" id="tlTrack" aria-live="polite"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <nav class="home-tray" id="homeTray" aria-label="Main navigation">
+    <button type="button" class="home-tray-btn is-on" id="trayTasks" data-home-tab="tasks" aria-label="Tasks" title="Tasks">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    </button>
+    <button type="button" class="home-tray-btn" id="trayHabits" data-home-tab="habits" aria-label="Habits" title="Habits">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c2.5 3 3 5.5 3 7a3 3 0 1 1-6 0c0-1.5.5-4 3-7z"/><path d="M8.5 14.5c.8 2.2 2.2 3.5 3.5 5 1.3-1.5 2.7-2.8 3.5-5"/></svg>
+    </button>
+    <button type="button" class="home-tray-btn is-plus" id="trayPlus" aria-label="Add new" title="Add new">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+    <button type="button" class="home-tray-btn" id="trayCalendar" data-home-tab="calendar" aria-label="Calendar" title="Calendar">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+    </button>
+  </nav>
+
+  <div class="task-modal-backdrop" id="taskModal" hidden>
+    <div class="task-modal" role="dialog" aria-modal="true" aria-labelledby="taskModalTitle">
+      <h2 id="taskModalTitle">New Task</h2>
+      <p class="task-modal-sub">Adds to your list — existing tasks stay put.</p>
+      <input type="text" class="goal-input" id="taskModalInput" placeholder="What do you need to do?" autocomplete="off" maxlength="200" />
+      <div id="taskModalSchedule"></div>
+      <div class="polish-status" id="taskModalStatus"></div>
+      <div class="task-modal-actions">
+        <button type="button" class="task-modal-cancel" id="taskModalCancel">Cancel</button>
+        <button type="button" class="task-modal-save" id="taskModalSave">Add Task</button>
+      </div>
     </div>
   </div>
 
@@ -1848,30 +2289,19 @@
       const goals = getGoals(todayKey());
       const done = goals.filter(function (g) { return g.done; }).length;
       const total = goals.length;
-      document.getElementById('todayLabel').textContent = 'Today — {' + formatDate(getActiveDateString()) + '}';
-      document.getElementById('gmProgressNum').textContent = String(done);
-      document.getElementById('gmProgressTotal').textContent = '/ ' + total;
-      const label = document.getElementById('gmProgressLabel');
-      if (total === 0) label.textContent = 'no goals yet';
-      else if (done === total) label.textContent = 'all done — solid day';
-      else label.textContent = 'complete';
-
-      const bar = document.getElementById('gmBar');
-      bar.innerHTML = '';
-      goals.forEach(function (g) {
-        const seg = document.createElement('div');
-        seg.className = 'gm-bar-seg' + (g.done ? ' gm-bar-seg-done' : '');
-        bar.appendChild(seg);
-      });
 
       const card = document.getElementById('todayCard');
-      if (total > 0 && done === total) card.classList.add('gm-all-done');
-      else card.classList.remove('gm-all-done');
+      if (card) {
+        if (total > 0 && done === total) card.classList.add('gm-all-done');
+        else card.classList.remove('gm-all-done');
+      }
 
       const pushBtn = document.getElementById('gmPushBtn');
-      const hasUnchecked = goals.some(function (g) { return !g.done; });
-      if (hasUnchecked) pushBtn.classList.add('is-visible');
-      else pushBtn.classList.remove('is-visible');
+      if (pushBtn) {
+        const hasUnchecked = goals.some(function (g) { return !g.done; });
+        if (hasUnchecked) pushBtn.classList.add('is-visible');
+        else pushBtn.classList.remove('is-visible');
+      }
 
       updateHomeStats();
     }
@@ -1903,22 +2333,247 @@
       openEl.textContent = String(openTotal);
     }
 
-    function setHomeTab(tab) {
-      const tasks = tab !== 'habits';
-      const tabTasks = document.getElementById('homeTabTasks');
-      const tabHabits = document.getElementById('homeTabHabits');
-      const panelTasks = document.getElementById('homePanelTasks');
-      const panelHabits = document.getElementById('homePanelHabits');
-      if (!tabTasks || !panelTasks || !panelHabits) return;
+    var homeView = 'tasks';
+    var tlSelectedYmd = null;
+    var TL_COLORS = ['#F07167', '#7DD3FC', '#6BE3A4', '#F2C063', '#FB923C'];
 
-      tabTasks.classList.toggle('is-on', tasks);
-      tabHabits.classList.toggle('is-on', !tasks);
-      tabTasks.setAttribute('aria-selected', tasks ? 'true' : 'false');
-      tabHabits.setAttribute('aria-selected', tasks ? 'false' : 'true');
-      panelTasks.hidden = !tasks;
-      panelHabits.hidden = tasks;
-      try { localStorage.setItem('jg_main_home_tab', tasks ? 'tasks' : 'habits'); } catch (e) { /* ignore */ }
-      if (!tasks && typeof renderHabits === 'function') renderHabits();
+    function setHomeTab(tab) {
+      var view = tab === 'habits' ? 'habits' : (tab === 'calendar' ? 'calendar' : 'tasks');
+      homeView = view;
+      var panelTasks = document.getElementById('homePanelTasks');
+      var panelHabits = document.getElementById('homePanelHabits');
+      var panelCal = document.getElementById('homePanelCalendar');
+      if (!panelTasks || !panelHabits || !panelCal) return;
+
+      panelTasks.hidden = view !== 'tasks';
+      panelHabits.hidden = view !== 'habits';
+      panelCal.hidden = view !== 'calendar';
+
+      var stats = document.getElementById('homeStats');
+      if (stats) stats.classList.toggle('is-calendar-view', view === 'calendar');
+
+      document.querySelectorAll('#homeTray [data-home-tab], .home-tabs [data-home-tab]').forEach(function (btn) {
+        var on = btn.getAttribute('data-home-tab') === view;
+        btn.classList.toggle('is-on', on);
+        btn.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+
+      try { localStorage.setItem('jg_main_home_tab', view); } catch (e) { /* ignore */ }
+      if (view === 'habits' && typeof renderHabits === 'function') renderHabits();
+      if (view === 'calendar') renderTimeline();
+    }
+
+    var taskModalSched = null;
+
+    function openTaskModal(presetYmd) {
+      var modal = document.getElementById('taskModal');
+      var input = document.getElementById('taskModalInput');
+      if (!modal || !input) return;
+      input.value = '';
+      var status = document.getElementById('taskModalStatus');
+      if (status) {
+        status.textContent = '';
+        status.classList.remove('is-error');
+      }
+      if (taskModalSched && typeof taskModalSched.set === 'function') {
+        taskModalSched.set({
+          ymd: presetYmd || (homeView === 'calendar' ? (tlSelectedYmd || getActiveDateString()) : getActiveDateString()),
+          time: ''
+        });
+      } else if (taskModalSched && typeof taskModalSched.reset === 'function') {
+        taskModalSched.reset();
+      }
+      modal.hidden = false;
+      setTimeout(function () { input.focus(); }, 30);
+    }
+
+    function closeTaskModal() {
+      var modal = document.getElementById('taskModal');
+      if (modal) modal.hidden = true;
+    }
+
+    function saveTaskFromModal() {
+      var input = document.getElementById('taskModalInput');
+      var status = document.getElementById('taskModalStatus');
+      var text = ((input && input.value) || '').trim();
+      if (!text) {
+        if (status) {
+          status.textContent = 'Enter a task name';
+          status.classList.add('is-error');
+        }
+        return;
+      }
+      var ymd = (taskModalSched && taskModalSched.getDayYmd) ? taskModalSched.getDayYmd() : getActiveDateString();
+      var time = (taskModalSched && taskModalSched.getTime) ? (taskModalSched.getTime() || '') : '';
+      var key = 'goals:' + ymd;
+      var goals = getGoals(key);
+      var goal = (window.JGDash && JGDash.todoSchedule)
+        ? JGDash.todoSchedule.buildGoal(text, { time: time, cal: true })
+        : { id: goalUid(), text: text, done: false, queued: false };
+      goals.push(goal);
+      setGoals(key, goals);
+      closeTaskModal();
+      if (typeof loadToday === 'function') loadToday();
+      if (typeof loadTomorrow === 'function') loadTomorrow();
+      if (homeView === 'calendar' && typeof renderTimeline === 'function') {
+        renderTimeline(tlSelectedYmd || ymd);
+      }
+      updateHomeStats();
+    }
+
+    function openComposer() {
+      if (homeView === 'habits') {
+        if (typeof openHabitModal === 'function') openHabitModal();
+        return;
+      }
+      openTaskModal(homeView === 'calendar' ? (tlSelectedYmd || getActiveDateString()) : getActiveDateString());
+    }
+
+    function initTaskModal() {
+      var cancel = document.getElementById('taskModalCancel');
+      var save = document.getElementById('taskModalSave');
+      var modal = document.getElementById('taskModal');
+      var input = document.getElementById('taskModalInput');
+      if (cancel) cancel.addEventListener('click', closeTaskModal);
+      if (save) save.addEventListener('click', saveTaskFromModal);
+      if (modal) {
+        modal.addEventListener('click', function (e) {
+          if (e.target.id === 'taskModal') closeTaskModal();
+        });
+      }
+      if (input) {
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            saveTaskFromModal();
+          }
+        });
+      }
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && modal && !modal.hidden) closeTaskModal();
+      });
+      if (window.JGDash && JGDash.todoSchedule && JGDash.todoSchedule.mountScheduleField) {
+        taskModalSched = JGDash.todoSchedule.mountScheduleField({
+          root: document.getElementById('taskModalSchedule'),
+          ymd: getActiveDateString()
+        });
+      }
+    }
+
+    function parseTimeMinutes(t) {
+      if (!t || typeof t !== 'string') return null;
+      var m = t.match(/^(\d{1,2}):(\d{2})$/);
+      if (!m) return null;
+      return Number(m[1]) * 60 + Number(m[2]);
+    }
+
+    function formatTlRange(time) {
+      if (!time || !window.JGDash || !JGDash.todoSchedule) return 'Anytime';
+      return JGDash.todoSchedule.formatTimeLabel(time);
+    }
+
+    function mondayOf(d) {
+      var x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      var day = (x.getDay() + 6) % 7;
+      x.setDate(x.getDate() - day);
+      return x;
+    }
+
+    function renderTimelineWeek(selectedYmd) {
+      var weekEl = document.getElementById('tlWeek');
+      var monthEl = document.getElementById('tlMonth');
+      if (!weekEl || !monthEl) return;
+      var sel = selectedYmd || getActiveDateString();
+      tlSelectedYmd = sel;
+      var selDate = (window.JGDash && JGDash.todoSchedule)
+        ? JGDash.todoSchedule.parseDateString(sel)
+        : new Date(sel + 'T12:00:00');
+      monthEl.textContent = selDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+      var start = mondayOf(selDate);
+      var today = getActiveDateString();
+      weekEl.innerHTML = '';
+      for (var i = 0; i < 7; i++) {
+        var d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+        var ymd = isoDate(d);
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'tl-day' + (ymd === sel ? ' is-on' : '') + (ymd === today ? ' is-today' : '');
+        btn.setAttribute('data-ymd', ymd);
+        btn.innerHTML =
+          '<span class="tl-day-name">' + d.toLocaleDateString(undefined, { weekday: 'short' }).slice(0, 3) + '</span>' +
+          '<span class="tl-day-num">' + d.getDate() + '</span>';
+        btn.addEventListener('click', function (ev) {
+          var y = ev.currentTarget.getAttribute('data-ymd');
+          renderTimeline(y);
+        });
+        weekEl.appendChild(btn);
+      }
+    }
+
+    function renderTimeline(ymd) {
+      var track = document.getElementById('tlTrack');
+      if (!track) return;
+      var day = ymd || tlSelectedYmd || getActiveDateString();
+      renderTimelineWeek(day);
+      var goals = getGoals('goals:' + day).slice();
+      var timed = [];
+      var anytime = [];
+      goals.forEach(function (g, idx) {
+        var row = { goal: g, idx: idx, mins: parseTimeMinutes(g.time) };
+        if (row.mins != null) timed.push(row);
+        else anytime.push(row);
+      });
+      timed.sort(function (a, b) { return a.mins - b.mins; });
+
+      track.innerHTML = '';
+      if (!timed.length && !anytime.length) {
+        track.innerHTML = '<div class="tl-empty">Nothing scheduled — add a task with a time to see it here.</div>';
+        return;
+      }
+
+      function appendRow(item, colorIdx) {
+        var g = item.goal;
+        var color = TL_COLORS[colorIdx % TL_COLORS.length];
+        var row = document.createElement('div');
+        row.className = 'tl-row';
+        var timeLabel = g.time ? formatTlRange(g.time) : '—';
+        row.innerHTML =
+          '<div class="tl-time"></div>' +
+          '<div class="tl-pill" aria-hidden="true"></div>' +
+          '<div class="tl-meta"><div class="tl-title"></div><div class="tl-sub"></div></div>' +
+          '<button type="button" class="tl-check" aria-label="Toggle complete"></button>';
+        row.querySelector('.tl-time').textContent = timeLabel;
+        var pill = row.querySelector('.tl-pill');
+        pill.style.background = color;
+        pill.textContent = g.done ? '✓' : (g.time ? '●' : '◦');
+        var title = row.querySelector('.tl-title');
+        title.textContent = g.text || 'Untitled';
+        if (g.done) title.classList.add('is-done');
+        row.querySelector('.tl-sub').textContent = g.time ? timeLabel : 'No time set';
+        var check = row.querySelector('.tl-check');
+        check.style.color = color;
+        if (g.done) check.classList.add('is-done');
+        check.addEventListener('click', function () {
+          var list = getGoals('goals:' + day);
+          if (!list[item.idx]) return;
+          list[item.idx].done = !list[item.idx].done;
+          if (list[item.idx].done) list[item.idx].doneAt = Date.now();
+          else delete list[item.idx].doneAt;
+          setGoals('goals:' + day, list);
+          if (day === getActiveDateString()) loadToday();
+          renderTimeline(day);
+        });
+        track.appendChild(row);
+      }
+
+      timed.forEach(function (item, i) { appendRow(item, i); });
+      if (anytime.length) {
+        var lab = document.createElement('div');
+        lab.className = 'tl-section-label';
+        lab.textContent = 'Anytime';
+        track.appendChild(lab);
+        anytime.forEach(function (item, i) { appendRow(item, timed.length + i); });
+      }
     }
 
     function initHomeTabs() {
@@ -1927,9 +2582,17 @@
           setHomeTab(btn.getAttribute('data-home-tab'));
         });
       });
+      var plus = document.getElementById('trayPlus');
+      if (plus) plus.addEventListener('click', openComposer);
+      var addNew = document.getElementById('addNewTaskBtn');
+      if (addNew) addNew.addEventListener('click', function () {
+        setHomeTab('tasks');
+        openComposer();
+      });
       var saved = 'tasks';
       try { saved = localStorage.getItem('jg_main_home_tab') || 'tasks'; } catch (e) { /* ignore */ }
-      setHomeTab(saved === 'habits' ? 'habits' : 'tasks');
+      if (saved !== 'habits' && saved !== 'calendar') saved = 'tasks';
+      setHomeTab(saved);
     }
 
     function renderStreak() {
@@ -2168,6 +2831,9 @@
         false,
         'today'
       );
+      if (homeView === 'calendar' && typeof renderTimeline === 'function') {
+        renderTimeline(tlSelectedYmd || getActiveDateString());
+      }
     }
 
     function loadTomorrow() {
@@ -2461,19 +3127,24 @@
       return habit;
     }
 
-    function toggleToday(habitId) {
+    function toggleHabitDay(habitId, iso) {
       const habits = loadHabits();
       const habit = habits.find(function (h) { return h.id === habitId; });
       if (!habit) return;
-      const today = todayIso();
+      const day = String(iso || todayIso());
+      if (day > todayIso()) return;
       const set = {};
       (habit.completions || []).forEach(function (d) { set[d] = true; });
-      if (set[today]) delete set[today];
-      else set[today] = true;
+      if (set[day]) delete set[day];
+      else set[day] = true;
       habit.completions = Object.keys(set).sort();
       touchHabit(habit);
       saveHabits(habits);
-      renderHabits({ popId: habitId, popDate: today });
+      renderHabits({ popId: habitId, popDate: day });
+    }
+
+    function toggleToday(habitId) {
+      toggleHabitDay(habitId, todayIso());
     }
 
     function deleteHabit(habitId) {
@@ -2490,14 +3161,30 @@
       const days = lastNDays(HABIT_GRID_DAYS);
       const wrap = document.createElement('div');
       wrap.className = 'ht-tiles';
-      wrap.setAttribute('role', 'img');
-      wrap.setAttribute('aria-label', 'Last ' + HABIT_GRID_DAYS + ' days of completions');
+      wrap.setAttribute('role', 'group');
+      wrap.setAttribute('aria-label', 'Last ' + HABIT_GRID_DAYS + ' days — tap a day to fill or clear');
+      const today = todayIso();
       days.forEach(function (iso) {
-        const tile = document.createElement('div');
+        const tile = document.createElement('button');
+        tile.type = 'button';
         const done = isCompletedOn(habit, iso);
-        tile.className = 'ht-tile' + (done ? ' is-done' : '') + (iso === todayIso() ? ' is-today' : '');
-        tile.title = iso + (done ? ' · done' : '');
+        const future = iso > today;
+        tile.className = 'ht-tile' +
+          (done ? ' is-done' : '') +
+          (iso === today ? ' is-today' : '') +
+          (future ? ' is-future' : '');
+        tile.title = iso + (done ? ' · done' : future ? ' · future' : ' · tap to toggle');
+        tile.setAttribute('aria-label', (done ? 'Clear ' : 'Complete ') + habit.name + ' on ' + iso);
+        tile.setAttribute('aria-pressed', done ? 'true' : 'false');
+        if (future) tile.disabled = true;
         if (popDate && iso === popDate && done) tile.classList.add('is-pop');
+        if (!future) {
+          tile.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleHabitDay(habit.id, iso);
+          });
+        }
         wrap.appendChild(tile);
       });
       return wrap;
@@ -2645,23 +3332,10 @@
     runStreakCheck();
     runRollover();
     normalizeStoredGoalIds();
-    var todaySched = null;
     if (window.JGDash && JGDash.todoSchedule) {
       JGDash.todoSchedule.injectSchedCss();
-      todaySched = JGDash.todoSchedule.mountScheduleStrip({
-        root: document.getElementById('goalSchedule'),
-        defaultDay: 'today'
-      });
     }
-    makeAddHandlers(
-      document.getElementById('goalInput'),
-      document.getElementById('goalAddBtn'),
-      document.getElementById('goalPolishBtn'),
-      todayKey,
-      document.getElementById('polishStatus'),
-      loadToday,
-      todaySched
-    );
+    initTaskModal();
     makeAddHandlers(
       document.getElementById('tomorrowInput'),
       document.getElementById('tomorrowAddBtn'),
@@ -2698,6 +3372,7 @@
       loadTomorrow();
       renderStreak();
       if (typeof renderHabits === 'function') renderHabits();
+      if (homeView === 'calendar' && typeof renderTimeline === 'function') renderTimeline();
       try { ticker.start(); } catch (err) { /* ignore */ }
     });
 
