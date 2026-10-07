@@ -322,8 +322,260 @@
     if (document.getElementById('jgdash-sched-css')) return;
     var style = document.createElement('style');
     style.id = 'jgdash-sched-css';
-    style.textContent = SCHED_CSS;
+    style.textContent = SCHED_CSS + DT_PICKER_CSS;
     (document.head || document.documentElement).appendChild(style);
+  }
+
+  var DT_PICKER_CSS =
+    '.jg-dt-backdrop{position:fixed;inset:0;z-index:340;background:rgba(0,0,0,.62);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;padding:14px;padding-bottom:max(14px,env(safe-area-inset-bottom))}' +
+    '@media(min-width:720px){.jg-dt-backdrop{align-items:center}}' +
+    '.jg-dt-modal{width:100%;max-width:560px;max-height:min(88vh,640px);overflow:hidden;display:flex;flex-direction:column;background:#121214;border:1px solid rgba(255,255,255,.1);border-radius:22px;box-shadow:0 28px 80px rgba(0,0,0,.55);color:#FAFAFA;font-family:inherit}' +
+    '.jg-dt-body{display:grid;grid-template-columns:1.15fr .85fr;gap:0;min-height:0;flex:1;overflow:hidden}' +
+    '@media(max-width:620px){.jg-dt-body{grid-template-columns:1fr;overflow:auto}}' +
+    '.jg-dt-cal{padding:18px 16px 12px;border-right:1px solid rgba(255,255,255,.08);min-width:0}' +
+    '@media(max-width:620px){.jg-dt-cal{border-right:0;border-bottom:1px solid rgba(255,255,255,.08)}}' +
+    '.jg-dt-cal-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px}' +
+    '.jg-dt-cal-title{font-size:15px;font-weight:700;letter-spacing:-.02em}' +
+    '.jg-dt-nav{appearance:none;border:0;background:rgba(255,255,255,.06);color:#FAFAFA;width:32px;height:32px;border-radius:10px;cursor:pointer;font-size:16px;line-height:1}' +
+    '.jg-dt-nav:hover{background:rgba(255,255,255,.1)}' +
+    '.jg-dt-dow{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:6px}' +
+    '.jg-dt-dow span{text-align:center;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#76746E;padding:4px 0}' +
+    '.jg-dt-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}' +
+    '.jg-dt-day{appearance:none;border:0;background:transparent;color:#FAFAFA;height:38px;border-radius:12px;cursor:pointer;font:inherit;font-size:13px;font-weight:600;position:relative}' +
+    '.jg-dt-day.is-muted{color:#52525B}' +
+    '.jg-dt-day.is-on{background:#F4F4F5;color:#18181B}' +
+    '.jg-dt-day.is-today:not(.is-on)::after{content:"";position:absolute;left:50%;bottom:5px;width:4px;height:4px;border-radius:50%;background:#F07167;transform:translateX(-50%)}' +
+    '.jg-dt-times{padding:14px 12px;overflow-y:auto;min-height:0;display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch}' +
+    '@media(max-width:620px){.jg-dt-times{max-height:220px}}' +
+    '.jg-dt-slot{appearance:none;border:1px solid rgba(255,255,255,.12);background:transparent;color:#FAFAFA;border-radius:999px;padding:10px 12px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;text-align:center}' +
+    '.jg-dt-slot.is-on{background:#E4E4E7;color:#18181B;border-color:transparent}' +
+    '.jg-dt-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-top:1px solid rgba(255,255,255,.08);flex-wrap:wrap}' +
+    '.jg-dt-summary{font-size:12.5px;color:#A1A1AA;line-height:1.35;flex:1;min-width:160px}' +
+    '.jg-dt-summary strong{color:#FAFAFA;font-weight:650}' +
+    '.jg-dt-continue{appearance:none;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.04);color:#FAFAFA;border-radius:999px;padding:10px 18px;font:inherit;font-size:13px;font-weight:700;cursor:pointer}' +
+    '.jg-dt-continue:hover{background:rgba(255,255,255,.08)}' +
+    '.jg-sched-field{display:flex;align-items:center;gap:8px;width:100%;margin-top:8px}' +
+    '.jg-sched-chip{appearance:none;flex:1;min-width:0;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#FAFAFA;border-radius:14px;padding:12px 14px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px}' +
+    '.jg-sched-chip:hover{border-color:rgba(255,255,255,.18)}' +
+    '.jg-sched-chip span{opacity:.72;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}';
+
+  function formatLongDay(ymd) {
+    var d = parseDateString(ymd);
+    return d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+  }
+
+  function openDateTimePicker(opts) {
+    opts = opts || {};
+    injectSchedCss();
+    var ymd = opts.ymd || getActiveDateString();
+    var timeVal = normalizeTime(opts.time) || '';
+    var view = parseDateString(ymd);
+    view = new Date(view.getFullYear(), view.getMonth(), 1);
+    var todayYmd = getActiveDateString();
+
+    var backdrop = document.createElement('div');
+    backdrop.className = 'jg-dt-backdrop';
+    backdrop.setAttribute('role', 'dialog');
+    backdrop.setAttribute('aria-modal', 'true');
+    backdrop.setAttribute('aria-label', 'Pick date and time');
+    backdrop.innerHTML =
+      '<div class="jg-dt-modal">' +
+        '<div class="jg-dt-body">' +
+          '<div class="jg-dt-cal">' +
+            '<div class="jg-dt-cal-head">' +
+              '<button type="button" class="jg-dt-nav" data-nav="-1" aria-label="Previous month">‹</button>' +
+              '<div class="jg-dt-cal-title"></div>' +
+              '<button type="button" class="jg-dt-nav" data-nav="1" aria-label="Next month">›</button>' +
+            '</div>' +
+            '<div class="jg-dt-dow">' +
+              '<span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>' +
+            '</div>' +
+            '<div class="jg-dt-grid"></div>' +
+          '</div>' +
+          '<div class="jg-dt-times"></div>' +
+        '</div>' +
+        '<div class="jg-dt-foot">' +
+          '<div class="jg-dt-summary"></div>' +
+          '<button type="button" class="jg-dt-continue">Continue</button>' +
+        '</div>' +
+      '</div>';
+
+    var titleEl = backdrop.querySelector('.jg-dt-cal-title');
+    var gridEl = backdrop.querySelector('.jg-dt-grid');
+    var timesEl = backdrop.querySelector('.jg-dt-times');
+    var summaryEl = backdrop.querySelector('.jg-dt-summary');
+
+    function paintSummary() {
+      var label = formatLongDay(ymd);
+      var t = timeVal ? formatTimeLabel(timeVal) : 'no time';
+      summaryEl.innerHTML = 'Scheduled for <strong>' + label + '</strong> · <strong>' + t + '</strong>';
+    }
+
+    function paintTimes() {
+      timesEl.innerHTML = '';
+      var none = document.createElement('button');
+      none.type = 'button';
+      none.className = 'jg-dt-slot' + (!timeVal ? ' is-on' : '');
+      none.textContent = 'None';
+      none.addEventListener('click', function () {
+        timeVal = '';
+        paintTimes();
+        paintSummary();
+      });
+      timesEl.appendChild(none);
+      for (var h = 6; h <= 22; h++) {
+        for (var m = 0; m < 60; m += 15) {
+          var hhmm = pad2(h) + ':' + pad2(m);
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'jg-dt-slot' + (timeVal === hhmm ? ' is-on' : '');
+          btn.textContent = hhmm;
+          btn.setAttribute('data-time', hhmm);
+          btn.addEventListener('click', function (ev) {
+            timeVal = ev.currentTarget.getAttribute('data-time') || '';
+            paintTimes();
+            paintSummary();
+          });
+          timesEl.appendChild(btn);
+        }
+      }
+      var on = timesEl.querySelector('.jg-dt-slot.is-on');
+      if (on && on.scrollIntoView) {
+        try { on.scrollIntoView({ block: 'nearest' }); } catch (e) { /* ignore */ }
+      }
+    }
+
+    function paintCal() {
+      titleEl.textContent = view.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+      gridEl.innerHTML = '';
+      var firstDow = new Date(view.getFullYear(), view.getMonth(), 1).getDay();
+      var daysInMonth = new Date(view.getFullYear(), view.getMonth() + 1, 0).getDate();
+      var prevDays = new Date(view.getFullYear(), view.getMonth(), 0).getDate();
+      var cells = [];
+      var i;
+      for (i = 0; i < firstDow; i++) {
+        cells.push({ day: prevDays - firstDow + 1 + i, muted: true, monthOffset: -1 });
+      }
+      for (i = 1; i <= daysInMonth; i++) cells.push({ day: i, muted: false, monthOffset: 0 });
+      while (cells.length % 7 !== 0) {
+        cells.push({ day: cells.length - (firstDow + daysInMonth) + 1, muted: true, monthOffset: 1 });
+      }
+      cells.forEach(function (cell) {
+        var d = new Date(view.getFullYear(), view.getMonth() + cell.monthOffset, cell.day);
+        var cellYmd = toDateString(d);
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'jg-dt-day' +
+          (cell.muted ? ' is-muted' : '') +
+          (cellYmd === ymd ? ' is-on' : '') +
+          (cellYmd === todayYmd ? ' is-today' : '');
+        btn.textContent = String(cell.day);
+        btn.setAttribute('data-ymd', cellYmd);
+        btn.addEventListener('click', function () {
+          ymd = cellYmd;
+          if (cell.monthOffset !== 0) {
+            view = new Date(d.getFullYear(), d.getMonth(), 1);
+          }
+          paintCal();
+          paintSummary();
+        });
+        gridEl.appendChild(btn);
+      });
+    }
+
+    function close() {
+      if (backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
+      document.removeEventListener('keydown', onKey);
+    }
+
+    function onKey(e) {
+      if (e.key === 'Escape') close();
+    }
+
+    backdrop.addEventListener('click', function (e) {
+      if (e.target === backdrop) close();
+      var nav = e.target.closest('[data-nav]');
+      if (nav) {
+        view = new Date(view.getFullYear(), view.getMonth() + Number(nav.getAttribute('data-nav')), 1);
+        paintCal();
+      }
+    });
+    backdrop.querySelector('.jg-dt-continue').addEventListener('click', function () {
+      if (typeof opts.onConfirm === 'function') opts.onConfirm({ ymd: ymd, time: timeVal });
+      close();
+    });
+    document.addEventListener('keydown', onKey);
+    document.body.appendChild(backdrop);
+    paintCal();
+    paintTimes();
+    paintSummary();
+    return { close: close };
+  }
+
+  /**
+   * Compact schedule field that opens the date/time popout.
+   * Returns { getDayYmd, getTime, reset, set }
+   */
+  function mountScheduleField(opts) {
+    opts = opts || {};
+    var root = opts.root;
+    if (!root) return null;
+    injectSchedCss();
+    var active = getActiveDateString();
+    var ymd = opts.ymd || active;
+    var timeVal = normalizeTime(opts.time) || '';
+
+    root.innerHTML =
+      '<div class="jg-sched-field">' +
+        '<button type="button" class="jg-sched-chip" id="jgSchedChip">' +
+          '<span aria-hidden="true">📅</span><span class="jg-sched-label"></span>' +
+        '</button>' +
+      '</div>';
+    var label = root.querySelector('.jg-sched-label');
+    var chip = root.querySelector('.jg-sched-chip');
+
+    function paint() {
+      var day = formatLongDay(ymd);
+      var t = timeVal ? formatTimeLabel(timeVal) : 'Any time';
+      label.textContent = day + ' · ' + t;
+    }
+
+    function emit() {
+      if (typeof opts.onChange === 'function') {
+        opts.onChange({ dayYmd: ymd, time: timeVal });
+      }
+    }
+
+    chip.addEventListener('click', function () {
+      openDateTimePicker({
+        ymd: ymd,
+        time: timeVal,
+        onConfirm: function (res) {
+          ymd = res.ymd || active;
+          timeVal = normalizeTime(res.time) || '';
+          paint();
+          emit();
+        }
+      });
+    });
+
+    paint();
+    return {
+      getDayYmd: function () { return ymd || active; },
+      getTime: function () { return timeVal; },
+      set: function (next) {
+        next = next || {};
+        if (next.ymd) ymd = next.ymd;
+        if (next.time != null) timeVal = normalizeTime(next.time) || '';
+        paint();
+      },
+      reset: function () {
+        active = getActiveDateString();
+        ymd = active;
+        timeVal = '';
+        paint();
+      }
+    };
   }
 
   global.JGDash = global.JGDash || {};
@@ -343,6 +595,8 @@
     rotateFeedToken: rotateFeedToken,
     feedUrls: feedUrls,
     mountScheduleStrip: mountScheduleStrip,
+    mountScheduleField: mountScheduleField,
+    openDateTimePicker: openDateTimePicker,
     injectSchedCss: injectSchedCss
   };
 })(typeof window !== 'undefined' ? window : global);
