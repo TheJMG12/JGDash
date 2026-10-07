@@ -33,6 +33,9 @@
       --block-a: #2A2438;
       --block-b: #1C1C1F;
       --block-c: #E8DCC8;
+      --moss: #6B7F5C;
+      --moss-deep: #556749;
+      --moss-ink: #F3F6EF;
       --bg: #050506;
       --card-bg: rgba(255, 255, 255, 0.04);
       --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -356,59 +359,65 @@
     /* —— Home stats (blocky glance cards) —— */
     .home-stats {
       display: grid;
-      grid-template-columns: 1.15fr 1fr 1fr;
-      gap: 12px;
-      margin: 18px 0 20px;
+      grid-template-columns: 1.1fr 1fr 1fr;
+      gap: 8px;
+      margin: 14px 0 14px;
+    }
+    .home-stats.is-calendar-view {
+      grid-template-columns: 1fr 1fr;
+    }
+    .home-stats.is-calendar-view .home-stat-date {
+      display: none !important;
     }
     .home-stat {
       display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      gap: 14px;
-      padding: 16px 16px 14px;
-      border-radius: var(--radius-block);
+      flex-direction: row;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 18px;
       border: 0;
       min-width: 0;
-      min-height: 108px;
-      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+      min-height: 0;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22);
     }
-    .home-stat:nth-child(1) {
+    .home-stat-date {
       background: linear-gradient(160deg, #3A314F 0%, #2A2438 100%);
       color: #F4F0FF;
     }
-    .home-stat:nth-child(2) {
+    .home-stat-today {
       background: linear-gradient(160deg, #2A2A2E 0%, #1C1C1F 100%);
       color: var(--text-primary);
     }
-    .home-stat:nth-child(3) {
-      background: linear-gradient(160deg, #EDE3D2 0%, #E8DCC8 100%);
-      color: #1A1714;
+    .home-stat-open {
+      background: linear-gradient(160deg, var(--moss) 0%, var(--moss-deep) 100%);
+      color: var(--moss-ink);
     }
     .home-stat-ico {
-      width: 36px;
-      height: 36px;
-      border-radius: 14px;
+      width: 28px;
+      height: 28px;
+      border-radius: 10px;
       display: grid;
       place-items: center;
-      font-size: 15px;
+      font-size: 13px;
       flex-shrink: 0;
       background: rgba(255, 255, 255, 0.12);
     }
-    .home-stat:nth-child(3) .home-stat-ico { background: rgba(0, 0, 0, 0.08); }
+    .home-stat-open .home-stat-ico { background: rgba(255, 255, 255, 0.16); }
     .home-stat-body { min-width: 0; }
     .home-stat-value {
-      font-size: 28px;
+      font-size: 18px;
       font-weight: 800;
-      letter-spacing: -0.04em;
+      letter-spacing: -0.03em;
       line-height: 1.05;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     .home-stat-label {
-      font-size: 12px;
+      font-size: 11px;
       opacity: 0.72;
-      margin-top: 4px;
+      margin-top: 2px;
       font-weight: 600;
     }
 
@@ -537,10 +546,10 @@
       font-size: 14px;
       font-weight: 700;
       letter-spacing: -0.01em;
-      color: #1A1714;
-      background: var(--block-c);
+      color: var(--moss-ink);
+      background: linear-gradient(160deg, var(--moss) 0%, var(--moss-deep) 100%);
       cursor: pointer;
-      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
+      box-shadow: 0 8px 22px rgba(85, 103, 73, 0.35);
       transition: transform .15s ease, filter .15s ease;
     }
     .gm-add-new-btn:hover { filter: brightness(1.04); }
@@ -697,9 +706,9 @@
     }
 
     @media (max-width: 560px) {
-      .home-stats { grid-template-columns: 1fr 1fr; gap: 10px; }
-      .home-stat:nth-child(1) { grid-column: 1 / -1; min-height: 92px; }
-      .home-stat-value { font-size: 24px; }
+      .home-stats { grid-template-columns: 1fr 1fr; gap: 8px; }
+      .home-stats:not(.is-calendar-view) .home-stat-date { grid-column: 1 / -1; }
+      .home-stat-value { font-size: 16px; }
       .tl-row { grid-template-columns: 44px 48px 1fr 34px; gap: 8px; }
       .tl-row::before { left: calc(44px + 24px); }
     }
@@ -1586,22 +1595,22 @@
       </div>
     </div>
 
-    <div class="home-stats" aria-label="Today at a glance">
-      <div class="home-stat">
+    <div class="home-stats" id="homeStats" aria-label="Today at a glance">
+      <div class="home-stat home-stat-date">
         <div class="home-stat-ico is-date" aria-hidden="true">📅</div>
         <div class="home-stat-body">
           <div class="home-stat-value" id="homeStatDate">—</div>
           <div class="home-stat-label" id="homeStatWeekday">—</div>
         </div>
       </div>
-      <div class="home-stat">
+      <div class="home-stat home-stat-today">
         <div class="home-stat-ico is-today" aria-hidden="true">✓</div>
         <div class="home-stat-body">
           <div class="home-stat-value" id="homeStatToday">0</div>
           <div class="home-stat-label">Today</div>
         </div>
       </div>
-      <div class="home-stat">
+      <div class="home-stat home-stat-open">
         <div class="home-stat-ico is-open" aria-hidden="true">○</div>
         <div class="home-stat-body">
           <div class="home-stat-value" id="homeStatOpen">0</div>
@@ -2228,6 +2237,9 @@
       panelTasks.hidden = view !== 'tasks';
       panelHabits.hidden = view !== 'habits';
       panelCal.hidden = view !== 'calendar';
+
+      var stats = document.getElementById('homeStats');
+      if (stats) stats.classList.toggle('is-calendar-view', view === 'calendar');
 
       document.querySelectorAll('#homeTray [data-home-tab], .home-tabs [data-home-tab]').forEach(function (btn) {
         var on = btn.getAttribute('data-home-tab') === view;
