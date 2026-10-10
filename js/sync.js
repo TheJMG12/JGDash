@@ -107,6 +107,58 @@
     return stableStringify(a) === stableStringify(b);
   }
 
+  // Keep only tiny data: placeholders in synced JSON. Full MyMind previews live in
+  // IndexedDB + Supabase Storage — embedding them in user_kv blew past localStorage
+  // ("The quota has been exceeded") and bloated cloud rows.
+  var SYNC_DATA_URL_MAX = 4096;
+
+  function isQuotaError(err) {
+    if (!err) return false;
+    if (err.name === 'QuotaExceededError' || err.code === 22 || err.code === 1014) return true;
+    return /quota/i.test(String(err.message || ''));
+  }
+
+  function stripHeavyDataUrl(obj, field, omittedFlag) {
+    if (!obj || typeof obj !== 'object') return false;
+    var v = obj[field];
+    if (typeof v !== 'string') return false;
+    if (v.indexOf('blob:') === 0) {
+      obj[field] = '';
+      if (omittedFlag) obj[omittedFlag] = true;
+      return true;
+    }
+    if (v.indexOf('data:') !== 0) return false;
+    if (v.length <= SYNC_DATA_URL_MAX) return false;
+    obj[field] = '';
+    if (omittedFlag) obj[omittedFlag] = true;
+    return true;
+  }
+
+  function slimMediaForSync(value) {
+    if (!value || typeof value !== 'object') return value;
+    var out;
+    try {
+      out = JSON.parse(JSON.stringify(value));
+    } catch (e) {
+      return value;
+    }
+    (out.visuals || []).forEach(function (v) {
+      stripHeavyDataUrl(v, 'src', 'srcOmitted');
+    });
+    ['items', 'watchlist', 'books'].forEach(function (field) {
+      (out[field] || []).forEach(function (it) {
+        stripHeavyDataUrl(it, 'image', null);
+        stripHeavyDataUrl(it, 'cover', null);
+      });
+    });
+    return out;
+  }
+
+  function prepareValueForStorage(key, value) {
+    if (key === 'jg_media_data_v1') return slimMediaForSync(value);
+    return value;
+  }
+
   function itemTime(it) {
     if (!it || typeof it !== 'object') return 0;
     var candidates = [it.updatedAt, it.savedAt, it.createdAt, it.addedAt, it.date, it.ts];
@@ -890,8 +942,45 @@
   function applyRemoteRow(key, value, updatedAt) {
     applyingRemote = true;
     try {
-      localStorage.setItem(key, serializeValue(value));
+      var toWrite = prepareValueForStorage(key, value);
+      try {
+        localStorage.setItem(key, serializeValue(toWrite));
+      } catch (e) {
+        if (!isQuotaError(e)) throw e;
+        // Last resort: media with every data:/blob: src cleared.
+        if (key === 'jg_media_data_v1' && toWrite && typeof toWrite === 'object') {
+          var emergency;
+          try {
+            emergency = JSON.parse(JSON.stringify(toWrite));
+          } catch (e2) {
+            throw e;
+          }
+          (emergency.visuals || []).forEach(function (v) {
+            if (!v) return;
+            if (String(v.src || '').indexOf('data:') === 0 || String(v.src || '').indexOf('blob:') === 0) {
+              v.src = '';
+              v.srcOmitted = true;
+            }
+          });
+          ['items', 'watchlist', 'books'].forEach(function (field) {
+            (emergency[field] || []).forEach(function (it) {
+              if (!it) return;
+              ['image', 'cover'].forEach(function (f) {
+                if (typeof it[f] === 'string' &&
+                    (it[f].indexOf('data:') === 0 || it[f].indexOf('blob:') === 0)) {
+                  it[f] = '';
+                }
+              });
+            });
+          });
+          localStorage.setItem(key, serializeValue(emergency));
+          toWrite = emergency;
+        } else {
+          throw e;
+        }
+      }
       touchLocal(key, updatedAt || nowIso());
+      return toWrite;
     } finally {
       applyingRemote = false;
     }
@@ -974,6 +1063,29 @@
             var finalVal;
             var localChanged = false;
             var shouldPush = false;
+            // Compact Media before merge/apply so fat data: URLs never hit setItem or upsert.
+            var mediaNeedsCloudSlim = false;
+            if (key === 'jg_media_data_v1') {
+              if (localVal != null) {
+                var localSlim = slimMediaForSync(localVal);
+                if (!valuesEqual(localSlim, localVal)) {
+                  applyRemoteRow(key, localSlim, localMtime || pushIso);
+                  localVal = localSlim;
+                  localChanged = true;
+                  shouldPush = true;
+                  if (applied.indexOf(key) === -1) applied.push(key);
+                  meta = readMeta();
+                } else {
+                  localVal = localSlim;
+                }
+              }
+              if (remoteVal != null) {
+                var remoteSlim = slimMediaForSync(remoteVal);
+                mediaNeedsCloudSlim = !valuesEqual(remoteSlim, remoteVal);
+                remoteVal = remoteSlim;
+                if (mediaNeedsCloudSlim) shouldPush = true;
+              }
+            }
 
             // Health: discard poisoned demo seeds from either side and purge cloud.
             if (key === 'jg_health_data_v1' && (localVal != null || remoteVal != null)) {
@@ -1078,13 +1190,13 @@
 
             if (shouldPush && finalVal != null) {
               var stamp = localChanged ? pushIso : (localMtime || (remote && remote.updated_at) || pushIso);
-              if (localChanged || !meta.mtimes[key]) {
+              if (localChanged || !meta.mtimes[key] || mediaNeedsCloudSlim) {
                 meta.mtimes[key] = stamp;
               }
               toPush.push({
                 user_id: userId,
                 key: key,
-                value: finalVal,
+                value: prepareValueForStorage(key, finalVal),
                 updated_at: meta.mtimes[key]
               });
             }
@@ -1145,8 +1257,17 @@
         });
     }).catch(function (err) {
       var message = (err && err.message) || 'Sync failed';
+      if (isQuotaError(err)) {
+        message = 'Browser storage full — clearing oversized MyMind image data from sync. Tap Sync again.';
+      }
       setStatus('error', message);
-      return { ok: false, error: err, applied: [], pushed: [], merged: [] };
+      return {
+        ok: false,
+        error: { message: message, name: err && err.name, originalMessage: err && err.message },
+        applied: [],
+        pushed: [],
+        merged: []
+      };
     }).then(function (result) {
       syncing = null;
       try {
@@ -1238,6 +1359,9 @@
     installHooks: installHooks,
     isSyncKey: isSyncKey,
     mergeKey: mergeKey,
+    slimMediaForSync: slimMediaForSync,
+    prepareValueForStorage: prepareValueForStorage,
+    isQuotaError: isQuotaError,
     looksLikeHealthDemoSeed: looksLikeHealthDemoSeed,
     emptyHealthBlob: emptyHealthBlob,
     resolveHealthSync: resolveHealthSync,
