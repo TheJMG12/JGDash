@@ -152,30 +152,58 @@
     }
   }
 
-  function save(store) {
+  /** Drop large inline images from the disk copy; IDB/cloud still hold bytes for hydrate. */
+  function leanStoreForDisk(store) {
+    var lean;
     try {
-      localStorage.setItem(DATA_KEY, JSON.stringify(store));
+      lean = JSON.parse(JSON.stringify(store));
+    } catch (e) {
+      return store;
+    }
+    var maxInline = 4096;
+    (lean.visuals || []).forEach(function (v) {
+      if (!v) return;
+      var src = String(v.src || '');
+      // Prefer omitting whenever bytes are recoverable (blobId) or src is huge/undurable.
+      var heavy = src.indexOf('data:') === 0 && src.length > maxInline;
+      var undurable = src.indexOf('blob:') === 0;
+      if (heavy || undurable) {
+        v.src = '';
+        v.srcOmitted = true;
+      }
+    });
+    ['items', 'watchlist', 'books'].forEach(function (field) {
+      (lean[field] || []).forEach(function (it) {
+        if (!it) return;
+        ['image', 'cover'].forEach(function (f) {
+          var val = String(it[f] || '');
+          if ((val.indexOf('data:') === 0 && val.length > maxInline) || val.indexOf('blob:') === 0) {
+            it[f] = '';
+          }
+        });
+      });
+    });
+    return lean;
+  }
+
+  function save(store) {
+    // Always persist a lean copy so sync/localStorage stay under quota. In-memory
+    // `store` keeps data: previews for the current session; reload hydrates via IDB/cloud.
+    try {
+      localStorage.setItem(DATA_KEY, JSON.stringify(leanStoreForDisk(store)));
       return true;
     } catch (e) {
-      // Quota: drop large data: URLs (cloud/IDB still hold bytes) and retry.
+      // Quota: strip every data:/blob: preview and retry.
       try {
-        var lean = JSON.parse(JSON.stringify(store));
+        var lean = leanStoreForDisk(store);
         (lean.visuals || []).forEach(function (v) {
           if (!v) return;
-          if (String(v.src || '').indexOf('data:') === 0 && String(v.src).length > 12000) {
+          if (String(v.src || '').indexOf('data:') === 0 || String(v.src || '').indexOf('blob:') === 0) {
             v.src = '';
             v.srcOmitted = true;
           }
         });
         localStorage.setItem(DATA_KEY, JSON.stringify(lean));
-        if (store && Array.isArray(store.visuals)) {
-          store.visuals.forEach(function (v, i) {
-            if (lean.visuals[i] && lean.visuals[i].srcOmitted) {
-              v.src = '';
-              v.srcOmitted = true;
-            }
-          });
-        }
         return true;
       } catch (e2) {
         return false;
